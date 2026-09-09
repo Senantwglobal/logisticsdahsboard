@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OPLE Logistics Dashboard</title>
 <meta name="color-scheme" content="light dark">
+<!-- Pretendard: cross-platform substitute for Apple SD Gothic Neo (identical letterform family, "산돌고딕 Neo" based) —
+     macOS already has the real Apple SD Gothic Neo, but Windows/Android do not, so this CDN font keeps the exact same
+     look everywhere instead of silently falling back to Malgun Gothic/Segoe UI/Roboto on non-Apple devices. -->
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <style>
 /* ============================= TOKENS — warm neutral + soft pastel badges, pill controls ============================= */
 :root{
@@ -23,7 +27,7 @@
   --cost-pack:#20905a; --cost-lastmile:#c2703d; --cost-air:#6c4fd1;
   --shadow: 0 1px 2px rgba(20,18,12,.04), 0 10px 24px -14px rgba(20,18,12,.12);
   --radius-s:9px; --radius-m:14px; --radius-l:18px;
-  --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Apple SD Gothic Neo","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-ui:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --font-mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){
@@ -139,7 +143,7 @@ select{cursor:pointer;}
 .btn svg{width:14px; height:14px;}
 .seg{display:inline-flex; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface-2); padding:2px;}
 .seg button{appearance:none; border:none; background:none; padding:7px 13px; font-size:12.5px; font-weight:500; color:var(--ink-2); cursor:pointer;}
-.seg button.active{background:var(--accent); color:var(--accent-ink); border-radius:9px;}
+.seg button.active{background:var(--surface); color:var(--ink); border-radius:9px; box-shadow:0 1px 3px rgba(20,18,12,.10);}
 
 /* ============================= TABLE ============================= */
 .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-m);}
@@ -193,6 +197,7 @@ svg.chart .gridline{stroke:var(--line);}
 .cal-cell .d{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2); font-weight:600;}
 .cal-cell .d.weekend{color:var(--critical);}
 .cal-cell .holi{font-size:10px; color:var(--critical); font-weight:600; line-height:1.25;}
+.cal-cell .holi.open{color:var(--ink-2); font-weight:500;}
 .cal-cell .chip{font-size:9.5px; font-weight:600; padding:1.5px 5px; border-radius:100px; line-height:1.5; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .cal-cell .chip.kr{background:var(--kr-soft); color:var(--kr);}
 .cal-cell .chip.jp{background:var(--jp-soft); color:var(--jp);}
@@ -560,7 +565,7 @@ async function seedIfEmpty(){
   const jobs = [];
   if(hCount===0){
     HOLIDAY_SEED.forEach(([country,date,name])=>{
-      jobs.push(Store.upsertHoliday({id:`${country}_${date}`, country, date, name, source:"auto"}));
+      jobs.push(Store.upsertHoliday({id:`${country}_${date}`, country, date, name, source:"auto", closed:true}));
     });
   }
   if(!hasSet){ jobs.push(Store.saveSettings(defaultSettings())); }
@@ -1280,14 +1285,21 @@ function shell(){
           <form id="hForm" class="stack" style="gap:10px;">
             <div class="field"><label>날짜</label><input type="date" id="hDate" required></div>
             <div class="field"><label>명칭</label><input type="text" id="hName" placeholder="예: 창고 자체 휴무일" required></div>
+            <div class="field"><label>근무 여부</label>
+              <div class="seg" id="hClosedSeg">
+                <button type="button" data-v="1" class="active">창고 휴무</button>
+                <button type="button" data-v="0">정상 근무</button>
+              </div>
+            </div>
             <button type="submit" class="btn primary">추가</button>
           </form>
         </div>
         <div class="card" style="flex:1;">
           <div class="section-head"><h2>휴무일 목록</h2><span class="hint" id="hCount"></span></div>
+          <div class="help" style="margin:-6px 0 8px;">공휴일이어도 창고를 정상 운영했다면 "근무" 칸을 눌러 정상 근무로 바꿀 수 있습니다.</div>
           <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
-            <table>
-              <thead><tr><th>날짜</th><th>명칭</th><th>구분</th><th></th></tr></thead>
+            <table style="min-width:0;">
+              <thead><tr><th>날짜</th><th>명칭</th><th>등록</th><th>근무</th><th></th></tr></thead>
               <tbody id="hTableBody"></tbody>
             </table>
           </div>
@@ -1304,18 +1316,27 @@ function shell(){
   });
   document.getElementById("hPrev").addEventListener("click", ()=>{ cursor.m--; if(cursor.m<0){cursor.m=11;cursor.y--;} refresh(); });
   document.getElementById("hNext").addEventListener("click", ()=>{ cursor.m++; if(cursor.m>11){cursor.m=0;cursor.y++;} refresh(); });
+  let formClosed = true; // 창고 휴무(true) vs 정상 근무(false) for the "휴무일 추가" form
+  document.getElementById("hClosedSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    formClosed = b.dataset.v==="1";
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+  });
   document.getElementById("hForm").addEventListener("submit", async e=>{
     e.preventDefault();
     const date = document.getElementById("hDate").value;
     const name = document.getElementById("hName").value.trim();
     if(!date || !name) return;
-    await CD.Store.upsertHoliday({ id:`${country}_${date}`, country, date, name, source:"custom" });
+    await CD.Store.upsertHoliday({ id:`${country}_${date}`, country, date, name, source:"custom", closed: formClosed });
     document.getElementById("hForm").reset();
+    document.getElementById("hDate").value = CD.todayISO();
+    formClosed = true;
+    document.getElementById("hClosedSeg").querySelectorAll("button").forEach(b=>b.classList.toggle("active", b.dataset.v==="1"));
   });
   document.getElementById("hReseed").addEventListener("click", async ()=>{
     const seedRows = HOLIDAY_SEED_REF.filter(r=>r[0]===country);
     for(const [c,date,name] of seedRows){
-      await CD.Store.upsertHoliday({ id:`${c}_${date}`, country:c, date, name, source:"auto" });
+      await CD.Store.upsertHoliday({ id:`${c}_${date}`, country:c, date, name, source:"auto", closed:true });
     }
     alert(`${CD.COUNTRY_LABEL[country]} 공휴일을 다시 불러왔습니다.`);
   });
@@ -1352,23 +1373,35 @@ function refresh(){
     const wd = idx%7;
     const h = map[c.iso];
     const isToday = c.iso===today;
+    const isClosed = h ? (h.closed!==false) : false;
     return `<div class="cal-cell ${isToday?'today':''}">
       <div class="d ${wd===0||wd===6?'weekend':''}">${c.day}</div>
-      ${h?`<div class="holi">${h.name}</div>`:''}
+      ${h?`<div class="holi ${isClosed?'':'open'}">${h.name}${isClosed?'':' · 정상근무'}</div>`:''}
     </div>`;
   }).join("");
 
   const sorted = [...list].sort((a,b)=>a.date<b.date?-1:1);
   document.getElementById("hCount").textContent = `${sorted.length}건`;
-  document.getElementById("hTableBody").innerHTML = sorted.map(h=>`
+  document.getElementById("hTableBody").innerHTML = sorted.map(h=>{
+    const isClosed = h.closed!==false;
+    return `
     <tr>
-      <td>${CD.fmtFull(h.date)}</td>
-      <td class="text">${h.name}</td>
+      <td style="white-space:normal; min-width:74px;">${CD.fmtShort(h.date)}</td>
+      <td class="text" style="white-space:normal; min-width:90px;">${h.name}</td>
       <td class="text"><span class="badge ${h.source==='auto'?'auto':'good'}">${h.source==='auto'?'자동':'수동'}</span></td>
+      <td class="text"><button class="badge ${isClosed?'critical':'good'}" style="appearance:none; border:none; font-family:inherit; cursor:pointer; white-space:nowrap;" data-toggle="${h.id}" title="눌러서 전환">${isClosed?'휴무':'정상 근무'}</button></td>
       <td class="text"><button class="btn small danger ghost" data-del="${h.id}">삭제</button></td>
     </tr>
-  `).join("") || `<tr><td colspan="4" class="text empty-note">등록된 휴무일이 없습니다.</td></tr>`;
+  `;
+  }).join("") || `<tr><td colspan="5" class="text empty-note">등록된 휴무일이 없습니다.</td></tr>`;
 
+  document.getElementById("hTableBody").querySelectorAll("[data-toggle]").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      const h = sorted.find(x=>x.id===b.dataset.toggle); if(!h) return;
+      const nowClosed = h.closed!==false;
+      await CD.Store.upsertHoliday({ id:h.id, country:h.country, date:h.date, name:h.name, source:h.source, closed: !nowClosed });
+    });
+  });
   document.getElementById("hTableBody").querySelectorAll("[data-del]").forEach(b=>{
     b.addEventListener("click", async ()=>{ if(confirm("이 휴무일을 삭제할까요?")) await CD.Store.deleteHoliday(b.dataset.del); });
   });
@@ -1610,6 +1643,8 @@ const root = document.getElementById("view-accounting");
 let built = false;
 let gran = "month";     // day | week | month | year
 let countryFilter = "ALL";
+let dispCurrency = "KRW"; // USD | KRW | JPY — currency all costs are DISPLAYED in (converted live)
+try{ dispCurrency = localStorage.getItem("cargodesk_dispCurrency") || "KRW"; }catch(e){}
 const LOOKBACK = { day:30, week:12, month:12, year:8 };
 
 function keyFn(){ return gran==="day"?(d=>d) : gran==="week"?CD.isoWeekKey : gran==="month"?CD.monthKey : CD.yearKey; }
@@ -1622,6 +1657,25 @@ function keyLabel(k){
 function rateFor(country){ return (CD.Cache.settings[country]) || {lastMile:0, currency: CD.CURRENCY[country]}; }
 function chargeableWeight(s){ return Math.max(s.actualWeight||0, s.volumeWeight||0) || s.cutoffWeight||0; }
 function fxRate(country){ const f = CD.Cache.settings.fx || {}; return country==="KR" ? (f.usdKrw||1300) : (f.usdJpy||150); }
+/** 1 unit of USD in the given display currency, from the live fx settings. */
+function fxOf(cur){
+  const f = CD.Cache.settings.fx || {};
+  if(cur==="USD") return 1;
+  if(cur==="KRW") return f.usdKrw || 1300;
+  if(cur==="JPY") return f.usdJpy || 150;
+  return 1;
+}
+function dispSym(){ return dispCurrency==="USD" ? "$" : dispCurrency==="KRW" ? "₩" : "¥"; }
+/** Convert an amount denominated in `country`'s own local currency into the selected display currency (dispCurrency), using the live fx rate. */
+function toDisp(amountLocal, country){
+  const usd = (amountLocal||0) / fxRate(country);
+  return usd * fxOf(dispCurrency);
+}
+/** Format an already-converted display-currency amount with the right symbol + precision (USD keeps cents, KRW/JPY are whole numbers). */
+function fmtDisp(v){
+  if(dispCurrency==="USD") return "$" + (v||0).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
+  return dispSym() + CD.fmtNum(v||0);
+}
 function packingRates(){ return CD.Cache.settings.packing || {baseUsd:1.29, stepUsd:0.6}; }
 function tierUsd(k){ const p = packingRates(); return p.baseUsd + p.stepUsd*(k-1); }
 function airTiers(){ return CD.Cache.settings.air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
@@ -1643,7 +1697,7 @@ function shell(){
       <div class="section-head"><h2>비용 기준 설정</h2><span class="hint">자동 계산에 사용되는 단가 · 환율입니다. 직접 수정하면 즉시 반영됩니다.</span></div>
       <div class="grid settings3" style="margin-bottom:14px;">
         <div class="card tight">
-          <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">합포장 비용 (공통, USD 기준)</b></div>
+          <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">출고비 (공통, USD 기준)</b></div>
           <div class="help" style="margin-bottom:8px;">박스 1개 기준가 + 제품 종류가 하나 늘 때마다 추가 (1~20개 개별 계산, 그래프는 5개 이상을 묶어 표시)</div>
           <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
             <div class="field"><label>기본 단가 (1개, $)</label><input type="number" min="0" step="0.01" class="num-input" id="rBaseUsd"></div>
@@ -1687,13 +1741,18 @@ function shell(){
           <button data-v="KR">한국</button>
           <button data-v="JP">일본</button>
         </div>
+        <div class="seg" id="aCurrencySeg">
+          <button data-v="KRW">₩ 원화</button>
+          <button data-v="JPY">¥ 엔화</button>
+          <button data-v="USD">$ 달러</button>
+        </div>
       </div>
     </div>
 
     <div class="section grid kpis" id="aKpis"></div>
 
     <div class="section">
-      <div class="section-head"><h2>건당 평균 물류비용 추이</h2><span class="hint">합포장비용+라스트마일비용+항공비용 ÷ 출고수량</span></div>
+      <div class="section-head"><h2>건당 평균 물류비용 추이</h2><span class="hint">출고비+통관 택배비용+항공비용 ÷ 출고수량</span></div>
       <div class="card">
         <div id="aTrendChart"></div>
         <div class="chart-legend" id="aTrendLegend"></div>
@@ -1701,7 +1760,7 @@ function shell(){
     </div>
 
     <div class="section">
-      <div class="section-head"><h2>비용 구성 (합포장 · 라스트마일 · 항공)</h2></div>
+      <div class="section-head"><h2>비용 구성 (출고비 · 통관·택배 · 항공)</h2></div>
       <div class="card">
         <div id="aCompWrap" class="grid two"></div>
         <div class="chart-legend" id="aCompLegend"></div>
@@ -1714,7 +1773,7 @@ function shell(){
         <table>
           <thead><tr>
             <th>기간</th><th>국가</th><th>출고</th><th>픽킹</th><th>항공부킹</th><th>중량(kg)</th>
-            <th>합포장비용</th><th>라스트마일비용</th><th>항공비용</th><th>총비용</th><th>건당비용</th>
+            <th>출고비</th><th>통관 택배비용</th><th>항공비용</th><th>총비용</th><th>건당비용</th>
           </tr></thead>
           <tbody id="aTableBody"></tbody>
         </table>
@@ -1730,6 +1789,15 @@ function shell(){
   document.getElementById("aCountrySeg").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
     countryFilter = b.dataset.v; [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("aCurrencySeg").querySelectorAll("button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.v===dispCurrency);
+  });
+  document.getElementById("aCurrencySeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    dispCurrency = b.dataset.v; [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    try{ localStorage.setItem("cargodesk_dispCurrency", dispCurrency); }catch(err){}
     refresh();
   });
   document.getElementById("rBaseUsd").addEventListener("change", async e=>{
@@ -1856,33 +1924,40 @@ function refresh(){
 
   const kpiCountries = countryFilter==="ALL" ? CD.COUNTRIES : [countryFilter];
   const cards = [`<div class="kpi"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${kpiCountries.map(c=>CD.COUNTRY_LABEL[c]).join('+')} 합계</div></div>`];
+  if(kpiCountries.length>1){
+    const totalCostDisp = kpiCountries.reduce((s,c)=> s + toDisp(countryStats(c).cost, c), 0);
+    cards.push(`<div class="kpi"><div class="label">총 물류비용 (${dispSym()} 환산 합계)</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">${kpiCountries.map(c=>CD.COUNTRY_LABEL[c]).join('+')} · 출고비+통관·택배+항공</div></div>`);
+  }
   kpiCountries.forEach(c=>{
-    const st = countryStats(c); const sym = rateFor(c).currency;
-    cards.push(`<div class="kpi"><div class="label"><span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} 총 물류비용</div><div class="value">${sym}${CD.fmtNum(st.cost)}</div><div class="sub">합포장+라스트마일+항공</div></div>`);
-    cards.push(`<div class="kpi"><div class="label"><span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${sym}${st.perOrder.toFixed(0)}</div><div class="sub" style="color:${st.deltaPct==null?'inherit':(st.deltaPct<=0?'var(--good)':'var(--critical)')}">${st.deltaPct==null?'직전 구간 비교 불가':'직전 구간 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
+    const st = countryStats(c);
+    const costDisp = toDisp(st.cost, c), perOrderDisp = toDisp(st.perOrder, c);
+    cards.push(`<div class="kpi"><div class="label"><span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} 총 물류비용</div><div class="value">${fmtDisp(costDisp)}</div><div class="sub">출고비+통관·택배+항공</div></div>`);
+    cards.push(`<div class="kpi"><div class="label"><span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${st.deltaPct==null?'inherit':(st.deltaPct<=0?'var(--good)':'var(--critical)')}">${st.deltaPct==null?'직전 구간 비교 불가':'직전 구간 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
   });
   document.getElementById("aKpis").innerHTML = cards.join("");
 
-  // trend chart: one line per country (cost per order)
+  // trend chart: one line per country (cost per order), all converted to the selected display currency
   const labels = rows.map(r=>keyLabel(r.key));
   const series = countries.map(c=>({
     key:c, label: CD.COUNTRY_LABEL[c], color: CD.cssVar("--"+c.toLowerCase()),
-    fmt: v=> rateFor(c).currency+CD.fmtNum(v),
+    fmt: v=> fmtDisp(v),
     values: rows.map(r=>{
       const b = r.byCountry[c];
       if(!b || b.shipped<=0) return NaN;
-      return bucketCost(b)/b.shipped;
+      return toDisp(bucketCost(b)/b.shipped, c);
     })
   }));
   Charts.lineChart(document.getElementById("aTrendChart"), {
-    series, labels, yFmt: v=> CD.fmtNum(v) + (countryFilter==="ALL" ? "" : " "+rateFor(countryFilter).currency),
+    series, labels, yFmt: v=> dispSym()+CD.fmtNum(v),
     legend: document.getElementById("aTrendLegend")
   });
-  if(countryFilter==="ALL"){
-    document.getElementById("aTrendLegend").insertAdjacentHTML("beforeend", `<div class="item" style="color:var(--muted)">축 단위: 한국 ₩ · 일본 ¥ (통화 혼합 비교, 포인트에 마우스오버 시 통화 표시)</div>`);
+  {
+    const fx = CD.Cache.settings.fx || {};
+    const fxNote = `환율 적용: 1 USD = ₩${CD.fmtNum(fx.usdKrw||0)} · ¥${CD.fmtNum(fx.usdJpy||0)}${fx.auto?' · 실시간 자동 갱신 중':' · 수동 입력'}`;
+    document.getElementById("aTrendLegend").insertAdjacentHTML("beforeend", `<div class="item" style="color:var(--muted)">${fxNote}</div>`);
   }
 
-  // composition chart: per country small multiple, stacked fulfill vs air
+  // composition chart: per country small multiple, stacked fulfill vs air — values converted to the selected display currency
   const compWrap = document.getElementById("aCompWrap");
   compWrap.innerHTML = "";
   compWrap.className = "grid " + (countries.length>1?"two":"");
@@ -1892,32 +1967,30 @@ function refresh(){
     compWrap.appendChild(box);
     const data = rows.map(r=>({
       date: r.key,
-      packingCost: r.byCountry[c]? r.byCountry[c].packingCost:0,
-      lastMileCost: r.byCountry[c]? r.byCountry[c].lastMileCost:0,
-      airCost: r.byCountry[c]? r.byCountry[c].airCost:0
+      packingCost: toDisp(r.byCountry[c]? r.byCountry[c].packingCost:0, c),
+      lastMileCost: toDisp(r.byCountry[c]? r.byCountry[c].lastMileCost:0, c),
+      airCost: toDisp(r.byCountry[c]? r.byCountry[c].airCost:0, c)
     }));
-    const sym = rateFor(c).currency;
     const compColor = {packingCost:"--cost-pack", lastMileCost:"--cost-lastmile", airCost:"--cost-air"};
-    const compLabel = {packingCost:"합포장비용", lastMileCost:"라스트마일비용", airCost:"항공비용"};
+    const compLabel = {packingCost:"출고비", lastMileCost:"통관 택배비용", airCost:"항공비용"};
     Charts.stackedBarChart(box.querySelector(".chart-holder"), {
       data, keys:["packingCost","lastMileCost","airCost"],
       colorFn:k=> CD.cssVar(compColor[k]),
       labelFn:k=> compLabel[k],
       xLabelFn: keyLabel, tipTitleFn: keyLabel,
-      valueFmt: v=> sym+CD.fmtNum(v),
+      valueFmt: v=> fmtDisp(v),
       legend: i===countries.length-1 ? document.getElementById("aCompLegend") : null
     });
   });
 
-  // table
-  document.getElementById("aTableHint").textContent = `최근 ${rows.length}개 구간 · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'}`;
+  // table — all cost columns converted to the selected display currency
+  document.getElementById("aTableHint").textContent = `최근 ${rows.length}개 구간 · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'} · ${dispSym()} 기준`;
   const trs = [];
   [...rows].reverse().forEach(r=>{
     countries.forEach(c=>{
       const b = r.byCountry[c]; if(!b) return;
       const total = bucketCost(b);
       const po = b.shipped>0 ? total/b.shipped : 0;
-      const sym = rateFor(c).currency;
       trs.push(`<tr>
         <td class="text">${keyLabel(r.key)}</td>
         <td class="text"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></td>
@@ -1925,11 +1998,11 @@ function refresh(){
         <td>${CD.fmtNum(b.picked)}</td>
         <td>${CD.fmtNum(b.bookings)}건 / ${CD.fmtNum(b.pallet)}PLT</td>
         <td>${CD.fmtNum(b.weight)}</td>
-        <td>${sym}${CD.fmtNum(b.packingCost)}</td>
-        <td>${sym}${CD.fmtNum(b.lastMileCost)}</td>
-        <td>${sym}${CD.fmtNum(b.airCost)}</td>
-        <td>${sym}${CD.fmtNum(total)}</td>
-        <td>${sym}${po.toFixed(0)}</td>
+        <td>${fmtDisp(toDisp(b.packingCost, c))}</td>
+        <td>${fmtDisp(toDisp(b.lastMileCost, c))}</td>
+        <td>${fmtDisp(toDisp(b.airCost, c))}</td>
+        <td>${fmtDisp(toDisp(total, c))}</td>
+        <td>${fmtDisp(toDisp(po, c))}</td>
       </tr>`);
     });
   });
