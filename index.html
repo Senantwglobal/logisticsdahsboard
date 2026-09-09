@@ -10,22 +10,22 @@
      look everywhere instead of silently falling back to Malgun Gothic/Segoe UI/Roboto on non-Apple devices. -->
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <style>
-/* ============================= TOKENS — warm neutral + soft pastel badges, pill controls ============================= */
+/* ============================= TOKENS — neutral gray canvas + white cards, color only on status ============================= */
 :root{
   color-scheme: light;
-  --page:#f6f4ee; --surface:#ffffff; --surface-2:#efece3; --surface-3:#e6e2d5;
-  --ink:#1a1a17; --ink-2:#6b6a63; --muted:#9b988f;
-  --line:#e8e4d8; --line-strong:#d8d3c2; --border:rgba(20,18,12,0.08);
-  --accent:#1a1a17; --accent-ink:#ffffff; --accent-soft:#eae5d6; --accent-soft-line:#ddd6c0;
-  --kr:#3568d4; --kr-soft:#e8effc;
-  --jp:#6c4fd1; --jp-soft:#efeafa;
-  --us:#c2703d; --us-soft:#faeee1;
-  --good:#20905a; --good-soft:#e3f3e9;
-  --warning:#ad8a17; --warning-soft:#faf1d9;
-  --serious:#c2492e; --serious-soft:#fbe8e1;
-  --critical:#c0392b; --critical-soft:#fbe6e4;
-  --cost-pack:#20905a; --cost-lastmile:#c2703d; --cost-air:#6c4fd1;
-  --shadow: 0 1px 2px rgba(20,18,12,.04), 0 10px 24px -14px rgba(20,18,12,.12);
+  --page:#f4f4f5; --surface:#ffffff; --surface-2:#f4f4f5; --surface-3:#e8e8ea;
+  --ink:#18181b; --ink-2:#52525b; --muted:#a1a1aa;
+  --line:#e8e8ea; --line-strong:#d4d4d8; --border:rgba(0,0,0,0.07);
+  --accent:#18181b; --accent-ink:#ffffff; --accent-soft:#f4f4f5; --accent-soft-line:#e4e4e7;
+  --kr:#3f3f46; --kr-soft:#e9e9ec;
+  --jp:#71717a; --jp-soft:#f1f1f3;
+  --us:#52525b; --us-soft:#eeeef0;
+  --good:#2f9e6e; --good-soft:#dcf5e9;
+  --warning:#c2761c; --warning-soft:#fdefdc;
+  --serious:#c2761c; --serious-soft:#fdefdc;
+  --critical:#d64545; --critical-soft:#fce8e8;
+  --cost-pack:#71717a; --cost-lastmile:#b8b8bd; --cost-air:#3f3f46;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 20px -14px rgba(0,0,0,.10);
   --radius-s:9px; --radius-m:14px; --radius-l:18px;
   --font-ui:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --font-mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
@@ -33,35 +33,35 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --page:#141311; --surface:#1d1c19; --surface-2:#28261f; --surface-3:#343128;
-    --ink:#f3f1e9; --ink-2:#b3b0a4; --muted:#847f72;
-    --line:#332f26; --line-strong:#433d31; --border:rgba(255,255,255,0.10);
-    --accent:#f3f1e9; --accent-ink:#1a1a17; --accent-soft:#2a2720; --accent-soft-line:#3a352a;
-    --kr:#82a6f2; --kr-soft:#1c2a44;
-    --jp:#b3a1f0; --jp-soft:#26203c;
-    --us:#e2a874; --us-soft:#3a2a19;
-    --good:#6bcf96; --good-soft:#17301f;
-    --warning:#e2c168; --warning-soft:#372c14;
-    --serious:#e8896d; --serious-soft:#3a241a;
-    --critical:#ef8c7c; --critical-soft:#3a1d17;
-    --cost-pack:#6bcf96; --cost-lastmile:#e2a874; --cost-air:#b3a1f0;
+    --page:#161618; --surface:#202023; --surface-2:#2a2a2e; --surface-3:#35353a;
+    --ink:#f4f4f5; --ink-2:#b0b0b8; --muted:#7d7d86;
+    --line:#2f2f34; --line-strong:#3f3f46; --border:rgba(255,255,255,0.10);
+    --accent:#f4f4f5; --accent-ink:#18181b; --accent-soft:#2a2a2e; --accent-soft-line:#3a3a40;
+    --kr:#e4e4e7; --kr-soft:#303035;
+    --jp:#a1a1aa; --jp-soft:#292930;
+    --us:#c4c4cc; --us-soft:#2c2c32;
+    --good:#5fc99a; --good-soft:#16301f;
+    --warning:#dda45e; --warning-soft:#352716;
+    --serious:#dda45e; --serious-soft:#352716;
+    --critical:#ec7f7f; --critical-soft:#361d1d;
+    --cost-pack:#8b8b94; --cost-lastmile:#55555d; --cost-air:#d4d4d8;
     --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.55);
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --page:#141311; --surface:#1d1c19; --surface-2:#28261f; --surface-3:#343128;
-  --ink:#f3f1e9; --ink-2:#b3b0a4; --muted:#847f72;
-  --line:#332f26; --line-strong:#433d31; --border:rgba(255,255,255,0.10);
-  --accent:#f3f1e9; --accent-ink:#1a1a17; --accent-soft:#2a2720; --accent-soft-line:#3a352a;
-  --kr:#82a6f2; --kr-soft:#1c2a44;
-  --jp:#b3a1f0; --jp-soft:#26203c;
-  --us:#e2a874; --us-soft:#3a2a19;
-  --good:#6bcf96; --good-soft:#17301f;
-  --warning:#e2c168; --warning-soft:#372c14;
-  --serious:#e8896d; --serious-soft:#3a241a;
-  --critical:#ef8c7c; --critical-soft:#3a1d17;
-  --cost-pack:#6bcf96; --cost-lastmile:#e2a874; --cost-air:#b3a1f0;
+  --page:#161618; --surface:#202023; --surface-2:#2a2a2e; --surface-3:#35353a;
+  --ink:#f4f4f5; --ink-2:#b0b0b8; --muted:#7d7d86;
+  --line:#2f2f34; --line-strong:#3f3f46; --border:rgba(255,255,255,0.10);
+  --accent:#f4f4f5; --accent-ink:#18181b; --accent-soft:#2a2a2e; --accent-soft-line:#3a3a40;
+  --kr:#e4e4e7; --kr-soft:#303035;
+  --jp:#a1a1aa; --jp-soft:#292930;
+  --us:#c4c4cc; --us-soft:#2c2c32;
+  --good:#5fc99a; --good-soft:#16301f;
+  --warning:#dda45e; --warning-soft:#352716;
+  --serious:#dda45e; --serious-soft:#352716;
+  --critical:#ec7f7f; --critical-soft:#361d1d;
+  --cost-pack:#8b8b94; --cost-lastmile:#55555d; --cost-air:#d4d4d8;
   --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.55);
 }
 
@@ -82,7 +82,7 @@ a{color:var(--accent);}
 .brand-text h1{font-size:17px; letter-spacing:-.01em;}
 .brand-text .tag{font-size:11.5px; color:var(--muted); letter-spacing:.02em; margin-top:1px;}
 .topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
-.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line); padding:5px 10px; border-radius:100px;}
+.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2); background:var(--surface); border:1px solid var(--line); padding:5px 10px; border-radius:9px;}
 
 /* ============================= TABS ============================= */
 .tabs{display:flex; gap:4px; margin:18px 0 22px; border-bottom:1px solid var(--line); overflow-x:auto;}
@@ -156,7 +156,7 @@ tbody tr:hover{background:var(--surface-2);}
 tfoot td{padding:9px 12px; font-weight:600; border-top:1px solid var(--line-strong); font-family:var(--font-mono);}
 
 /* ============================= BADGES / TAGS ============================= */
-.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:500; padding:3px 8px; border-radius:100px; line-height:1.5;}
+.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:7px; line-height:1.5;}
 .badge.kr{background:var(--kr-soft); color:var(--kr);}
 .badge.jp{background:var(--jp-soft); color:var(--jp);}
 .badge.us{background:var(--us-soft); color:var(--us);}
@@ -191,14 +191,16 @@ svg.chart .gridline{stroke:var(--line);}
 .cal-head .month-label{font-size:15px; font-weight:600; min-width:132px; text-align:center;}
 .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
 .cal-dow{font-size:11px; color:var(--muted); text-align:center; padding-bottom:4px; text-transform:uppercase; letter-spacing:.03em;}
-.cal-cell{min-height:88px; border:1px solid var(--line); border-radius:8px; padding:6px; background:var(--surface); display:flex; flex-direction:column; gap:3px; font-size:11px;}
-.cal-cell.out{background:var(--surface-2); opacity:.45;}
-.cal-cell.today{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+.cal-cell{min-height:88px; border:none; border-radius:10px; padding:7px; background:var(--surface-2); display:flex; flex-direction:column; gap:3px; font-size:11px;}
+.cal-cell.out{background:transparent; opacity:.4;}
+.cal-cell.today{background:var(--ink);}
+.cal-cell.today .d, .cal-cell.today .d.weekend{color:var(--surface);}
+.cal-cell.today .holi{color:var(--surface); opacity:.85;}
 .cal-cell .d{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2); font-weight:600;}
 .cal-cell .d.weekend{color:var(--critical);}
 .cal-cell .holi{font-size:10px; color:var(--critical); font-weight:600; line-height:1.25;}
 .cal-cell .holi.open{color:var(--ink-2); font-weight:500;}
-.cal-cell .chip{font-size:9.5px; font-weight:600; padding:1.5px 5px; border-radius:100px; line-height:1.5; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cal-cell .chip{font-size:9.5px; font-weight:600; padding:1.5px 5px; border-radius:6px; line-height:1.5; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .cal-cell .chip.kr{background:var(--kr-soft); color:var(--kr);}
 .cal-cell .chip.jp{background:var(--jp-soft); color:var(--jp);}
 .cal-cell-more{font-size:9.5px; color:var(--muted); cursor:pointer;}
@@ -292,8 +294,9 @@ const PACK_KEYS = Array.from({length:PACK_MAX}, (_,i)=>"pack"+(i+1)); // pack1..
 // Charts group the long tail into 5 buckets so they stay readable.
 const PACK_DISPLAY_KEYS = ["pack1","pack2","pack3","pack4","pack5plus"];
 const PACK_LABEL = {pack1:"1개", pack2:"2개", pack3:"3개", pack4:"4개", pack5plus:"5개+"};
-const PACK_COLOR_LIGHT = {pack1:"#86b6ef", pack2:"#5598e7", pack3:"#2a78d6", pack4:"#1c5cab", pack5plus:"#184f95"};
-const PACK_COLOR_DARK  = {pack1:"#86b6ef", pack2:"#5598e7", pack3:"#3987e5", pack4:"#1c5cab", pack5plus:"#184f95"};
+// neutral gray ramp — light (few items per box) to dark (many), so the stack reads by lightness, not hue
+const PACK_COLOR_LIGHT = {pack1:"#d4d4d8", pack2:"#a1a1aa", pack3:"#71717a", pack4:"#52525b", pack5plus:"#27272a"};
+const PACK_COLOR_DARK  = {pack1:"#52525b", pack2:"#71717a", pack3:"#a1a1aa", pack4:"#c4c4cc", pack5plus:"#e4e4e7"};
 /** Collapse raw pack1..pack20 box counts into the 5 display buckets used by charts. */
 function toDisplayBuckets(rec){
   rec = rec || {};
