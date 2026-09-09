@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>카고데스크 CargoDesk</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f1f1ee; --surface-3:#e8e8e4;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --line:#e1e0d9; --line-strong:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --accent:#2a78d6; --accent-ink:#ffffff; --accent-soft:#e5eefb; --accent-soft-line:#c4dafa;
+  --kr:#2a78d6; --kr-soft:#e5eefb;
+  --jp:#1baf7a; --jp-soft:#e0f5ec;
+  --us:#eb6834; --us-soft:#fce8de;
+  --good:#0ca30c; --good-soft:#e2f6e2;
+  --warning:#c98500; --warning-soft:#fdf1d9;
+  --serious:#ec835a; --serious-soft:#fce3d8;
+  --critical:#d03b3b; --critical-soft:#fbe1e1;
+  --cost-pack:#2a78d6; --cost-lastmile:#eb6834; --cost-air:#1baf7a;
+  --shadow: 0 1px 2px rgba(11,11,11,.05), 0 6px 20px -8px rgba(11,11,11,.18);
+  --radius-s:6px; --radius-m:10px; --radius-l:16px;
+  --font-ui:"IBM Plex Sans KR","IBM Plex Sans",-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232322; --surface-3:#2b2b29;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#8f8d87;
+    --line:#2c2c2a; --line-strong:#383835; --border:rgba(255,255,255,0.10);
+    --accent:#3987e5; --accent-ink:#ffffff; --accent-soft:#1c2a3b; --accent-soft-line:#2c4870;
+    --kr:#3987e5; --kr-soft:#1c2a3b;
+    --jp:#199e70; --jp-soft:#122c22;
+    --us:#d95926; --us-soft:#33200f;
+    --good:#0ca30c; --good-soft:#0f2413;
+    --warning:#fab219; --warning-soft:#332a0d;
+    --serious:#ec835a; --serious-soft:#33201a;
+    --critical:#d03b3b; --critical-soft:#331414;
+    --cost-pack:#3987e5; --cost-lastmile:#d95926; --cost-air:#199e70;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -10px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232322; --surface-3:#2b2b29;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#8f8d87;
+  --line:#2c2c2a; --line-strong:#383835; --border:rgba(255,255,255,0.10);
+  --accent:#3987e5; --accent-ink:#ffffff; --accent-soft:#1c2a3b; --accent-soft-line:#2c4870;
+  --kr:#3987e5; --kr-soft:#1c2a3b;
+  --jp:#199e70; --jp-soft:#122c22;
+  --us:#d95926; --us-soft:#33200f;
+  --good:#0ca30c; --good-soft:#0f2413;
+  --warning:#fab219; --warning-soft:#332a0d;
+  --serious:#ec835a; --serious-soft:#33201a;
+  --critical:#d03b3b; --critical-soft:#331414;
+  --cost-pack:#3987e5; --cost-lastmile:#d95926; --cost-air:#199e70;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -10px rgba(0,0,0,.55);
+}
+
+/* ============================= BASE ============================= */
+*{box-sizing:border-box;}
+body{background:var(--page); color:var(--ink); font-family:var(--font-ui); margin:0;}
+h1,h2,h3,h4{font-family:var(--font-ui); font-weight:600; margin:0; text-wrap:balance;}
+.mono{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+button{font-family:inherit;}
+::selection{background:var(--accent-soft);}
+a{color:var(--accent);}
+.app{max-width:1240px; margin:0 auto; padding:20px 20px 64px;}
+
+/* ============================= HEADER ============================= */
+.topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 4px 14px; border-bottom:1px solid var(--line);}
+.brand{display:flex; align-items:center; gap:11px;}
+.brand-mark{width:34px; height:34px; border-radius:9px; background:linear-gradient(155deg,var(--accent),var(--jp)); display:flex; align-items:center; justify-content:center; flex:none; box-shadow: var(--shadow);}
+.brand-mark svg{width:19px; height:19px;}
+.brand-text h1{font-size:17px; letter-spacing:-.01em;}
+.brand-text .tag{font-size:11.5px; color:var(--muted); letter-spacing:.02em; margin-top:1px;}
+.topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
+.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line); padding:5px 10px; border-radius:100px;}
+
+/* ============================= TABS ============================= */
+.tabs{display:flex; gap:4px; margin:18px 0 22px; border-bottom:1px solid var(--line); overflow-x:auto;}
+.tab-btn{appearance:none; background:none; border:none; padding:10px 16px; font-size:13.5px; font-weight:500; color:var(--muted); cursor:pointer; border-radius:8px 8px 0 0; position:relative; top:1px; white-space:nowrap; display:flex; align-items:center; gap:7px;}
+.tab-btn svg{width:15px; height:15px; opacity:.8;}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--ink); border-bottom:2px solid var(--accent);}
+.view{display:none;}
+.view.active{display:block; animation:fadein .18s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(2px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion:reduce){.view.active{animation:none;}}
+
+/* ============================= LAYOUT PRIMITIVES ============================= */
+.row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.row.between{justify-content:space-between;}
+.stack{display:flex; flex-direction:column; gap:4px;}
+.section{margin-bottom:26px;}
+.section-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+.section-head h2{font-size:15px;}
+.section-head .hint{font-size:12px; color:var(--muted);}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:18px; box-shadow:var(--shadow);}
+.card.tight{padding:14px 16px;}
+.grid{display:grid; gap:14px;}
+.grid.kpis{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));}
+.grid.two{grid-template-columns:1.3fr 1fr;}
+.grid.charts2{grid-template-columns:1.5fr 1fr;}
+@media (max-width:860px){.grid.two, .grid.charts2{grid-template-columns:1fr;}}
+
+/* ============================= KPI TILES ============================= */
+.kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:14px 15px; display:flex; flex-direction:column; gap:6px;}
+.kpi .label{font-size:11.5px; color:var(--muted); letter-spacing:.02em; text-transform:uppercase; display:flex; align-items:center; gap:6px;}
+.kpi .value{font-family:var(--font-mono); font-size:22px; font-weight:600; letter-spacing:-.01em;}
+.kpi .sub{font-size:12px; color:var(--ink-2);}
+.kpi .sub.up{color:var(--good);} .kpi .sub.down{color:var(--critical);}
+.kpi .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+
+/* ============================= FORM ELEMENTS ============================= */
+.field{display:flex; flex-direction:column; gap:5px;}
+.field label{font-size:11.5px; color:var(--ink-2); font-weight:500;}
+input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-s); padding:8px 10px; outline:none;}
+input.mono, .num-input{font-family:var(--font-mono);}
+input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+select{cursor:pointer;}
+.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:500; padding:8px 13px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+.btn:hover{background:var(--surface-2);}
+.btn:focus-visible, .tab-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+.btn.primary:hover{filter:brightness(1.06);}
+.btn.ghost{border-color:transparent; background:none;}
+.btn.ghost:hover{background:var(--surface-2);}
+.btn.danger{color:var(--critical); border-color:var(--critical-soft);}
+.btn.danger:hover{background:var(--critical-soft);}
+.btn.small{padding:5px 9px; font-size:11.5px; border-radius:6px;}
+.btn svg{width:14px; height:14px;}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface-2);}
+.seg button{appearance:none; border:none; background:none; padding:7px 13px; font-size:12.5px; font-weight:500; color:var(--ink-2); cursor:pointer;}
+.seg button.active{background:var(--accent); color:var(--accent-ink);}
+
+/* ============================= TABLE ============================= */
+.table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-m);}
+table{border-collapse:collapse; width:100%; font-size:12.5px; min-width:640px;}
+thead th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:600; padding:9px 12px; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0;}
+tbody td{padding:9px 12px; border-bottom:1px solid var(--line); white-space:nowrap; font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+tbody td.text{font-family:var(--font-ui);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--surface-2);}
+tfoot td{padding:9px 12px; font-weight:600; border-top:1px solid var(--line-strong); font-family:var(--font-mono);}
+
+/* ============================= BADGES / TAGS ============================= */
+.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:100px; line-height:1.5;}
+.badge.kr{background:var(--kr-soft); color:var(--kr);}
+.badge.jp{background:var(--jp-soft); color:var(--jp);}
+.badge.us{background:var(--us-soft); color:var(--us);}
+.badge.good{background:var(--good-soft); color:var(--good);}
+.badge.warning{background:var(--warning-soft); color:var(--warning);}
+.badge.critical{background:var(--critical-soft); color:var(--critical);}
+.badge.sample{background:var(--surface-3); color:var(--muted); font-weight:500;}
+.badge.auto{background:var(--surface-3); color:var(--ink-2); font-weight:500;}
+.dotline{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+/* ============================= CHART ============================= */
+.chart-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin-top:10px;}
+.chart-legend .item{display:flex; align-items:center; gap:6px;}
+.chart-legend .swatch{width:10px; height:10px; border-radius:3px; flex:none;}
+.chart-legend .swatch.line{width:14px; height:2px; border-radius:2px;}
+svg.chart text{font-family:var(--font-ui); fill:var(--muted);}
+svg.chart .axisline{stroke:var(--line-strong);}
+svg.chart .gridline{stroke:var(--line);}
+.tooltip{position:fixed; background:var(--ink); color:var(--page); font-size:11.5px; padding:7px 10px; border-radius:7px; pointer-events:none; z-index:80; opacity:0; transition:opacity .08s; line-height:1.5; box-shadow:var(--shadow); max-width:220px;}
+.tooltip.show{opacity:1;}
+.bar-rect{cursor:pointer;}
+.bar-rect:hover{filter:brightness(1.12);}
+
+/* ============================= CALENDAR ============================= */
+.cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+.cal-head .month-label{font-size:15px; font-weight:600; min-width:132px; text-align:center;}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+.cal-dow{font-size:11px; color:var(--muted); text-align:center; padding-bottom:4px; text-transform:uppercase; letter-spacing:.03em;}
+.cal-cell{min-height:88px; border:1px solid var(--line); border-radius:8px; padding:6px; background:var(--surface); display:flex; flex-direction:column; gap:3px; font-size:11px;}
+.cal-cell.out{background:var(--surface-2); opacity:.45;}
+.cal-cell.today{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+.cal-cell .d{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2); font-weight:600;}
+.cal-cell .d.weekend{color:var(--critical);}
+.cal-cell .holi{font-size:10px; color:var(--critical); font-weight:600; line-height:1.25;}
+.cal-cell .chip{font-size:9.5px; font-weight:600; padding:1.5px 5px; border-radius:100px; line-height:1.5; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cal-cell .chip.kr{background:var(--kr-soft); color:var(--kr);}
+.cal-cell .chip.jp{background:var(--jp-soft); color:var(--jp);}
+.cal-cell-more{font-size:9.5px; color:var(--muted); cursor:pointer;}
+
+/* ============================= MODAL / DRAWER ============================= */
+.overlay{position:fixed; inset:0; background:rgba(11,11,11,.42); backdrop-filter:blur(1px); display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; z-index:100; overflow-y:auto;}
+.overlay[hidden]{display:none;}
+.modal{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:22px; width:100%; max-width:560px; box-shadow:var(--shadow);}
+.modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;}
+.modal-head h3{font-size:15.5px;}
+.modal .grid.form{grid-template-columns:1fr 1fr; gap:12px;}
+.modal .grid.form .full{grid-column:1/-1;}
+.modal-foot{display:flex; justify-content:flex-end; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+.close-x{background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px; line-height:1; padding:4px;}
+
+/* ============================= MISC ============================= */
+.empty-note{font-size:12.5px; color:var(--muted); padding:20px; text-align:center;}
+.divider{height:1px; background:var(--line); margin:18px 0;}
+.help{font-size:11.5px; color:var(--muted); margin-top:2px;}
+.pill-toggle{display:flex; gap:6px; flex-wrap:wrap;}
+.pack-grid{display:grid; grid-template-columns:repeat(10,1fr); gap:6px 5px;}
+.pack-col{display:flex; flex-direction:column; align-items:center; gap:3px;}
+.pack-col label{font-size:9.5px; color:var(--muted); font-weight:600; font-family:var(--font-mono);}
+.pack-col input{width:100%; min-width:0; padding:5px 2px; text-align:center; font-size:11px;}
+@media (max-width:560px){ .pack-grid{grid-template-columns:repeat(5,1fr);} }
+.country-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.scroll-x{overflow-x:auto;}
+.footer-note{font-size:11.5px; color:var(--muted); text-align:center; margin-top:30px; padding-top:16px; border-top:1px solid var(--line);}
+@media (max-width:640px){ .app{padding:14px 12px 48px;} .topbar-right .clock{display:none;} }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 16.5L21 12L2 7.5V11L14 12L2 13V16.5Z" fill="white"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>카고데스크 CargoDesk</h1>
+        <div class="tag">한국 · 일본 풀필먼트 &amp; 항공물류 운영 대시보드</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="storeStatus" class="badge auto">연결 확인 중</span>
+      <span class="clock" id="clockNow">--</span>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabNav" role="tablist">
+    <button class="tab-btn active" data-tab="dashboard" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg>
+      대시보드
+    </button>
+    <button class="tab-btn" data-tab="holidays" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V6M16 3V6"/></svg>
+      휴무일
+    </button>
+    <button class="tab-btn" data-tab="flights" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 16L21 11.5L2 7V10.5L13 11.5L2 12.5V16Z"/></svg>
+      항공스케줄 &amp; 컷오프
+    </button>
+    <button class="tab-btn" data-tab="accounting" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7V12L15.5 14.5"/></svg>
+      회계 &amp; 분석
+    </button>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="view active" id="view-dashboard"></div>
+
+  <!-- ============ HOLIDAYS ============ -->
+  <div class="view" id="view-holidays"></div>
+
+  <!-- ============ FLIGHTS ============ -->
+  <div class="view" id="view-flights"></div>
+
+  <!-- ============ ACCOUNTING ============ -->
+  <div class="view" id="view-accounting"></div>
+
+  <div class="footer-note">데이터는 이 페이지에 저장되며 팀원과 공유됩니다 · 휴무일은 2026–2027년 한국/일본/미국 공휴일이 자동 반영되어 있습니다</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="overlay" id="modalOverlay" hidden>
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* =====================================================================
+   CARGODESK — state, utils, data store (db capability with local fallback)
+   ===================================================================== */
+(function(){
+"use strict";
+
+/* ---------------------------- constants ---------------------------- */
+const COUNTRIES = ["KR","JP"]; // operating countries with shipment data
+const COUNTRY_LABEL = {KR:"한국", JP:"일본", US:"미국"};
+const CURRENCY = {KR:"₩", JP:"¥", US:"$"};
+const PACK_MAX = 20; // input tracks 1~20 items-per-box individually (for accurate per-box costing)
+const PACK_KEYS = Array.from({length:PACK_MAX}, (_,i)=>"pack"+(i+1)); // pack1..pack20 — raw storage/input keys
+// Charts group the long tail into 5 buckets so they stay readable.
+const PACK_DISPLAY_KEYS = ["pack1","pack2","pack3","pack4","pack5plus"];
+const PACK_LABEL = {pack1:"1개", pack2:"2개", pack3:"3개", pack4:"4개", pack5plus:"5개+"};
+const PACK_COLOR_LIGHT = {pack1:"#86b6ef", pack2:"#5598e7", pack3:"#2a78d6", pack4:"#1c5cab", pack5plus:"#184f95"};
+const PACK_COLOR_DARK  = {pack1:"#86b6ef", pack2:"#5598e7", pack3:"#3987e5", pack4:"#1c5cab", pack5plus:"#184f95"};
+/** Collapse raw pack1..pack20 box counts into the 5 display buckets used by charts. */
+function toDisplayBuckets(rec){
+  rec = rec || {};
+  const out = {pack1:rec.pack1||0, pack2:rec.pack2||0, pack3:rec.pack3||0, pack4:rec.pack4||0, pack5plus:0};
+  for(let k=5;k<=PACK_MAX;k++){ out.pack5plus += rec["pack"+k]||0; }
+  return out;
+}
+
+function isDark(){
+  const t = document.documentElement.getAttribute("data-theme");
+  if(t==="dark") return true;
+  if(t==="light") return false;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function packColor(key){ return isDark()? PACK_COLOR_DARK[key] : PACK_COLOR_LIGHT[key]; }
+
+/* ---------------------------- date utils ---------------------------- */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function toISO(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function parseISO(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function todayISO(){ return toISO(new Date()); }
+function addDays(iso,n){ const d=parseISO(iso); d.setDate(d.getDate()+n); return toISO(d); }
+function fmtShort(iso){ const d=parseISO(iso); return (d.getMonth()+1)+"/"+d.getDate(); }
+function fmtFull(iso){ const d=parseISO(iso); const w=["일","월","화","수","목","금","토"][d.getDay()]; return `${d.getFullYear()}.${pad2(d.getMonth()+1)}.${pad2(d.getDate())} (${w})`; }
+function weekdayOf(iso){ return parseISO(iso).getDay(); }
+function isoWeekKey(iso){
+  const d = parseISO(iso);
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (dt.getUTCDay()+6)%7;
+  dt.setUTCDate(dt.getUTCDate()-dayNum+3);
+  const firstThursday = new Date(Date.UTC(dt.getUTCFullYear(),0,4));
+  const week = 1 + Math.round(((dt-firstThursday)/86400000 - 3 + ((firstThursday.getUTCDay()+6)%7))/7);
+  return `${dt.getUTCFullYear()}-W${pad2(week)}`;
+}
+function monthKey(iso){ return iso.slice(0,7); }
+function yearKey(iso){ return iso.slice(0,4); }
+function monthLabel(key){ const [y,m]=key.split("-"); return `${y}.${m}`; }
+function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+function fmtNum(n){ return Math.round(n).toLocaleString("ko-KR"); }
+function fmtMoney(n, cur){ return (cur||"") + Math.round(n).toLocaleString("ko-KR"); }
+function uid(prefix){ return (prefix||"id")+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+/* ---------------------------- holiday seed (2026-2027) ---------------------------- */
+const HOLIDAY_SEED = [
+["KR","2026-01-01","신정"],["KR","2026-02-16","설날연휴"],["KR","2026-02-17","설날"],["KR","2026-02-18","설날연휴"],
+["KR","2026-03-01","삼일절"],["KR","2026-03-02","대체공휴일(삼일절)"],["KR","2026-05-01","근로자의 날"],
+["KR","2026-05-05","어린이날"],["KR","2026-05-08","부처님오신날"],["KR","2026-06-06","현충일"],
+["KR","2026-08-15","광복절"],["KR","2026-08-17","대체공휴일(광복절)"],
+["KR","2026-09-24","추석연휴"],["KR","2026-09-25","추석"],["KR","2026-09-26","추석연휴"],["KR","2026-09-27","추석연휴"],
+["KR","2026-10-03","개천절"],["KR","2026-10-05","대체공휴일(개천절)"],["KR","2026-10-09","한글날"],["KR","2026-12-25","성탄절"],
+["KR","2027-01-01","신정"],["KR","2027-02-06","설날연휴"],["KR","2027-02-07","설날"],["KR","2027-02-08","설날연휴"],
+["KR","2027-02-09","대체공휴일(설날)"],["KR","2027-03-01","삼일절"],["KR","2027-05-01","근로자의 날"],
+["KR","2027-05-05","어린이날"],["KR","2027-05-13","부처님오신날"],["KR","2027-06-06","현충일"],
+["KR","2027-08-15","광복절"],["KR","2027-08-16","대체공휴일(광복절)"],
+["KR","2027-09-14","추석연휴"],["KR","2027-09-15","추석"],["KR","2027-09-16","추석연휴"],
+["KR","2027-10-03","개천절"],["KR","2027-10-04","대체공휴일(개천절)"],["KR","2027-10-09","한글날"],
+["KR","2027-10-11","대체공휴일(한글날)"],["KR","2027-12-25","성탄절"],["KR","2027-12-27","대체공휴일(성탄절)"],
+["JP","2026-01-01","元日"],["JP","2026-01-12","成人の日"],["JP","2026-02-11","建国記念の日"],["JP","2026-02-23","天皇誕生日"],
+["JP","2026-03-20","春分の日"],["JP","2026-04-29","昭和の日"],["JP","2026-05-04","みどりの日"],["JP","2026-05-05","こどもの日"],
+["JP","2026-05-06","憲法記念日 振替休日"],["JP","2026-07-20","海の日"],["JP","2026-08-11","山の日"],
+["JP","2026-09-21","敬老の日"],["JP","2026-09-22","国民の休日"],["JP","2026-09-23","秋分の日"],
+["JP","2026-10-12","スポーツの日"],["JP","2026-11-03","文化の日"],["JP","2026-11-23","勤労感謝の日"],
+["JP","2027-01-01","元日"],["JP","2027-01-11","成人の日"],["JP","2027-02-11","建国記念の日"],["JP","2027-02-23","天皇誕生日"],
+["JP","2027-03-22","春分の日(振替)"],["JP","2027-04-29","昭和の日"],["JP","2027-05-03","憲法記念日"],
+["JP","2027-05-04","みどりの日"],["JP","2027-05-05","こどもの日"],["JP","2027-07-19","海の日"],["JP","2027-08-11","山の日"],
+["JP","2027-09-20","敬老の日"],["JP","2027-09-23","秋分の日"],["JP","2027-10-11","スポーツの日"],
+["JP","2027-11-03","文化の日"],["JP","2027-11-23","勤労感謝の日"],
+["US","2026-01-01","New Year's Day"],["US","2026-01-19","Martin Luther King Jr. Day"],["US","2026-02-16","Washington's Birthday"],
+["US","2026-05-25","Memorial Day"],["US","2026-06-19","Juneteenth"],["US","2026-07-03","Independence Day (관측일)"],
+["US","2026-09-07","Labor Day"],["US","2026-10-12","Columbus Day"],["US","2026-11-11","Veterans Day"],
+["US","2026-11-26","Thanksgiving Day"],["US","2026-12-25","Christmas Day"],
+["US","2027-01-01","New Year's Day"],["US","2027-01-18","Martin Luther King Jr. Day"],["US","2027-02-15","Washington's Birthday"],
+["US","2027-05-31","Memorial Day"],["US","2027-06-18","Juneteenth (관측일)"],["US","2027-07-05","Independence Day (관측일)"],
+["US","2027-09-06","Labor Day"],["US","2027-10-11","Columbus Day"],["US","2027-11-11","Veterans Day"],
+["US","2027-11-25","Thanksgiving Day"],["US","2027-12-24","Christmas Day (관측일)"]
+];
+
+/* =====================================================================
+   DATA STORE — GitHub Pages build. Uses a shared Supabase table (so every
+   teammate who opens the page sees the same data, live) and falls back to
+   this browser's localStorage if Supabase can't be reached (offline, key
+   revoked, etc.) so the page still works standalone.
+
+   Supabase project: "Sena Dashboard" — table `app_data`, single shared
+   row id='cargodesk', column `data` holds the whole app state as JSON
+   ({daily, holidays, shipments, settings}, each a map keyed by record id).
+   Writes go through the `cargodesk_apply` RPC (see the SQL this project
+   ships with) so two people saving at the same moment never clobber each
+   other — each call patches one key path server-side instead of the
+   client reading-modifying-writing the whole blob.
+   ===================================================================== */
+const SUPABASE_URL = "https://afdospdphlkcjyvdlukg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmZG9zcGRwaGxrY2p5dmRsdWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MDAyNTEsImV4cCI6MjA5ODM3NjI1MX0.o9IRhp5dsUark4xD3QnOieLdjA52JAcZMPXx-VmZNfU";
+const SUPABASE_ROW_ID = "cargodesk";
+
+const Store = (function(){
+  let sb = null;
+  let backend = "memory"; // "cloud" | "local" | "memory"
+  const LS_KEYS = {daily:"cargodesk_daily", holidays:"cargodesk_holidays", shipments:"cargodesk_shipments", settings:"cargodesk_settings"};
+  const local = {daily:{}, holidays:{}, shipments:{}, settings:{}};
+  const listeners = {daily:[], holidays:[], shipments:[], settings:[]};
+
+  function lsLoad(){
+    try{
+      Object.keys(LS_KEYS).forEach(k=>{
+        const raw = localStorage.getItem(LS_KEYS[k]);
+        if(raw) local[k] = JSON.parse(raw);
+      });
+    }catch(e){ /* storage unavailable, stay in memory */ }
+  }
+  function lsSave(kind){
+    try{ localStorage.setItem(LS_KEYS[kind], JSON.stringify(local[kind])); }catch(e){}
+  }
+  function notify(kind){
+    const arr = Object.keys(local[kind]).map(id=>({id, ...local[kind][id]}));
+    listeners[kind].forEach(fn=>fn(arr));
+  }
+  function notifySettings(){
+    listeners.settings.forEach(fn=>fn(local.settings));
+  }
+
+  // ---- cloud (Supabase) plumbing ----
+  async function cloudLoad(){
+    const { data, error } = await sb.from("app_data").select("data").eq("id", SUPABASE_ROW_ID).maybeSingle();
+    if(error) throw error;
+    const d = (data && data.data) || {};
+    local.daily = d.daily || {};
+    local.holidays = d.holidays || {};
+    local.shipments = d.shipments || {};
+    local.settings = d.settings || {};
+  }
+  function applyIncoming(d){
+    local.daily = (d && d.daily) || {};
+    local.holidays = (d && d.holidays) || {};
+    local.shipments = (d && d.shipments) || {};
+    local.settings = (d && d.settings) || {};
+    notify("daily"); notify("holidays"); notify("shipments"); notifySettings();
+  }
+  function subscribeRealtime(){
+    sb.channel("cargodesk-sync")
+      .on("postgres_changes", { event:"UPDATE", schema:"public", table:"app_data", filter:`id=eq.${SUPABASE_ROW_ID}` },
+        payload=>{ if(payload.new && payload.new.data) applyIncoming(payload.new.data); })
+      .subscribe();
+  }
+  async function rpc(op, kind, itemId, payload){
+    const { error } = await sb.rpc("cargodesk_apply", { p_op: op, p_kind: kind, p_item_id: itemId||null, p_payload: payload===undefined?null:payload });
+    if(error) throw error;
+  }
+
+  async function init(){
+    try{
+      if(window.supabase && typeof window.supabase.createClient === "function" && SUPABASE_URL && SUPABASE_ANON_KEY){
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        await cloudLoad();
+        subscribeRealtime();
+        backend = "cloud";
+        return backend;
+      }
+    }catch(e){ console.error("Supabase 연결 실패, 이 브라우저 저장소로 대체합니다.", e); sb = null; }
+    backend = "local"; lsLoad();
+    return backend;
+  }
+
+  // ---- generic subscribe helpers (cloud already lives in `local`, kept in sync by realtime) ----
+  function onDaily(cb){ listeners.daily.push(cb); notify("daily"); return ()=>{ listeners.daily = listeners.daily.filter(f=>f!==cb); }; }
+  function onHolidays(cb){ listeners.holidays.push(cb); notify("holidays"); return ()=>{ listeners.holidays = listeners.holidays.filter(f=>f!==cb); }; }
+  function onShipments(cb){ listeners.shipments.push(cb); notify("shipments"); return ()=>{ listeners.shipments = listeners.shipments.filter(f=>f!==cb); }; }
+  function onSettings(cb){ listeners.settings.push(cb); notifySettings(); return ()=>{ listeners.settings = listeners.settings.filter(f=>f!==cb); }; }
+
+  // ---- one-time reads (for seeding checks) ----
+  async function countDaily(){ return Object.keys(local.daily).length; }
+  async function countHolidays(){ return Object.keys(local.holidays).length; }
+  async function countShipments(){ return Object.keys(local.shipments).length; }
+  async function hasSettings(){ return Object.keys(local.settings).length>0; }
+
+  // ---- writes ----
+  async function upsertDaily(rec){
+    const value = {...rec}; delete value.id;
+    local.daily[rec.id] = value;
+    if(backend==="cloud"){ await rpc("set_item","daily",rec.id,value); } else { lsSave("daily"); }
+    notify("daily");
+  }
+  async function deleteDaily(id){
+    delete local.daily[id];
+    if(backend==="cloud"){ await rpc("delete_item","daily",id); } else { lsSave("daily"); }
+    notify("daily");
+  }
+  async function upsertHoliday(rec){
+    const value = {...rec}; delete value.id;
+    local.holidays[rec.id] = value;
+    if(backend==="cloud"){ await rpc("set_item","holidays",rec.id,value); } else { lsSave("holidays"); }
+    notify("holidays");
+  }
+  async function deleteHoliday(id){
+    delete local.holidays[id];
+    if(backend==="cloud"){ await rpc("delete_item","holidays",id); } else { lsSave("holidays"); }
+    notify("holidays");
+  }
+  async function addShipment(rec){
+    const id = uid("shp");
+    local.shipments[id] = {...rec};
+    if(backend==="cloud"){ await rpc("set_item","shipments",id,rec); } else { lsSave("shipments"); }
+    notify("shipments");
+    return id;
+  }
+  async function updateShipment(id, patch){
+    local.shipments[id] = {...local.shipments[id], ...patch};
+    if(backend==="cloud"){ await rpc("set_item","shipments",id,local.shipments[id]); } else { lsSave("shipments"); }
+    notify("shipments");
+  }
+  async function deleteShipment(id){
+    delete local.shipments[id];
+    if(backend==="cloud"){ await rpc("delete_item","shipments",id); } else { lsSave("shipments"); }
+    notify("shipments");
+  }
+  async function saveSettings(patch){
+    local.settings = {...local.settings, ...patch};
+    if(backend==="cloud"){ await rpc("merge_settings","settings",null,patch); } else { lsSave("settings"); }
+    notifySettings();
+  }
+  async function bulkDeleteSample(kind){
+    Object.keys(local[kind]).forEach(id=>{ if(local[kind][id].isSample) delete local[kind][id]; });
+    if(backend==="cloud"){ await rpc("delete_sample",kind); } else { lsSave(kind); }
+    notify(kind);
+  }
+
+  return {
+    init, get backend(){ return backend; },
+    onDaily, onHolidays, onShipments, onSettings,
+    countDaily, countHolidays, countShipments, hasSettings,
+    upsertDaily, deleteDaily, upsertHoliday, deleteHoliday,
+    addShipment, updateShipment, deleteShipment, saveSettings, bulkDeleteSample
+  };
+})();
+
+/* ---------------------------- app-wide cache ---------------------------- */
+const Cache = { daily:[], holidays:[], shipments:[], settings:{} };
+
+function defaultSettings(){
+  return {
+    KR:{ currency:"₩", lastMile:2950 },
+    JP:{ currency:"¥", lastMile:520  },
+    packing:{ baseUsd:1.29, stepUsd:0.6 },
+    air:{ thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15 }, // actual weight < threshold -> lowRate, >= threshold -> highRate
+    fx:{ usdKrw:1342, usdJpy:154, updatedAt:"2026-09-08", auto:true },
+    thresholds:{ low:300, high:500 }
+  };
+}
+/** Merge stored settings over the defaults so older saves (missing newer
+ * fields such as `packing` or `fx`) still get sane values. One level deep
+ * per top-level key, which is all this settings doc ever nests. */
+function mergeSettings(stored){
+  const d = defaultSettings();
+  const out = {...d, ...(stored||{})};
+  Object.keys(d).forEach(k=>{
+    if(d[k] && typeof d[k]==="object" && !Array.isArray(d[k])){
+      out[k] = {...d[k], ...((stored&&stored[k])||{})};
+    }
+  });
+  return out;
+}
+
+/* ---------------------------- seeding ---------------------------- */
+async function seedIfEmpty(){
+  const [dCount,hCount,sCount,hasSet] = await Promise.all([
+    Store.countDaily(), Store.countHolidays(), Store.countShipments(), Store.hasSettings()
+  ]);
+  const jobs = [];
+  if(hCount===0){
+    HOLIDAY_SEED.forEach(([country,date,name])=>{
+      jobs.push(Store.upsertHoliday({id:`${country}_${date}`, country, date, name, source:"auto"}));
+    });
+  }
+  if(!hasSet){ jobs.push(Store.saveSettings(defaultSettings())); }
+  if(dCount===0){
+    const base = todayISO();
+    for(let i=13;i>=0;i--){
+      const date = addDays(base, -i);
+      const wd = weekdayOf(date);
+      COUNTRIES.forEach(country=>{
+        const scale = country==="KR" ? 1 : 0.62;
+        const weekendCut = (wd===0||wd===6) ? 0.35 : 1;
+        const noise = 0.82 + Math.random()*0.36;
+        const shipped = Math.round(720*scale*weekendCut*noise);
+        const picked = Math.round(shipped * (1.03 + Math.random()*0.08));
+        // distribute BOX counts (not item counts) across 1~20 items/box, weighted toward single-item boxes
+        const DECAY = 0.55;
+        const rawWeights = Array.from({length:PACK_MAX}, (_,idx)=>Math.pow(DECAY, idx));
+        const wSum = rawWeights.reduce((a,b)=>a+b, 0);
+        const boxWeights = rawWeights.map(w=>w/wSum);
+        const avgItemsPerBox = boxWeights.reduce((s,f,idx)=> s+f*(idx+1), 0);
+        const totalBoxes = Math.max(1, Math.round(shipped/avgItemsPerBox));
+        const packCounts = {};
+        let assigned = 0;
+        PACK_KEYS.forEach((key,idx)=>{
+          const n = idx===PACK_KEYS.length-1 ? Math.max(0,totalBoxes-assigned) : Math.round(totalBoxes*boxWeights[idx]);
+          packCounts[key] = n; assigned += n;
+        });
+        jobs.push(Store.upsertDaily({
+          id:`${country}_${date}`, country, date, picked, shipped,
+          ...packCounts, isSample:true
+        }));
+      });
+    }
+  }
+  if(sCount===0){
+    const base = todayISO();
+    const sample1 = {
+      country:"KR", cutoffDate:addDays(base,2), cutoffTime:"15:00", carrier:"Asiana Cargo",
+      flightNo:"OZ983", etd:addDays(base,2)+"T23:40", eta:addDays(base,3)+"T03:10",
+      mawb:"988-1234 5670", origin:"ICN", dest:"LAX",
+      palletCount:6, packageCount:1180, cutoffWeight:4200, actualWeight:4085, volumeWeight:3960,
+      notes:"정기 화요/금요 부킹", isSample:true, createdAt:Date.now()
+    };
+    const sample2 = {
+      country:"JP", cutoffDate:addDays(base,3), cutoffTime:"14:30", carrier:"ANA Cargo",
+      flightNo:"NH961", etd:addDays(base,3)+"T22:15", eta:addDays(base,4)+"T02:00",
+      mawb:"205-9988 1123", origin:"NRT", dest:"LAX",
+      palletCount:3, packageCount:540, cutoffWeight:1850, actualWeight:1790, volumeWeight:1705,
+      notes:"", isSample:true, createdAt:Date.now()
+    };
+    jobs.push(Store.addShipment(sample1));
+    jobs.push(Store.addShipment(sample2));
+  }
+  await Promise.all(jobs);
+}
+
+/* ---------------------------- tiny event bus ---------------------------- */
+const bus = {};
+function on(evt, fn){ (bus[evt] = bus[evt]||[]).push(fn); }
+function emit(evt, arg){ (bus[evt]||[]).forEach(fn=>{ try{ fn(arg); }catch(e){ console.error(e); } }); }
+
+/* ---------------------------- expose shared namespace ---------------------------- */
+window.CD = {
+  COUNTRIES, COUNTRY_LABEL, CURRENCY, PACK_MAX, PACK_KEYS, PACK_DISPLAY_KEYS, PACK_LABEL, packColor, toDisplayBuckets,
+  isDark, cssVar, pad2, toISO, parseISO, todayISO, addDays, fmtShort, fmtFull, weekdayOf,
+  isoWeekKey, monthKey, yearKey, monthLabel, daysInMonth, fmtNum, fmtMoney, uid,
+  Store, Cache, defaultSettings, mergeSettings, on, emit
+};
+window.__CD_HOLIDAY_SEED__ = HOLIDAY_SEED;
+
+/* ---------------------------- boot ---------------------------- */
+/* ---------------------------- live FX (client-side, no CSP restriction on GitHub Pages) ---------------------------- */
+async function fetchLiveFx(){
+  try{
+    const res = await fetch("https://open.er-api.com/v6/latest/USD", { cache:"no-store" });
+    const j = await res.json();
+    if(j && j.result==="success" && j.rates && j.rates.KRW && j.rates.JPY){
+      return { usdKrw: j.rates.KRW, usdJpy: j.rates.JPY };
+    }
+  }catch(e){ /* try the fallback below */ }
+  try{
+    const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=KRW,JPY", { cache:"no-store" });
+    const j = await res.json();
+    if(j && j.rates && j.rates.KRW && j.rates.JPY){
+      return { usdKrw: j.rates.KRW, usdJpy: j.rates.JPY };
+    }
+  }catch(e){ /* both sources unreachable this cycle — keep the last known rate */ }
+  return null;
+}
+async function refreshFxLive(){
+  const fx = await fetchLiveFx();
+  if(!fx) return;
+  const cur = CD.Cache.settings.fx || {};
+  if(cur.auto===false) return; // someone turned off auto-refresh in favor of a manual rate
+  if(cur.usdKrw===fx.usdKrw && cur.usdJpy===fx.usdJpy && cur.auto) return; // no change, skip the write
+  const stamp = new Date().toISOString().slice(0,16).replace("T"," ");
+  await CD.Store.saveSettings({ fx:{ usdKrw:fx.usdKrw, usdJpy:fx.usdJpy, updatedAt:stamp, auto:true } });
+}
+CD.refreshFxLive = refreshFxLive;
+
+async function boot(){
+  const statusEl = document.getElementById("storeStatus");
+  const backend = await Store.init();
+  statusEl.textContent = backend==="cloud" ? "팀 공유 저장소 연결됨 (실시간 동기화)" : (backend==="local" ? "이 브라우저에 저장 중" : "임시 저장 (새로고침 시 초기화)");
+  statusEl.className = "badge " + (backend==="cloud" ? "good" : "auto");
+  await seedIfEmpty();
+
+  Store.onDaily(rows=>{ Cache.daily = rows.sort((a,b)=> a.date<b.date?-1:1); emit("daily"); });
+  Store.onHolidays(rows=>{ Cache.holidays = rows.sort((a,b)=> a.date<b.date?-1:1); emit("holidays"); });
+  Store.onShipments(rows=>{ Cache.shipments = rows.sort((a,b)=> (a.cutoffDate||"")<(b.cutoffDate||"")?-1:1); emit("shipments"); });
+  Store.onSettings(s=>{ Cache.settings = mergeSettings(s); emit("settings"); });
+
+  // live FX: refresh once now, then hourly while this tab stays open
+  refreshFxLive();
+  setInterval(refreshFxLive, 60*60*1000);
+
+  // clock
+  function tickClock(){
+    const now = new Date();
+    const el = document.getElementById("clockNow");
+    if(el) el.textContent = now.toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  // tabs
+  document.getElementById("tabNav").addEventListener("click", e=>{
+    const btn = e.target.closest(".tab-btn"); if(!btn) return;
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b===btn));
+    document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+btn.dataset.tab));
+    emit("tab", btn.dataset.tab);
+  });
+
+  emit("ready");
+}
+
+document.addEventListener("DOMContentLoaded", boot);
+if(document.readyState!=="loading") boot();
+
+})();
+</script>
+
+<script>
+/* =====================================================================
+   CHART LIBRARY — small dependency-free SVG chart builders.
+   Marks follow the dataviz spec: thin bars w/ rounded data-ends, 2px
+   surface gaps between stacked segments, recessive gridlines, direct
+   hover tooltips, legends for every multi-series chart.
+   ===================================================================== */
+(function(){
+"use strict";
+const CD = window.CD;
+const NS = "http://www.w3.org/2000/svg";
+
+function svgEl(tag, attrs){
+  const el = document.createElementNS(NS, tag);
+  if(attrs) Object.keys(attrs).forEach(k=> el.setAttribute(k, attrs[k]));
+  return el;
+}
+function clear(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+
+let tipEl = null;
+function tip(){ if(!tipEl) tipEl = document.getElementById("tooltip"); return tipEl; }
+function showTip(evt, html){
+  const t = tip(); t.innerHTML = html; t.classList.add("show");
+  const x = evt.clientX, y = evt.clientY;
+  const w = 230, pad = 14;
+  t.style.left = Math.min(x+pad, window.innerWidth-w) + "px";
+  t.style.top = Math.max(y-38, 8) + "px";
+}
+function moveTip(evt){ const t = tip(); if(t.classList.contains("show")) showTip(evt, t.innerHTML); }
+function hideTip(){ tip().classList.remove("show"); }
+
+function niceMax(v){
+  if(v<=0) return 10;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  const n = v/mag;
+  const step = n<=1?1:n<=2?2:n<=5?5:10;
+  return step*mag;
+}
+function padLFor(labelStrings){
+  const longest = labelStrings.reduce((a,s)=> Math.max(a, String(s).length), 1);
+  return Math.max(40, 14 + longest*6.6);
+}
+
+// Low volume is the operational risk here (a dip below plan), high volume is normal —
+// so the danger band sits at the BOTTOM of the scale, not the top.
+function statusColor(value, thresholds){
+  if(value <= thresholds.low)  return {key:"critical", label:`${CD.fmtNum(thresholds.low)}개 이하 · 위험`};
+  if(value <= thresholds.high) return {key:"warning",  label:`${CD.fmtNum(thresholds.low+1)}~${CD.fmtNum(thresholds.high)}개 · 주의`};
+  return {key:"good", label:`${CD.fmtNum(thresholds.high)}개 초과 · 정상`};
+}
+
+/* ---------------- banded bar chart (dashboard picked/shipped) ---------------- */
+function bandBarChart(container, {data, thresholds, unitLabel}){
+  clear(container);
+  const w = container.clientWidth || 640, h = 220;
+  const maxV = niceMax(Math.max(thresholds.high*1.15, ...data.map(d=>d.value), 10));
+  const padL=padLFor([0,0.25,0.5,0.75,1].map(f=>CD.fmtNum(maxV*f))), padR=10, padT=14, padB=26;
+  const plotW = w-padL-padR, plotH = h-padT-padB;
+  const svg = svgEl("svg",{class:"chart", width:"100%", height:h, viewBox:`0 0 ${w} ${h}`});
+  const n = data.length;
+  const bw = Math.min(34, plotW/n*0.62);
+  const gap = plotW/n;
+
+  // gridlines + y labels
+  [0,0.25,0.5,0.75,1].forEach(f=>{
+    const y = padT + plotH*(1-f);
+    svg.appendChild(svgEl("line",{class:"gridline", x1:padL, x2:w-padR, y1:y, y2:y, "stroke-width":1}));
+    const lbl = svgEl("text",{x:padL-8, y:y+3, "text-anchor":"end", "font-size":"10"});
+    lbl.textContent = CD.fmtNum(maxV*f);
+    svg.appendChild(lbl);
+  });
+  // threshold reference lines
+  [["low",thresholds.low],["high",thresholds.high]].forEach(([key,val])=>{
+    if(val<=maxV){
+      const y = padT + plotH*(1-val/maxV);
+      const l = svgEl("line",{x1:padL, x2:w-padR, y1:y, y2:y, stroke: key==="low"?CD.cssVar("--critical"):CD.cssVar("--good"), "stroke-width":1, "stroke-dasharray":"3,3", opacity:0.55});
+      svg.appendChild(l);
+    }
+  });
+
+  data.forEach((d,i)=>{
+    const cx = padL + gap*i + gap/2;
+    const bh = Math.max(2, plotH * Math.min(1,d.value/maxV));
+    const y = padT+plotH-bh;
+    const st = statusColor(d.value, thresholds);
+    const rect = svgEl("rect",{class:"bar-rect", x:cx-bw/2, y, width:bw, height:bh, rx:4, ry:4, fill:CD.cssVar("--"+st.key)});
+    rect.addEventListener("mousemove", e=>showTip(e, `<b>${CD.fmtFull(d.date)}</b><br>${unitLabel}: <b>${CD.fmtNum(d.value)}</b>개<br><span style="opacity:.75">${st.label} 구간</span>`));
+    rect.addEventListener("mouseleave", hideTip);
+    svg.appendChild(rect);
+    if(n<=16){
+      const lbl = svgEl("text",{x:cx, y:h-8, "text-anchor":"middle", "font-size":"9.5"});
+      lbl.textContent = CD.fmtShort(d.date);
+      svg.appendChild(lbl);
+    }
+  });
+  svg.appendChild(svgEl("line",{class:"axisline", x1:padL, x2:w-padR, y1:padT+plotH, y2:padT+plotH, "stroke-width":1}));
+  container.appendChild(svg);
+}
+
+/* ---------------- stacked bar chart (packing ratio composition) ---------------- */
+function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabelFn, tipTitleFn, valueFmt}){
+  xLabelFn = xLabelFn || CD.fmtShort;
+  tipTitleFn = tipTitleFn || CD.fmtFull;
+  valueFmt = valueFmt || (v=>CD.fmtNum(v));
+  clear(container);
+  const w = container.clientWidth || 640, h = 220;
+  const totals = data.map(d=> keys.reduce((s,k)=>s+(d[k]||0),0));
+  const maxV = niceMax(Math.max(...totals, 10));
+  const padL=padLFor([0,0.25,0.5,0.75,1].map(f=>valueFmt(maxV*f))), padR=10, padT=14, padB=26;
+  const plotW = w-padL-padR, plotH = h-padT-padB;
+  const svg = svgEl("svg",{class:"chart", width:"100%", height:h, viewBox:`0 0 ${w} ${h}`});
+  const n = data.length;
+  const bw = Math.min(34, plotW/n*0.62);
+  const gapStep = plotW/n;
+
+  [0,0.25,0.5,0.75,1].forEach(f=>{
+    const y = padT + plotH*(1-f);
+    svg.appendChild(svgEl("line",{class:"gridline", x1:padL, x2:w-padR, y1:y, y2:y, "stroke-width":1}));
+    const lbl = svgEl("text",{x:padL-8, y:y+3, "text-anchor":"end", "font-size":"10"});
+    lbl.textContent = CD.fmtNum(maxV*f);
+    svg.appendChild(lbl);
+  });
+
+  data.forEach((d,i)=>{
+    const cx = padL + gapStep*i + gapStep/2;
+    let acc = 0;
+    keys.forEach(k=>{
+      const v = d[k]||0; if(v<=0) return;
+      const segH = Math.max(0, plotH*(v/maxV) - 1.2);
+      const y = padT+plotH - plotH*((acc+v)/maxV);
+      const rect = svgEl("rect",{class:"bar-rect", x:cx-bw/2, y, width:bw, height:Math.max(0,segH), rx:2.5, ry:2.5, fill:colorFn(k)});
+      rect.addEventListener("mousemove", e=>showTip(e, `<b>${tipTitleFn(d.date)}</b><br>${labelFn(k)}: <b>${valueFmt(v)}</b>`));
+      rect.addEventListener("mouseleave", hideTip);
+      svg.appendChild(rect);
+      acc += v;
+    });
+    if(n<=16){
+      const lbl = svgEl("text",{x:cx, y:h-8, "text-anchor":"middle", "font-size":"9.5"});
+      lbl.textContent = xLabelFn(d.date);
+      svg.appendChild(lbl);
+    }
+  });
+  svg.appendChild(svgEl("line",{class:"axisline", x1:padL, x2:w-padR, y1:padT+plotH, y2:padT+plotH, "stroke-width":1}));
+  container.appendChild(svg);
+
+  if(legend){
+    clear(legend);
+    keys.forEach(k=>{
+      const item = document.createElement("div"); item.className="item";
+      item.innerHTML = `<span class="swatch" style="background:${colorFn(k)}"></span>${labelFn(k)}`;
+      legend.appendChild(item);
+    });
+  }
+}
+
+/* ---------------- multi-line trend chart (accounting) ---------------- */
+function lineChart(container, {series, labels, yFmt, legend}){
+  // series: [{key,label,color,values:[num...]}], labels: x-axis category labels (same length as values)
+  clear(container);
+  const w = container.clientWidth || 640, h = 240;
+  const allVals = series.flatMap(s=>s.values).filter(v=>Number.isFinite(v));
+  const maxV = niceMax(Math.max(...allVals, 1));
+  const padL=padLFor([0,0.25,0.5,0.75,1].map(f=>yFmt(maxV*f))), padR=16, padT=16, padB=28;
+  const plotW = w-padL-padR, plotH = h-padT-padB;
+  const svg = svgEl("svg",{class:"chart", width:"100%", height:h, viewBox:`0 0 ${w} ${h}`});
+  const n = labels.length;
+  const stepX = n>1 ? plotW/(n-1) : plotW;
+
+  [0,0.25,0.5,0.75,1].forEach(f=>{
+    const y = padT + plotH*(1-f);
+    svg.appendChild(svgEl("line",{class:"gridline", x1:padL, x2:w-padR, y1:y, y2:y, "stroke-width":1}));
+    const lbl = svgEl("text",{x:padL-8, y:y+3, "text-anchor":"end", "font-size":"10"});
+    lbl.textContent = yFmt(maxV*f);
+    svg.appendChild(lbl);
+  });
+
+  const xTickEvery = Math.max(1, Math.ceil(n/10));
+  labels.forEach((lb,i)=>{
+    if(i%xTickEvery!==0 && i!==n-1) return;
+    const x = padL + stepX*i;
+    const t = svgEl("text",{x, y:h-8, "text-anchor":"middle", "font-size":"9.5"});
+    t.textContent = lb; svg.appendChild(t);
+  });
+
+  series.forEach(s=>{
+    const pts = s.values.map((v,i)=> [padL+stepX*i, padT+plotH*(1-(Number.isFinite(v)?v:0)/maxV)]);
+    if(pts.length>1){
+      const areaPts = [[pts[0][0],padT+plotH], ...pts, [pts[pts.length-1][0],padT+plotH]].map(p=>p.join(",")).join(" ");
+      svg.appendChild(svgEl("polygon",{points:areaPts, fill:s.color, opacity:0.08}));
+      const linePts = pts.map(p=>p.join(",")).join(" ");
+      svg.appendChild(svgEl("polyline",{points:linePts, fill:"none", stroke:s.color, "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+    }
+    pts.forEach((p,i)=>{
+      const v = s.values[i];
+      if(!Number.isFinite(v)) return;
+      const dot = svgEl("circle",{cx:p[0], cy:p[1], r:3.4, fill:s.color, stroke:CD.cssVar("--surface"), "stroke-width":1.4, class:"bar-rect"});
+      const fmt = s.fmt || yFmt;
+      dot.addEventListener("mousemove", e=>showTip(e, `<b>${labels[i]}</b><br>${s.label}: <b>${fmt(v)}</b>`));
+      dot.addEventListener("mouseleave", hideTip);
+      svg.appendChild(dot);
+    });
+  });
+  svg.appendChild(svgEl("line",{class:"axisline", x1:padL, x2:w-padR, y1:padT+plotH, y2:padT+plotH, "stroke-width":1}));
+  container.appendChild(svg);
+
+  if(legend){
+    clear(legend);
+    series.forEach(s=>{
+      const item = document.createElement("div"); item.className="item";
+      item.innerHTML = `<span class="swatch line" style="background:${s.color}"></span>${s.label}`;
+      legend.appendChild(item);
+    });
+  }
+}
+
+window.CDCharts = { bandBarChart, stackedBarChart, lineChart, statusColor, niceMax, showTip, hideTip };
+})();
+</script>
+
+<script>
+/* =====================================================================
+   DASHBOARD TAB
+   ===================================================================== */
+(function(){
+"use strict";
+const CD = window.CD, Charts = window.CDCharts;
+const root = document.getElementById("view-dashboard");
+let built = false;
+const filt = { country:"ALL", start: CD.addDays(CD.todayISO(),-13), end: CD.todayISO(), metric:"shipped" };
+let editingId = null;
+
+function packFieldId(key){ return "f"+key[0].toUpperCase()+key.slice(1); } // pack1 -> fPack1
+function packGridHtml(){
+  return CD.PACK_KEYS.map((k,i)=> `<div class="pack-col"><label>${i+1}</label><input type="number" id="${packFieldId(k)}" min="0" value="0"></div>`).join("");
+}
+function readPackFields(){
+  const out = {}; CD.PACK_KEYS.forEach(k=>{ out[k] = Number(document.getElementById(packFieldId(k)).value)||0; }); return out;
+}
+function updatePackHint(){
+  const vals = readPackFields();
+  const boxes = CD.PACK_KEYS.reduce((s,k)=>s+vals[k], 0);
+  const items = CD.PACK_KEYS.reduce((s,k,i)=>s+vals[k]*(i+1), 0);
+  const el = document.getElementById("fPackHint");
+  if(el) el.textContent = `합계 ${CD.fmtNum(boxes)}박스 · 제품 ${CD.fmtNum(items)}개`;
+}
+
+function shell(){
+  root.innerHTML = `
+    <div class="section">
+      <div class="row between">
+        <div class="row">
+          <div class="seg" id="dCountrySeg">
+            <button data-v="ALL" class="active">전체</button>
+            <button data-v="KR">한국</button>
+            <button data-v="JP">일본</button>
+          </div>
+          <div class="seg" id="dRangeSeg">
+            <button data-v="7">최근 7일</button>
+            <button data-v="14" class="active">최근 14일</button>
+            <button data-v="30">최근 30일</button>
+            <button data-v="thismonth">이번달</button>
+          </div>
+        </div>
+        <div class="row">
+          <input type="date" id="dStart" class="mono">
+          <span style="color:var(--muted); font-size:12px;">~</span>
+          <input type="date" id="dEnd" class="mono">
+        </div>
+      </div>
+    </div>
+
+    <div class="section grid kpis" id="dKpis"></div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>일자별 픽킹 · 출고 수량</h2>
+        <div class="row">
+          <div class="seg" id="dMetricSeg">
+            <button data-v="shipped" class="active">출고량</button>
+            <button data-v="picked">픽킹량</button>
+          </div>
+          <span class="hint">위험 ≤</span>
+          <input type="number" id="dThreshLow" class="num-input" style="width:64px" title="이 값 이하면 위험">
+          <span class="hint">· 정상 &gt;</span>
+          <input type="number" id="dThreshHigh" class="num-input" style="width:64px" title="이 값 초과면 정상">
+        </div>
+      </div>
+      <div class="card" id="dChartCard">
+        <div id="dChartsWrap" class="grid two"></div>
+        <div class="chart-legend">
+          <div class="item"><span class="swatch" style="background:var(--critical)"></span>위험 (기준↓ 이하)</div>
+          <div class="item"><span class="swatch" style="background:var(--warning)"></span>주의</div>
+          <div class="item"><span class="swatch" style="background:var(--good)"></span>정상 (기준↑ 초과)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>합포장 비율 (박스당 제품 수)</h2>
+        <span class="hint">1~20개 입력, 그래프는 5개 이상을 묶어서 표시</span>
+      </div>
+      <div class="card">
+        <div id="dPackWrap" class="grid two"></div>
+        <div class="chart-legend" id="dPackLegend"></div>
+      </div>
+    </div>
+
+    <div class="section grid two">
+      <div class="card">
+        <div class="section-head"><h2 id="dFormTitle">일일 데이터 입력</h2></div>
+        <form id="dForm">
+          <div class="grid form" style="grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field"><label>국가</label>
+              <select id="fCountry"><option value="KR">한국</option><option value="JP">일본</option></select>
+            </div>
+            <div class="field"><label>날짜</label><input type="date" id="fDate" required></div>
+            <div class="field"><label>픽킹 수량</label><input type="number" id="fPicked" min="0" required></div>
+            <div class="field"><label>출고 수량</label><input type="number" id="fShipped" min="0" required></div>
+            <div class="field" style="grid-column:1/-1;">
+              <label>합포장 박스 수 — 제품 종류 수(1개~20개)별 박스 개수</label>
+              <div class="pack-grid">${packGridHtml()}</div>
+              <div class="help" id="fPackHint"></div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:14px;">
+            <button type="submit" class="btn primary">저장</button>
+            <button type="button" class="btn ghost" id="fCancelEdit" hidden>편집 취소</button>
+            <span class="help" id="fHelp"></span>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="section-head"><h2>최근 기록</h2>
+          <button class="btn small danger ghost" id="dClearSample">샘플 데이터 삭제</button>
+        </div>
+        <div class="table-wrap" style="max-height:360px; overflow-y:auto;">
+          <table>
+            <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>출고</th><th>합포장</th><th></th></tr></thead>
+            <tbody id="dTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("dCountrySeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    filt.country = b.dataset.v;
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("dMetricSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    filt.metric = b.dataset.v;
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("dRangeSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    const v = b.dataset.v;
+    const today = CD.todayISO();
+    if(v==="thismonth"){ filt.start = today.slice(0,8)+"01"; filt.end = today; }
+    else { filt.start = CD.addDays(today, -(Number(v)-1)); filt.end = today; }
+    syncRangeInputs(); refresh();
+  });
+  document.getElementById("dStart").addEventListener("change", e=>{ filt.start = e.target.value; refresh(); });
+  document.getElementById("dEnd").addEventListener("change", e=>{ filt.end = e.target.value; refresh(); });
+  document.getElementById("dThreshLow").addEventListener("change", e=>{
+    const v = Number(e.target.value)||500;
+    CD.Store.saveSettings({ thresholds: { ...(CD.Cache.settings.thresholds||{}), low:v } });
+  });
+  document.getElementById("dThreshHigh").addEventListener("change", e=>{
+    const v = Number(e.target.value)||1000;
+    CD.Store.saveSettings({ thresholds: { ...(CD.Cache.settings.thresholds||{}), high:v } });
+  });
+  document.getElementById("dForm").addEventListener("submit", onSubmitForm);
+  document.getElementById("fCancelEdit").addEventListener("click", resetForm);
+  document.querySelector("#dForm .pack-grid").addEventListener("input", updatePackHint);
+  document.getElementById("dClearSample").addEventListener("click", async ()=>{
+    if(confirm("샘플로 등록된 일일 데이터를 모두 삭제할까요?")) await CD.Store.bulkDeleteSample("daily");
+  });
+  document.getElementById("fDate").value = CD.todayISO();
+  syncRangeInputs();
+  updatePackHint();
+  built = true;
+}
+
+function syncRangeInputs(){
+  document.getElementById("dStart").value = filt.start;
+  document.getElementById("dEnd").value = filt.end;
+}
+
+function resetForm(){
+  editingId = null;
+  document.getElementById("dFormTitle").textContent = "일일 데이터 입력";
+  document.getElementById("fHelp").textContent = "";
+  document.getElementById("fCancelEdit").hidden = true;
+  document.getElementById("dForm").reset();
+  document.getElementById("fDate").value = CD.todayISO();
+  updatePackHint();
+}
+
+async function onSubmitForm(e){
+  e.preventDefault();
+  const country = document.getElementById("fCountry").value;
+  const date = document.getElementById("fDate").value;
+  if(!date){ return; }
+  const rec = {
+    id: `${country}_${date}`, country, date,
+    picked: Number(document.getElementById("fPicked").value)||0,
+    shipped: Number(document.getElementById("fShipped").value)||0,
+    ...readPackFields(),
+  };
+  await CD.Store.upsertDaily(rec);
+  document.getElementById("fHelp").textContent = "저장되었습니다.";
+  setTimeout(()=>{ const h = document.getElementById("fHelp"); if(h) h.textContent=""; }, 2000);
+  resetForm();
+}
+
+function loadIntoForm(rec){
+  editingId = rec.id;
+  document.getElementById("dFormTitle").textContent = "일일 데이터 수정";
+  document.getElementById("fCancelEdit").hidden = false;
+  document.getElementById("fCountry").value = rec.country;
+  document.getElementById("fDate").value = rec.date;
+  document.getElementById("fPicked").value = rec.picked||0;
+  document.getElementById("fShipped").value = rec.shipped||0;
+  CD.PACK_KEYS.forEach(k=> document.getElementById(packFieldId(k)).value = rec[k]||0);
+  updatePackHint();
+}
+
+function filteredDaily(){
+  return CD.Cache.daily.filter(d=> d.date>=filt.start && d.date<=filt.end && (filt.country==="ALL" || d.country===filt.country));
+}
+
+function fillSeries(country, key){
+  // dense date series between filt.start..filt.end for one country
+  const map = {};
+  CD.Cache.daily.filter(d=>d.country===country).forEach(d=> map[d.date]=d);
+  const out = [];
+  let cur = filt.start;
+  while(cur<=filt.end){
+    const rec = map[cur];
+    out.push({date:cur, value: rec?(rec[key]||0):0, rec});
+    cur = CD.addDays(cur,1);
+  }
+  return out;
+}
+
+function refresh(){
+  if(!built) return;
+  const rows = filteredDaily();
+  const totalPicked = rows.reduce((s,r)=>s+(r.picked||0),0);
+  const totalShipped = rows.reduce((s,r)=>s+(r.shipped||0),0);
+  const days = Math.max(1, (CD.parseISO(filt.end)-CD.parseISO(filt.start))/86400000 + 1);
+  const avgShipped = totalShipped/days;
+  const totalBoxes = rows.reduce((s,r)=> s+CD.PACK_KEYS.reduce((a,k)=>a+(r[k]||0),0), 0);
+  const avgItemsPerBox = totalBoxes>0 ? totalShipped/totalBoxes : 0;
+
+  document.getElementById("dKpis").innerHTML = `
+    <div class="kpi"><div class="label">총 픽킹 수량</div><div class="value">${CD.fmtNum(totalPicked)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
+    <div class="kpi"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(totalShipped)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
+    <div class="kpi"><div class="label">일 평균 출고</div><div class="value">${CD.fmtNum(avgShipped)}</div><div class="sub">기간 ${Math.round(days)}일 기준</div></div>
+    <div class="kpi"><div class="label">박스당 평균 제품수</div><div class="value">${avgItemsPerBox.toFixed(2)}</div><div class="sub">총 ${CD.fmtNum(totalBoxes)}박스</div></div>
+  `;
+
+  const th = CD.Cache.settings.thresholds || {low:500,high:1000};
+  document.getElementById("dThreshLow").value = th.low;
+  document.getElementById("dThreshHigh").value = th.high;
+
+  const countries = filt.country==="ALL" ? CD.COUNTRIES : [filt.country];
+  const wrap = document.getElementById("dChartsWrap");
+  wrap.innerHTML = "";
+  wrap.className = "grid " + (countries.length>1 ? "two" : "");
+  countries.forEach(c=>{
+    const box = document.createElement("div");
+    box.innerHTML = `<div class="row" style="margin-bottom:6px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div><div class="chart-holder"></div>`;
+    wrap.appendChild(box);
+    const holder = box.querySelector(".chart-holder");
+    const series = fillSeries(c, filt.metric);
+    Charts.bandBarChart(holder, {data:series, thresholds:th, unitLabel: filt.metric==="shipped"?"출고":"픽킹"});
+  });
+
+  const packWrap = document.getElementById("dPackWrap");
+  packWrap.innerHTML = "";
+  packWrap.className = "grid " + (countries.length>1 ? "two" : "");
+  countries.forEach(c=>{
+    const box = document.createElement("div");
+    box.innerHTML = `<div class="row" style="margin-bottom:6px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div><div class="chart-holder"></div>`;
+    packWrap.appendChild(box);
+    const holder = box.querySelector(".chart-holder");
+    const map = {}; CD.Cache.daily.filter(d=>d.country===c).forEach(d=>map[d.date]=d);
+    const series = []; let cur = filt.start;
+    while(cur<=filt.end){ series.push({date:cur, ...CD.toDisplayBuckets(map[cur])}); cur = CD.addDays(cur,1); }
+    Charts.stackedBarChart(holder, {
+      data:series, keys:CD.PACK_DISPLAY_KEYS, colorFn:CD.packColor, labelFn:k=>CD.PACK_LABEL[k],
+      valueFmt:v=>CD.fmtNum(v)+"박스",
+      legend: countries.indexOf(c)===countries.length-1 ? document.getElementById("dPackLegend") : null
+    });
+  });
+
+  const tbody = document.getElementById("dTableBody");
+  const sorted = [...rows].sort((a,b)=> a.date<b.date?1:-1);
+  tbody.innerHTML = sorted.slice(0,60).map(r=>{
+    const boxes = CD.PACK_KEYS.reduce((a,k)=>a+(r[k]||0),0);
+    return `<tr>
+      <td>${CD.fmtShort(r.date)}</td>
+      <td class="text"><span class="badge ${r.country.toLowerCase()}">${CD.COUNTRY_LABEL[r.country]}</span></td>
+      <td>${CD.fmtNum(r.picked||0)}</td>
+      <td>${CD.fmtNum(r.shipped||0)}</td>
+      <td>${CD.fmtNum(boxes)}박스${r.isSample?' <span class="badge sample">예시</span>':''}</td>
+      <td class="text"><button class="btn small ghost" data-edit="${r.id}">수정</button> <button class="btn small danger ghost" data-del="${r.id}">삭제</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" class="text empty-note">해당 기간의 데이터가 없습니다.</td></tr>`;
+
+  tbody.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=>{
+    const rec = CD.Cache.daily.find(x=>x.id===b.dataset.edit); if(rec) loadIntoForm(rec);
+  }));
+  tbody.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", async ()=>{
+    if(confirm("이 기록을 삭제할까요?")) await CD.Store.deleteDaily(b.dataset.del);
+  }));
+}
+
+CD.on("daily", refresh);
+CD.on("settings", refresh);
+CD.on("tab", t=>{ if(t==="dashboard") refresh(); });
+CD.on("ready", ()=>{ shell(); refresh(); });
+})();
+</script>
+
+<script>
+/* =====================================================================
+   HOLIDAYS TAB
+   ===================================================================== */
+(function(){
+"use strict";
+const CD = window.CD;
+const root = document.getElementById("view-holidays");
+let built = false;
+let country = "KR";
+let cursor = { y: Number(CD.todayISO().slice(0,4)), m: Number(CD.todayISO().slice(5,7))-1 };
+
+function shell(){
+  root.innerHTML = `
+    <div class="section row between">
+      <div class="seg" id="hCountrySeg">
+        <button data-v="KR" class="active">한국</button>
+        <button data-v="JP">일본</button>
+        <button data-v="US">미국</button>
+      </div>
+      <button class="btn small" id="hReseed">이 국가 공휴일 자동 재등록 (2026–2027)</button>
+    </div>
+
+    <div class="grid two">
+      <div class="card">
+        <div class="cal-head">
+          <button class="btn ghost small" id="hPrev">◀</button>
+          <div class="month-label mono" id="hMonthLabel"></div>
+          <button class="btn ghost small" id="hNext">▶</button>
+        </div>
+        <div class="cal-grid" id="hCalDow"></div>
+        <div class="cal-grid" id="hCalGrid" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="stack" style="gap:16px;">
+        <div class="card">
+          <div class="section-head"><h2>휴무일 추가</h2></div>
+          <form id="hForm" class="stack" style="gap:10px;">
+            <div class="field"><label>날짜</label><input type="date" id="hDate" required></div>
+            <div class="field"><label>명칭</label><input type="text" id="hName" placeholder="예: 창고 자체 휴무일" required></div>
+            <button type="submit" class="btn primary">추가</button>
+          </form>
+        </div>
+        <div class="card" style="flex:1;">
+          <div class="section-head"><h2>휴무일 목록</h2><span class="hint" id="hCount"></span></div>
+          <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
+            <table>
+              <thead><tr><th>날짜</th><th>명칭</th><th>구분</th><th></th></tr></thead>
+              <tbody id="hTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("hCountrySeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    country = b.dataset.v;
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("hPrev").addEventListener("click", ()=>{ cursor.m--; if(cursor.m<0){cursor.m=11;cursor.y--;} refresh(); });
+  document.getElementById("hNext").addEventListener("click", ()=>{ cursor.m++; if(cursor.m>11){cursor.m=0;cursor.y++;} refresh(); });
+  document.getElementById("hForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const date = document.getElementById("hDate").value;
+    const name = document.getElementById("hName").value.trim();
+    if(!date || !name) return;
+    await CD.Store.upsertHoliday({ id:`${country}_${date}`, country, date, name, source:"custom" });
+    document.getElementById("hForm").reset();
+  });
+  document.getElementById("hReseed").addEventListener("click", async ()=>{
+    const seedRows = HOLIDAY_SEED_REF.filter(r=>r[0]===country);
+    for(const [c,date,name] of seedRows){
+      await CD.Store.upsertHoliday({ id:`${c}_${date}`, country:c, date, name, source:"auto" });
+    }
+    alert(`${CD.COUNTRY_LABEL[country]} 공휴일을 다시 불러왔습니다.`);
+  });
+
+  document.getElementById("hDate").value = CD.todayISO();
+  built = true;
+}
+
+function renderDow(){
+  const el = document.getElementById("hCalDow");
+  el.innerHTML = ["일","월","화","수","목","금","토"].map(d=>`<div class="cal-dow">${d}</div>`).join("");
+}
+
+function refresh(){
+  if(!built) return;
+  renderDow();
+  document.getElementById("hMonthLabel").textContent = `${cursor.y}.${CD.pad2(cursor.m+1)}`;
+
+  const list = CD.Cache.holidays.filter(h=>h.country===country);
+  const map = {}; list.forEach(h=> map[h.date]=h);
+
+  const first = new Date(cursor.y, cursor.m, 1);
+  const startOffset = first.getDay();
+  const dim = CD.daysInMonth(cursor.y, cursor.m);
+  const prevDim = CD.daysInMonth(cursor.m===0?cursor.y-1:cursor.y, cursor.m===0?11:cursor.m-1);
+  const cells = [];
+  for(let i=0;i<startOffset;i++) cells.push({out:true, day: prevDim-startOffset+1+i});
+  for(let d=1; d<=dim; d++) cells.push({out:false, day:d, iso: `${cursor.y}-${CD.pad2(cursor.m+1)}-${CD.pad2(d)}`});
+  { let nd=1; while(cells.length%7!==0) cells.push({out:true, day: nd++}); }
+  const today = CD.todayISO();
+
+  document.getElementById("hCalGrid").innerHTML = cells.map((c,idx)=>{
+    if(c.out) return `<div class="cal-cell out"><div class="d">${c.day}</div></div>`;
+    const wd = idx%7;
+    const h = map[c.iso];
+    const isToday = c.iso===today;
+    return `<div class="cal-cell ${isToday?'today':''}">
+      <div class="d ${wd===0||wd===6?'weekend':''}">${c.day}</div>
+      ${h?`<div class="holi">${h.name}</div>`:''}
+    </div>`;
+  }).join("");
+
+  const sorted = [...list].sort((a,b)=>a.date<b.date?-1:1);
+  document.getElementById("hCount").textContent = `${sorted.length}건`;
+  document.getElementById("hTableBody").innerHTML = sorted.map(h=>`
+    <tr>
+      <td>${CD.fmtFull(h.date)}</td>
+      <td class="text">${h.name}</td>
+      <td class="text"><span class="badge ${h.source==='auto'?'auto':'good'}">${h.source==='auto'?'자동':'수동'}</span></td>
+      <td class="text"><button class="btn small danger ghost" data-del="${h.id}">삭제</button></td>
+    </tr>
+  `).join("") || `<tr><td colspan="4" class="text empty-note">등록된 휴무일이 없습니다.</td></tr>`;
+
+  document.getElementById("hTableBody").querySelectorAll("[data-del]").forEach(b=>{
+    b.addEventListener("click", async ()=>{ if(confirm("이 휴무일을 삭제할까요?")) await CD.Store.deleteHoliday(b.dataset.del); });
+  });
+}
+
+const HOLIDAY_SEED_REF = window.__CD_HOLIDAY_SEED__;
+
+CD.on("holidays", refresh);
+CD.on("tab", t=>{ if(t==="holidays") refresh(); });
+CD.on("ready", ()=>{ shell(); refresh(); });
+})();
+</script>
+
+<script>
+/* =====================================================================
+   FLIGHTS & CUTOFF TAB
+   ===================================================================== */
+(function(){
+"use strict";
+const CD = window.CD;
+const root = document.getElementById("view-flights");
+let built = false;
+let filterCountry = "ALL";
+let cursor = { y: Number(CD.todayISO().slice(0,4)), m: Number(CD.todayISO().slice(5,7))-1 };
+const overlay = document.getElementById("modalOverlay");
+const modalBody = document.getElementById("modalBody");
+
+function closeModal(){ overlay.hidden = true; modalBody.innerHTML=""; }
+overlay.addEventListener("click", e=>{ if(e.target===overlay) closeModal(); });
+
+function fieldRow(label, inputHtml, full){
+  return `<div class="field ${full?'full':''}"><label>${label}</label>${inputHtml}</div>`;
+}
+
+function openForm(existing){
+  const s = existing || { country:filterCountry==="JP"?"JP":"KR", cutoffDate: CD.todayISO(), cutoffTime:"15:00" };
+  modalBody.innerHTML = `
+    <div class="modal-head"><h3>${existing? "항공편 · 컷오프 수정" : "항공편 · 컷오프 등록"}</h3><button class="close-x" id="mClose">&times;</button></div>
+    <form id="mForm">
+      <div class="grid form">
+        ${fieldRow("국가", `<select id="mCountry"><option value="KR" ${s.country==='KR'?'selected':''}>한국</option><option value="JP" ${s.country==='JP'?'selected':''}>일본</option></select>`)}
+        <div></div>
+        ${fieldRow("컷오프 날짜", `<input type="date" id="mCutoffDate" value="${s.cutoffDate||''}" required>`)}
+        ${fieldRow("컷오프 시간", `<input type="time" id="mCutoffTime" value="${s.cutoffTime||''}">`)}
+        ${fieldRow("항공사", `<input type="text" id="mCarrier" value="${s.carrier||''}" placeholder="예: Asiana Cargo">`)}
+        ${fieldRow("편명 (FLT)", `<input type="text" id="mFlightNo" class="mono" value="${s.flightNo||''}" placeholder="예: OZ983">`)}
+        ${fieldRow("출발지 (Origin)", `<input type="text" id="mOrigin" class="mono" value="${s.origin||''}" placeholder="ICN">`)}
+        ${fieldRow("도착지 (Dest)", `<input type="text" id="mDest" class="mono" value="${s.dest||''}" placeholder="LAX">`)}
+        ${fieldRow("ETD", `<input type="datetime-local" id="mEtd" value="${(s.etd||'').slice(0,16)}">`)}
+        ${fieldRow("ETA", `<input type="datetime-local" id="mEta" value="${(s.eta||'').slice(0,16)}">`)}
+        ${fieldRow("MAWB", `<input type="text" id="mMawb" class="mono" value="${s.mawb||''}" placeholder="988-1234 5670">`, true)}
+        ${fieldRow("Pallet Count", `<input type="number" id="mPallet" min="0" value="${s.palletCount||0}">`)}
+        ${fieldRow("Package Count", `<input type="number" id="mPackage" min="0" value="${s.packageCount||0}">`)}
+        ${fieldRow("Cutoff Weight (kg)", `<input type="number" id="mCutoffWeight" min="0" value="${s.cutoffWeight||0}">`)}
+        ${fieldRow("Actual Weight (kg)", `<input type="number" id="mActualWeight" min="0" value="${s.actualWeight||0}">`)}
+        ${fieldRow("부피무게 Volume Weight (kg)", `<input type="number" id="mVolumeWeight" min="0" value="${s.volumeWeight||0}">`, true)}
+        ${fieldRow("비고", `<textarea id="mNotes" rows="2" style="width:100%;">${s.notes||''}</textarea>`, true)}
+      </div>
+      <div class="modal-foot">
+        ${existing? `<button type="button" class="btn danger" id="mDelete">삭제</button>` : ""}
+        <button type="button" class="btn ghost" id="mCancel">취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </div>
+    </form>
+  `;
+  overlay.hidden = false;
+  document.getElementById("mClose").addEventListener("click", closeModal);
+  document.getElementById("mCancel").addEventListener("click", closeModal);
+  if(existing){
+    document.getElementById("mDelete").addEventListener("click", async ()=>{
+      if(confirm("이 항공편 · 컷오프 정보를 삭제할까요?")){ await CD.Store.deleteShipment(existing.id); closeModal(); }
+    });
+  }
+  document.getElementById("mForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const data = {
+      country: document.getElementById("mCountry").value,
+      cutoffDate: document.getElementById("mCutoffDate").value,
+      cutoffTime: document.getElementById("mCutoffTime").value,
+      carrier: document.getElementById("mCarrier").value.trim(),
+      flightNo: document.getElementById("mFlightNo").value.trim(),
+      origin: document.getElementById("mOrigin").value.trim().toUpperCase(),
+      dest: document.getElementById("mDest").value.trim().toUpperCase(),
+      etd: document.getElementById("mEtd").value,
+      eta: document.getElementById("mEta").value,
+      mawb: document.getElementById("mMawb").value.trim(),
+      palletCount: Number(document.getElementById("mPallet").value)||0,
+      packageCount: Number(document.getElementById("mPackage").value)||0,
+      cutoffWeight: Number(document.getElementById("mCutoffWeight").value)||0,
+      actualWeight: Number(document.getElementById("mActualWeight").value)||0,
+      volumeWeight: Number(document.getElementById("mVolumeWeight").value)||0,
+      notes: document.getElementById("mNotes").value.trim(),
+    };
+    if(existing){ await CD.Store.updateShipment(existing.id, data); }
+    else { data.createdAt = Date.now(); await CD.Store.addShipment(data); }
+    closeModal();
+  });
+}
+
+function shell(){
+  root.innerHTML = `
+    <div class="section row between">
+      <div class="seg" id="sCountrySeg">
+        <button data-v="ALL" class="active">전체</button>
+        <button data-v="KR">한국</button>
+        <button data-v="JP">일본</button>
+      </div>
+      <button class="btn primary small" id="sAddBtn">+ 항공편 · 컷오프 등록</button>
+    </div>
+
+    <div class="card section">
+      <div class="cal-head">
+        <button class="btn ghost small" id="sPrev">◀</button>
+        <div class="month-label mono" id="sMonthLabel"></div>
+        <button class="btn ghost small" id="sNext">▶</button>
+      </div>
+      <div class="cal-grid" id="sCalDow"></div>
+      <div class="cal-grid" id="sCalGrid" style="margin-top:6px;"></div>
+      <div class="chart-legend">
+        <div class="item"><span class="swatch" style="background:var(--kr)"></span>한국 출발</div>
+        <div class="item"><span class="swatch" style="background:var(--jp)"></span>일본 출발</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>컷오프 · 항공 정보 목록</h2><span class="hint" id="sCount"></span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>컷오프일시</th><th>국가</th><th>항공사/편명</th><th>구간</th><th>ETD</th><th>ETA</th>
+            <th>MAWB</th><th>Pallet</th><th>Package</th><th>Cutoff Wt</th><th>Actual Wt</th><th>Vol Wt</th><th></th>
+          </tr></thead>
+          <tbody id="sTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  document.getElementById("sCountrySeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    filterCountry = b.dataset.v;
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("sAddBtn").addEventListener("click", ()=>openForm(null));
+  document.getElementById("sPrev").addEventListener("click", ()=>{ cursor.m--; if(cursor.m<0){cursor.m=11;cursor.y--;} refresh(); });
+  document.getElementById("sNext").addEventListener("click", ()=>{ cursor.m++; if(cursor.m>11){cursor.m=0;cursor.y++;} refresh(); });
+  built = true;
+}
+
+function fmtDT(v){
+  if(!v) return "-";
+  const s = String(v).replace("T"," ");
+  return s.slice(5,16);
+}
+
+function refresh(){
+  if(!built) return;
+  document.getElementById("sCalDow").innerHTML = ["일","월","화","수","목","금","토"].map(d=>`<div class="cal-dow">${d}</div>`).join("");
+  document.getElementById("sMonthLabel").textContent = `${cursor.y}.${CD.pad2(cursor.m+1)}`;
+
+  const all = CD.Cache.shipments.filter(s=> filterCountry==="ALL" || s.country===filterCountry);
+  const byDate = {};
+  all.forEach(s=>{ (byDate[s.cutoffDate] = byDate[s.cutoffDate]||[]).push(s); });
+
+  const first = new Date(cursor.y, cursor.m, 1);
+  const startOffset = first.getDay();
+  const dim = CD.daysInMonth(cursor.y, cursor.m);
+  const prevDim = CD.daysInMonth(cursor.m===0?cursor.y-1:cursor.y, cursor.m===0?11:cursor.m-1);
+  const cells = [];
+  for(let i=0;i<startOffset;i++) cells.push({out:true, day: prevDim-startOffset+1+i});
+  for(let d=1; d<=dim; d++) cells.push({out:false, day:d, iso: `${cursor.y}-${CD.pad2(cursor.m+1)}-${CD.pad2(d)}`});
+  { let nd=1; while(cells.length%7!==0) cells.push({out:true, day: nd++}); }
+  const today = CD.todayISO();
+
+  document.getElementById("sCalGrid").innerHTML = cells.map((c,idx)=>{
+    if(c.out) return `<div class="cal-cell out"><div class="d">${c.day}</div></div>`;
+    const wd = idx%7;
+    const items = byDate[c.iso]||[];
+    const shown = items.slice(0,3);
+    const isToday = c.iso===today;
+    return `<div class="cal-cell ${isToday?'today':''}">
+      <div class="d ${wd===0||wd===6?'weekend':''}">${c.day}</div>
+      ${shown.map(s=>`<div class="chip ${s.country.toLowerCase()}" data-open="${s.id}">${s.flightNo||CD.COUNTRY_LABEL[s.country]}</div>`).join("")}
+      ${items.length>3?`<div class="cal-cell-more" data-more="${c.iso}">+${items.length-3}건 더보기</div>`:''}
+    </div>`;
+  }).join("");
+
+  document.getElementById("sCalGrid").querySelectorAll("[data-open]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const rec = all.find(s=>s.id===el.dataset.open); if(rec) openForm(rec);
+    });
+  });
+  document.getElementById("sCalGrid").querySelectorAll("[data-more]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const items = byDate[el.dataset.more]||[];
+      alert(items.map(s=>`${CD.COUNTRY_LABEL[s.country]} · ${s.carrier||''} ${s.flightNo||''}`).join("\n"));
+    });
+  });
+
+  const sorted = [...all].sort((a,b)=> (a.cutoffDate+((a.cutoffTime)||'')) < (b.cutoffDate+((b.cutoffTime)||'')) ? -1:1);
+  document.getElementById("sCount").textContent = `${sorted.length}건`;
+  document.getElementById("sTableBody").innerHTML = sorted.map(s=>`
+    <tr>
+      <td>${CD.fmtShort(s.cutoffDate)} ${s.cutoffTime||''}</td>
+      <td class="text"><span class="badge ${s.country.toLowerCase()}">${CD.COUNTRY_LABEL[s.country]}</span></td>
+      <td class="text">${s.carrier||'-'} <span class="mono">${s.flightNo||''}</span>${s.isSample?' <span class="badge sample">예시</span>':''}</td>
+      <td class="text">${s.origin||'-'}→${s.dest||'-'}</td>
+      <td>${fmtDT(s.etd)}</td>
+      <td>${fmtDT(s.eta)}</td>
+      <td class="text">${s.mawb||'-'}</td>
+      <td>${CD.fmtNum(s.palletCount||0)}</td>
+      <td>${CD.fmtNum(s.packageCount||0)}</td>
+      <td>${CD.fmtNum(s.cutoffWeight||0)}</td>
+      <td>${CD.fmtNum(s.actualWeight||0)}</td>
+      <td>${CD.fmtNum(s.volumeWeight||0)}</td>
+      <td class="text"><button class="btn small ghost" data-edit="${s.id}">수정</button></td>
+    </tr>
+  `).join("") || `<tr><td colspan="13" class="text empty-note">등록된 항공편 · 컷오프가 없습니다.</td></tr>`;
+
+  document.getElementById("sTableBody").querySelectorAll("[data-edit]").forEach(b=>{
+    b.addEventListener("click", ()=>{ const rec = all.find(s=>s.id===b.dataset.edit); if(rec) openForm(rec); });
+  });
+}
+
+CD.on("shipments", refresh);
+CD.on("tab", t=>{ if(t==="flights") refresh(); });
+CD.on("ready", ()=>{ shell(); refresh(); });
+})();
+</script>
+
+<script>
+/* =====================================================================
+   ACCOUNTING & ANALYSIS TAB
+   ===================================================================== */
+(function(){
+"use strict";
+const CD = window.CD, Charts = window.CDCharts;
+const root = document.getElementById("view-accounting");
+let built = false;
+let gran = "month";     // day | week | month | year
+let countryFilter = "ALL";
+const LOOKBACK = { day:30, week:12, month:12, year:8 };
+
+function keyFn(){ return gran==="day"?(d=>d) : gran==="week"?CD.isoWeekKey : gran==="month"?CD.monthKey : CD.yearKey; }
+function keyLabel(k){
+  if(gran==="day") return CD.fmtShort(k);
+  if(gran==="week") return k.replace(/^\d{4}-/,"");
+  if(gran==="month") return CD.monthLabel(k);
+  return k;
+}
+function rateFor(country){ return (CD.Cache.settings[country]) || {lastMile:0, currency: CD.CURRENCY[country]}; }
+function chargeableWeight(s){ return Math.max(s.actualWeight||0, s.volumeWeight||0) || s.cutoffWeight||0; }
+function fxRate(country){ const f = CD.Cache.settings.fx || {}; return country==="KR" ? (f.usdKrw||1300) : (f.usdJpy||150); }
+function packingRates(){ return CD.Cache.settings.packing || {baseUsd:1.29, stepUsd:0.6}; }
+function tierUsd(k){ const p = packingRates(); return p.baseUsd + p.stepUsd*(k-1); }
+function airTiers(){ return CD.Cache.settings.air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
+/** Air freight rate in USD/kg for one shipment, tiered by its ACTUAL weight. */
+function airRateUsdFor(actualWeightKg){
+  const t = airTiers();
+  return (actualWeightKg||0) >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd;
+}
+/** 합포장(consolidated packing) cost in USD for one daily record, from its box-count fields. */
+function packingCostUsd(rec){
+  let total = 0;
+  for(let k=1; k<=CD.PACK_MAX; k++){ total += (rec["pack"+k]||0) * tierUsd(k); }
+  return total;
+}
+
+function shell(){
+  root.innerHTML = `
+    <div class="section card">
+      <div class="section-head"><h2>비용 기준 설정</h2><span class="hint">자동 계산에 사용되는 단가 · 환율입니다. 직접 수정하면 즉시 반영됩니다.</span></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px;">
+        <div class="card tight">
+          <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">합포장 비용 (공통, USD 기준)</b></div>
+          <div class="help" style="margin-bottom:8px;">박스 1개 기준가 + 제품 종류가 하나 늘 때마다 추가 (1~20개 개별 계산, 그래프는 5개 이상을 묶어 표시)</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field"><label>기본 단가 (1개, $)</label><input type="number" min="0" step="0.01" class="num-input" id="rBaseUsd"></div>
+            <div class="field"><label>종류 추가당 (+$)</label><input type="number" min="0" step="0.01" class="num-input" id="rStepUsd"></div>
+          </div>
+        </div>
+        <div class="card tight">
+          <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">항공 비용 (공통, USD 기준)</b></div>
+          <div class="help" style="margin-bottom:8px;">Actual Weight 기준 2단계 요율 — 기준 중량 이상이면 낮은 단가가 적용됩니다.</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field"><label>기준 중량 (kg)</label><input type="number" min="0" class="num-input" id="rAirThreshold"></div>
+            <div class="field"></div>
+            <div class="field"><label>기준 미만 단가 ($/kg)</label><input type="number" min="0" step="0.01" class="num-input" id="rAirLow"></div>
+            <div class="field"><label>기준 이상 단가 ($/kg)</label><input type="number" min="0" step="0.01" class="num-input" id="rAirHigh"></div>
+          </div>
+        </div>
+        <div class="card tight">
+          <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">환율 (USD 기준)</b></div>
+          <div class="help" style="margin-bottom:8px;" id="rFxHelp">이 페이지가 열려있는 동안 매시간 실시간 시세로 자동 갱신됩니다. 직접 입력하면 자동 갱신이 꺼집니다.</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field"><label>1 USD = ? KRW</label><input type="number" min="0" step="0.01" class="num-input" id="rFxKrw"></div>
+            <div class="field"><label>1 USD = ? JPY</label><input type="number" min="0" step="0.01" class="num-input" id="rFxJpy"></div>
+          </div>
+          <div class="help" id="rFxUpdated" style="margin-top:6px;"></div>
+          <button type="button" class="btn ghost" id="rFxAutoBtn" style="margin-top:8px; display:none;">실시간 자동 갱신 다시 켜기</button>
+        </div>
+      </div>
+      <div class="grid two" id="rateForms"></div>
+    </div>
+
+    <div class="section row between">
+      <div class="row">
+        <div class="seg" id="aGranSeg">
+          <button data-v="day">일별</button>
+          <button data-v="week">주별</button>
+          <button data-v="month" class="active">월별</button>
+          <button data-v="year">연도별</button>
+        </div>
+        <div class="seg" id="aCountrySeg">
+          <button data-v="ALL" class="active">전체</button>
+          <button data-v="KR">한국</button>
+          <button data-v="JP">일본</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section grid kpis" id="aKpis"></div>
+
+    <div class="section">
+      <div class="section-head"><h2>건당 평균 물류비용 추이</h2><span class="hint">합포장비용+라스트마일비용+항공비용 ÷ 출고수량</span></div>
+      <div class="card">
+        <div id="aTrendChart"></div>
+        <div class="chart-legend" id="aTrendLegend"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>비용 구성 (합포장 · 라스트마일 · 항공)</h2></div>
+      <div class="card">
+        <div id="aCompWrap" class="grid two"></div>
+        <div class="chart-legend" id="aCompLegend"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>기간별 상세 내역</h2><span class="hint" id="aTableHint"></span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>기간</th><th>국가</th><th>출고</th><th>픽킹</th><th>항공부킹</th><th>중량(kg)</th>
+            <th>합포장비용</th><th>라스트마일비용</th><th>항공비용</th><th>총비용</th><th>건당비용</th>
+          </tr></thead>
+          <tbody id="aTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("aGranSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    gran = b.dataset.v; [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("aCountrySeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    countryFilter = b.dataset.v; [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("rBaseUsd").addEventListener("change", async e=>{
+    await CD.Store.saveSettings({ packing:{ ...packingRates(), baseUsd: Number(e.target.value)||0 } });
+  });
+  document.getElementById("rStepUsd").addEventListener("change", async e=>{
+    await CD.Store.saveSettings({ packing:{ ...packingRates(), stepUsd: Number(e.target.value)||0 } });
+  });
+  document.getElementById("rFxKrw").addEventListener("change", async e=>{
+    const fx = CD.Cache.settings.fx||{};
+    await CD.Store.saveSettings({ fx:{ ...fx, usdKrw: Number(e.target.value)||0, updatedAt: CD.todayISO(), auto:false } });
+  });
+  document.getElementById("rFxJpy").addEventListener("change", async e=>{
+    const fx = CD.Cache.settings.fx||{};
+    await CD.Store.saveSettings({ fx:{ ...fx, usdJpy: Number(e.target.value)||0, updatedAt: CD.todayISO(), auto:false } });
+  });
+  document.getElementById("rFxAutoBtn").addEventListener("click", async ()=>{
+    await CD.Store.saveSettings({ fx:{ ...(CD.Cache.settings.fx||{}), auto:true } });
+    if(typeof CD.refreshFxLive==="function") CD.refreshFxLive();
+  });
+  document.getElementById("rAirThreshold").addEventListener("change", async e=>{
+    await CD.Store.saveSettings({ air:{ ...airTiers(), thresholdKg: Number(e.target.value)||0 } });
+  });
+  document.getElementById("rAirLow").addEventListener("change", async e=>{
+    await CD.Store.saveSettings({ air:{ ...airTiers(), lowRateUsd: Number(e.target.value)||0 } });
+  });
+  document.getElementById("rAirHigh").addEventListener("change", async e=>{
+    await CD.Store.saveSettings({ air:{ ...airTiers(), highRateUsd: Number(e.target.value)||0 } });
+  });
+  built = true;
+}
+
+function renderRateForms(){
+  document.getElementById("rBaseUsd").value = packingRates().baseUsd;
+  document.getElementById("rStepUsd").value = packingRates().stepUsd;
+  document.getElementById("rAirThreshold").value = airTiers().thresholdKg;
+  document.getElementById("rAirLow").value = airTiers().lowRateUsd;
+  document.getElementById("rAirHigh").value = airTiers().highRateUsd;
+  document.getElementById("rFxKrw").value = fxRate("KR");
+  document.getElementById("rFxJpy").value = fxRate("JP");
+  const fxMeta = CD.Cache.settings.fx||{};
+  document.getElementById("rFxUpdated").textContent = fxMeta.updatedAt ? `기준일: ${fxMeta.updatedAt}${fxMeta.auto?' · 실시간 자동 갱신 중':' · 수동 입력 (자동 갱신 꺼짐)'}` : "";
+  document.getElementById("rFxAutoBtn").style.display = fxMeta.auto===false ? "" : "none";
+
+  const wrap = document.getElementById("rateForms");
+  wrap.innerHTML = CD.COUNTRIES.map(c=>{
+    const r = rateFor(c);
+    const lastMileLabel = c==="KR" ? "통관+택배비 (건당, ₩)" : "통관+택배비 (건당, ¥)";
+    return `<div class="card tight">
+      <div class="row" style="margin-bottom:10px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div>
+      <div class="field"><label>${lastMileLabel}</label><input type="number" min="0" class="num-input" data-rate="${c}:lastMile" value="${r.lastMile||0}"></div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll("[data-rate]").forEach(inp=>{
+    inp.addEventListener("change", async ()=>{
+      const [c,field] = inp.dataset.rate.split(":");
+      const patch = {}; patch[c] = { ...rateFor(c), [field]: Number(inp.value)||0 };
+      await CD.Store.saveSettings(patch);
+    });
+  });
+}
+
+function aggregate(countries){
+  const kf = keyFn();
+  const buckets = {};
+  function cell(k,c){
+    buckets[k] = buckets[k] || {};
+    buckets[k][c] = buckets[k][c] || {shipped:0,picked:0,pallet:0,pkg:0,weight:0,bookings:0,packingCost:0,lastMileCost:0,airCost:0};
+    return buckets[k][c];
+  }
+  CD.Cache.daily.forEach(r=>{
+    if(!countries.includes(r.country)) return;
+    const k = kf(r.date); const b = cell(k, r.country);
+    b.shipped += r.shipped||0; b.picked += r.picked||0;
+    b.packingCost += packingCostUsd(r) * fxRate(r.country);
+    b.lastMileCost += (r.shipped||0) * (rateFor(r.country).lastMile||0);
+  });
+  CD.Cache.shipments.forEach(s=>{
+    if(!countries.includes(s.country) || !s.cutoffDate) return;
+    const k = kf(s.cutoffDate); const b = cell(k, s.country);
+    const w = chargeableWeight(s);
+    b.weight += w; b.pallet += s.palletCount||0; b.pkg += s.packageCount||0; b.bookings += 1;
+    const aw = s.actualWeight||0;
+    b.airCost += aw * airRateUsdFor(aw) * fxRate(s.country);
+  });
+  const keys = Object.keys(buckets).sort();
+  const lookback = LOOKBACK[gran];
+  return keys.slice(Math.max(0, keys.length-lookback)).map(k=>({key:k, byCountry:buckets[k]}));
+}
+
+function bucketTotal(row){
+  const countries = Object.keys(row.byCountry);
+  return countries.reduce((acc,c)=>{
+    const b = row.byCountry[c];
+    acc.shipped+=b.shipped; acc.packingCost+=b.packingCost; acc.lastMileCost+=b.lastMileCost; acc.airCost+=b.airCost;
+    return acc;
+  }, {shipped:0, packingCost:0, lastMileCost:0, airCost:0});
+}
+function bucketCost(b){ return b.packingCost+b.lastMileCost+b.airCost; }
+
+function refresh(){
+  if(!built) return;
+  renderRateForms();
+  const countries = countryFilter==="ALL" ? CD.COUNTRIES : [countryFilter];
+  const rows = aggregate(countries);
+
+  // KPIs — money totals are kept per-country (KRW and JPY are not summed together)
+  let sumShipped=0;
+  rows.forEach(r=>{ const t = bucketTotal(r); sumShipped+=t.shipped; });
+
+  function countryStats(c){
+    let shipped=0, cost=0;
+    rows.forEach(r=>{ const b=r.byCountry[c]; if(b){ shipped+=b.shipped; cost+=bucketCost(b); } });
+    const perOrder = shipped>0 ? cost/shipped : 0;
+    let deltaPct = null;
+    if(rows.length>=2){
+      const lastB = rows[rows.length-1].byCountry[c], prevB = rows[rows.length-2].byCountry[c];
+      const lastPO = lastB && lastB.shipped>0 ? bucketCost(lastB)/lastB.shipped : null;
+      const prevPO = prevB && prevB.shipped>0 ? bucketCost(prevB)/prevB.shipped : null;
+      if(lastPO!=null && prevPO){ deltaPct = ((lastPO-prevPO)/prevPO)*100; }
+    }
+    return {shipped, cost, perOrder, deltaPct};
+  }
+
+  const kpiCountries = countryFilter==="ALL" ? CD.COUNTRIES : [countryFilter];
+  const cards = [`<div class="kpi"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${kpiCountries.map(c=>CD.COUNTRY_LABEL[c]).join('+')} 합계</div></div>`];
+  kpiCountries.forEach(c=>{
+    const st = countryStats(c); const sym = rateFor(c).currency;
+    cards.push(`<div class="kpi"><div class="label"><span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} 총 물류비용</div><div class="value">${sym}${CD.fmtNum(st.cost)}</div><div class="sub">합포장+라스트마일+항공</div></div>`);
+    cards.push(`<div class="kpi"><div class="label"><span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${sym}${st.perOrder.toFixed(0)}</div><div class="sub" style="color:${st.deltaPct==null?'inherit':(st.deltaPct<=0?'var(--good)':'var(--critical)')}">${st.deltaPct==null?'직전 구간 비교 불가':'직전 구간 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
+  });
+  document.getElementById("aKpis").innerHTML = cards.join("");
+
+  // trend chart: one line per country (cost per order)
+  const labels = rows.map(r=>keyLabel(r.key));
+  const series = countries.map(c=>({
+    key:c, label: CD.COUNTRY_LABEL[c], color: CD.cssVar("--"+c.toLowerCase()),
+    fmt: v=> rateFor(c).currency+CD.fmtNum(v),
+    values: rows.map(r=>{
+      const b = r.byCountry[c];
+      if(!b || b.shipped<=0) return NaN;
+      return bucketCost(b)/b.shipped;
+    })
+  }));
+  Charts.lineChart(document.getElementById("aTrendChart"), {
+    series, labels, yFmt: v=> CD.fmtNum(v) + (countryFilter==="ALL" ? "" : " "+rateFor(countryFilter).currency),
+    legend: document.getElementById("aTrendLegend")
+  });
+  if(countryFilter==="ALL"){
+    document.getElementById("aTrendLegend").insertAdjacentHTML("beforeend", `<div class="item" style="color:var(--muted)">축 단위: 한국 ₩ · 일본 ¥ (통화 혼합 비교, 포인트에 마우스오버 시 통화 표시)</div>`);
+  }
+
+  // composition chart: per country small multiple, stacked fulfill vs air
+  const compWrap = document.getElementById("aCompWrap");
+  compWrap.innerHTML = "";
+  compWrap.className = "grid " + (countries.length>1?"two":"");
+  countries.forEach((c,i)=>{
+    const box = document.createElement("div");
+    box.innerHTML = `<div class="row" style="margin-bottom:6px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div><div class="chart-holder"></div>`;
+    compWrap.appendChild(box);
+    const data = rows.map(r=>({
+      date: r.key,
+      packingCost: r.byCountry[c]? r.byCountry[c].packingCost:0,
+      lastMileCost: r.byCountry[c]? r.byCountry[c].lastMileCost:0,
+      airCost: r.byCountry[c]? r.byCountry[c].airCost:0
+    }));
+    const sym = rateFor(c).currency;
+    const compColor = {packingCost:"--cost-pack", lastMileCost:"--cost-lastmile", airCost:"--cost-air"};
+    const compLabel = {packingCost:"합포장비용", lastMileCost:"라스트마일비용", airCost:"항공비용"};
+    Charts.stackedBarChart(box.querySelector(".chart-holder"), {
+      data, keys:["packingCost","lastMileCost","airCost"],
+      colorFn:k=> CD.cssVar(compColor[k]),
+      labelFn:k=> compLabel[k],
+      xLabelFn: keyLabel, tipTitleFn: keyLabel,
+      valueFmt: v=> sym+CD.fmtNum(v),
+      legend: i===countries.length-1 ? document.getElementById("aCompLegend") : null
+    });
+  });
+
+  // table
+  document.getElementById("aTableHint").textContent = `최근 ${rows.length}개 구간 · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'}`;
+  const trs = [];
+  [...rows].reverse().forEach(r=>{
+    countries.forEach(c=>{
+      const b = r.byCountry[c]; if(!b) return;
+      const total = bucketCost(b);
+      const po = b.shipped>0 ? total/b.shipped : 0;
+      const sym = rateFor(c).currency;
+      trs.push(`<tr>
+        <td class="text">${keyLabel(r.key)}</td>
+        <td class="text"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></td>
+        <td>${CD.fmtNum(b.shipped)}</td>
+        <td>${CD.fmtNum(b.picked)}</td>
+        <td>${CD.fmtNum(b.bookings)}건 / ${CD.fmtNum(b.pallet)}PLT</td>
+        <td>${CD.fmtNum(b.weight)}</td>
+        <td>${sym}${CD.fmtNum(b.packingCost)}</td>
+        <td>${sym}${CD.fmtNum(b.lastMileCost)}</td>
+        <td>${sym}${CD.fmtNum(b.airCost)}</td>
+        <td>${sym}${CD.fmtNum(total)}</td>
+        <td>${sym}${po.toFixed(0)}</td>
+      </tr>`);
+    });
+  });
+  document.getElementById("aTableBody").innerHTML = trs.join("") || `<tr><td colspan="11" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`;
+}
+
+CD.on("daily", refresh);
+CD.on("shipments", refresh);
+CD.on("settings", refresh);
+CD.on("tab", t=>{ if(t==="accounting") refresh(); });
+CD.on("ready", ()=>{ shell(); refresh(); });
+})();
+</script>
+
+</body>
+</html>
