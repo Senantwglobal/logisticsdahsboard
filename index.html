@@ -10,22 +10,26 @@
      look everywhere instead of silently falling back to Malgun Gothic/Segoe UI/Roboto on non-Apple devices. -->
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <style>
-/* ============================= TOKENS — neutral gray canvas + white cards, color only on status ============================= */
+/* ============================= TOKENS — brand palette
+   Space Navy #25265E · Steel Grey #868697 · Slate Purple #7540EE · Han Blue #2F61D5
+   Piction Blue #3FB6DC · Grass Green #2DC76D · Warm Orange #FF7052 · Golden Bay #FFC800
+   *-soft = that colour at 10% opacity · *-ink = darkened for small text on the 10% tint
+   ============================= */
 :root{
   color-scheme: light;
-  --page:#f4f4f5; --surface:#ffffff; --surface-2:#f4f4f5; --surface-3:#e8e8ea;
-  --ink:#18181b; --ink-2:#52525b; --muted:#a1a1aa;
-  --line:#e8e8ea; --line-strong:#d4d4d8; --border:rgba(0,0,0,0.07);
-  --accent:#18181b; --accent-ink:#ffffff; --accent-soft:#f4f4f5; --accent-soft-line:#e4e4e7;
-  --kr:#3f3f46; --kr-soft:#e9e9ec;
-  --jp:#71717a; --jp-soft:#f1f1f3;
-  --us:#52525b; --us-soft:#eeeef0;
-  --good:#2f9e6e; --good-soft:#dcf5e9;
-  --warning:#c2761c; --warning-soft:#fdefdc;
-  --serious:#c2761c; --serious-soft:#fdefdc;
-  --critical:#d64545; --critical-soft:#fce8e8;
-  --cost-pack:#71717a; --cost-lastmile:#b8b8bd; --cost-air:#3f3f46;
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 20px -14px rgba(0,0,0,.10);
+  --page:#f5f5f8; --surface:#ffffff; --surface-2:#f1f1f6; --surface-3:#e5e5ed;
+  --ink:#25265E; --ink-2:#868697; --muted:#9d9dab;
+  --line:#e9e9ef; --line-strong:#d3d4df; --border:rgba(37,38,94,0.10);
+  --accent:#2F61D5; --accent-ink:#ffffff; --accent-soft:#eaeffb; --accent-soft-line:#c8d6f5;
+  --kr:#2F61D5; --kr-ink:#2F61D5; --kr-soft:#eaeffb;
+  --jp:#7540EE; --jp-ink:#7540EE; --jp-soft:#f1ecfd;
+  --us:#3FB6DC; --us-ink:#1d7f9f; --us-soft:#ecf8fc;
+  --good:#2DC76D; --good-ink:#1b8b4a; --good-soft:#eaf9f0;
+  --warning:#FFC800; --warning-ink:#8f7000; --warning-soft:#fff9e6;
+  --serious:#FF7052; --serious-ink:#c7452a; --serious-soft:#fff1ee;
+  --critical:#FF7052; --critical-ink:#c7452a; --critical-soft:#fff1ee;
+  --cost-pack:#2F61D5; --cost-lastmile:#3FB6DC; --cost-air:#7540EE;
+  --shadow: 0 1px 2px rgba(37,38,94,.05), 0 8px 20px -14px rgba(37,38,94,.14);
   --radius-s:9px; --radius-m:14px; --radius-l:18px;
   --font-ui:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   /* numbers use the same 산돌고딕(Pretendard/Apple SD Gothic Neo) face as everything else —
@@ -35,36 +39,36 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --page:#161618; --surface:#202023; --surface-2:#2a2a2e; --surface-3:#35353a;
-    --ink:#f4f4f5; --ink-2:#b0b0b8; --muted:#7d7d86;
-    --line:#2f2f34; --line-strong:#3f3f46; --border:rgba(255,255,255,0.10);
-    --accent:#f4f4f5; --accent-ink:#18181b; --accent-soft:#2a2a2e; --accent-soft-line:#3a3a40;
-    --kr:#e4e4e7; --kr-soft:#303035;
-    --jp:#a1a1aa; --jp-soft:#292930;
-    --us:#c4c4cc; --us-soft:#2c2c32;
-    --good:#5fc99a; --good-soft:#16301f;
-    --warning:#dda45e; --warning-soft:#352716;
-    --serious:#dda45e; --serious-soft:#352716;
-    --critical:#ec7f7f; --critical-soft:#361d1d;
-    --cost-pack:#8b8b94; --cost-lastmile:#55555d; --cost-air:#d4d4d8;
-    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.55);
+    --page:#15162b; --surface:#1d1e38; --surface-2:#262745; --surface-3:#323357;
+    --ink:#edeef5; --ink-2:#a3a4bb; --muted:#7b7c96;
+    --line:#2c2d4e; --line-strong:#3b3c63; --border:rgba(255,255,255,0.10);
+    --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#232a4d; --accent-soft-line:#33406e;
+    --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#222a4c;
+    --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#2a2450;
+    --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1c3244;
+    --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#173a2c;
+    --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#3a3418;
+    --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#3f2622;
+    --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#3f2622;
+    --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --page:#161618; --surface:#202023; --surface-2:#2a2a2e; --surface-3:#35353a;
-  --ink:#f4f4f5; --ink-2:#b0b0b8; --muted:#7d7d86;
-  --line:#2f2f34; --line-strong:#3f3f46; --border:rgba(255,255,255,0.10);
-  --accent:#f4f4f5; --accent-ink:#18181b; --accent-soft:#2a2a2e; --accent-soft-line:#3a3a40;
-  --kr:#e4e4e7; --kr-soft:#303035;
-  --jp:#a1a1aa; --jp-soft:#292930;
-  --us:#c4c4cc; --us-soft:#2c2c32;
-  --good:#5fc99a; --good-soft:#16301f;
-  --warning:#dda45e; --warning-soft:#352716;
-  --serious:#dda45e; --serious-soft:#352716;
-  --critical:#ec7f7f; --critical-soft:#361d1d;
-  --cost-pack:#8b8b94; --cost-lastmile:#55555d; --cost-air:#d4d4d8;
-  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.55);
+  --page:#15162b; --surface:#1d1e38; --surface-2:#262745; --surface-3:#323357;
+  --ink:#edeef5; --ink-2:#a3a4bb; --muted:#7b7c96;
+  --line:#2c2d4e; --line-strong:#3b3c63; --border:rgba(255,255,255,0.10);
+  --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#232a4d; --accent-soft-line:#33406e;
+  --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#222a4c;
+  --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#2a2450;
+  --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1c3244;
+  --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#173a2c;
+  --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#3a3418;
+  --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#3f2622;
+  --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#3f2622;
+  --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5;
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
 }
 
 /* ============================= BASE ============================= */
@@ -125,7 +129,7 @@ a{color:var(--accent);}
 .kpi .label{font-size:11.5px; color:var(--muted); letter-spacing:.02em; text-transform:uppercase; display:flex; align-items:center; gap:6px;}
 .kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:22px; font-weight:300; letter-spacing:-.01em;}
 .kpi .sub{font-size:12px; color:var(--ink-2);}
-.kpi .sub.up{color:var(--good);} .kpi .sub.down{color:var(--critical);}
+.kpi .sub.up{color:var(--good-ink);} .kpi .sub.down{color:var(--critical-ink);}
 .kpi .dot{width:8px; height:8px; border-radius:50%; flex:none;}
 
 /* ============================= FORM ELEMENTS ============================= */
@@ -144,7 +148,7 @@ select{cursor:pointer;}
 .btn.primary:hover{filter:brightness(1.06);}
 .btn.ghost{border-color:transparent; background:none;}
 .btn.ghost:hover{background:var(--surface-2);}
-.btn.danger{color:var(--critical); border-color:var(--critical-soft);}
+.btn.danger{color:var(--critical-ink); border-color:var(--critical-soft);}
 .btn.danger:hover{background:var(--critical-soft);}
 .btn.small{padding:5px 11px; font-size:11.5px; border-radius:100px;}
 .btn svg{width:14px; height:14px;}
@@ -164,12 +168,12 @@ tfoot td{padding:9px 12px; font-weight:300; border-top:1px solid var(--line-stro
 
 /* ============================= BADGES / TAGS ============================= */
 .badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:300; padding:3px 8px; border-radius:7px; line-height:1.5;}
-.badge.kr{background:var(--kr-soft); color:var(--kr);}
-.badge.jp{background:var(--jp-soft); color:var(--jp);}
-.badge.us{background:var(--us-soft); color:var(--us);}
-.badge.good{background:var(--good-soft); color:var(--good);}
-.badge.warning{background:var(--warning-soft); color:var(--warning);}
-.badge.critical{background:var(--critical-soft); color:var(--critical);}
+.badge.kr{background:var(--kr-soft); color:var(--kr-ink);}
+.badge.jp{background:var(--jp-soft); color:var(--jp-ink);}
+.badge.us{background:var(--us-soft); color:var(--us-ink);}
+.badge.good{background:var(--good-soft); color:var(--good-ink);}
+.badge.warning{background:var(--warning-soft); color:var(--warning-ink);}
+.badge.critical{background:var(--critical-soft); color:var(--critical-ink);}
 .badge.sample{background:var(--surface-3); color:var(--muted);}
 .badge.auto{background:var(--surface-3); color:var(--ink-2);}
 .dotline{width:9px; height:9px; border-radius:50%; display:inline-block;}
@@ -204,12 +208,12 @@ svg.chart .gridline{stroke:var(--line);}
 .cal-cell.today .d, .cal-cell.today .d.weekend{color:var(--surface);}
 .cal-cell.today .holi{color:var(--surface); opacity:.85;}
 .cal-cell .d{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2); font-weight:300;}
-.cal-cell .d.weekend{color:var(--critical);}
-.cal-cell .holi{font-size:10px; color:var(--critical); font-weight:300; line-height:1.25;}
+.cal-cell .d.weekend{color:var(--critical-ink);}
+.cal-cell .holi{font-size:10px; color:var(--critical-ink); font-weight:300; line-height:1.25;}
 .cal-cell .holi.open{color:var(--ink-2);}
 .cal-cell .chip{font-size:9.5px; font-weight:300; padding:1.5px 5px; border-radius:6px; line-height:1.5; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.cal-cell .chip.kr{background:var(--kr-soft); color:var(--kr);}
-.cal-cell .chip.jp{background:var(--jp-soft); color:var(--jp);}
+.cal-cell .chip.kr{background:var(--kr-soft); color:var(--kr-ink);}
+.cal-cell .chip.jp{background:var(--jp-soft); color:var(--jp-ink);}
 .cal-cell-more{font-size:9.5px; color:var(--muted); cursor:pointer;}
 
 /* ============================= MODAL / DRAWER ============================= */
@@ -276,7 +280,6 @@ svg.chart .gridline{stroke:var(--line);}
   <!-- ============ ACCOUNTING ============ -->
   <div class="view" id="view-accounting"></div>
 
-  <div class="footer-note">데이터는 이 페이지에 저장되며 팀원과 공유됩니다 · 휴무일은 2026–2027년 한국/일본/미국 공휴일이 자동 반영되어 있습니다</div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
@@ -302,8 +305,9 @@ const PACK_KEYS = Array.from({length:PACK_MAX}, (_,i)=>"pack"+(i+1)); // pack1..
 const PACK_DISPLAY_KEYS = ["pack1","pack2","pack3","pack4","pack5plus"];
 const PACK_LABEL = {pack1:"1개", pack2:"2개", pack3:"3개", pack4:"4개", pack5plus:"5개+"};
 // neutral gray ramp — light (few items per box) to dark (many), so the stack reads by lightness, not hue
-const PACK_COLOR_LIGHT = {pack1:"#d4d4d8", pack2:"#a1a1aa", pack3:"#71717a", pack4:"#52525b", pack5plus:"#27272a"};
-const PACK_COLOR_DARK  = {pack1:"#52525b", pack2:"#71717a", pack3:"#a1a1aa", pack4:"#c4c4cc", pack5plus:"#e4e4e7"};
+// sequential ramp built from the brand palette: Piction Blue → Han Blue → Space Navy
+const PACK_COLOR_LIGHT = {pack1:"#9ad9ec", pack2:"#3FB6DC", pack3:"#2F61D5", pack4:"#2B449B", pack5plus:"#25265E"};
+const PACK_COLOR_DARK  = {pack1:"#8bd7ef", pack2:"#5cc3e4", pack3:"#6e93ee", pack4:"#8fabf2", pack5plus:"#c2cef8"};
 /** Collapse raw pack1..pack20 box counts into the 5 display buckets used by charts. */
 function toDisplayBuckets(rec){
   rec = rec || {};
@@ -1023,7 +1027,6 @@ function shell(){
     <div class="section">
       <div class="section-head">
         <h2>합포장 비율 (박스당 제품 수)</h2>
-        <span class="hint">1~20개 입력, 그래프는 5개 이상을 묶어서 표시</span>
       </div>
       <div class="card">
         <div id="dPackWrap" class="grid two"></div>
@@ -1043,7 +1046,7 @@ function shell(){
             <div class="field"><label>픽킹 수량</label><input type="number" id="fPicked" min="0" required></div>
             <div class="field"><label>출고 수량</label><input type="number" id="fShipped" min="0" required></div>
             <div class="field" style="grid-column:1/-1;">
-              <label>합포장 박스 수 — 제품 종류 수(1개~20개)별 박스 개수</label>
+              <label>합포장 박스 수</label>
               <div class="pack-grid">${packGridHtml()}</div>
               <div class="help" id="fPackHint"></div>
             </div>
@@ -1306,7 +1309,6 @@ function shell(){
         </div>
         <div class="card" style="flex:1;">
           <div class="section-head"><h2>휴무일 목록</h2><span class="hint" id="hCount"></span></div>
-          <div class="help" style="margin:-6px 0 8px;">공휴일이어도 창고를 정상 운영했다면 "근무" 칸을 눌러 정상 근무로 바꿀 수 있습니다.</div>
           <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
             <table style="min-width:0;">
               <thead><tr><th>날짜</th><th>명칭</th><th>등록</th><th>근무</th><th></th></tr></thead>
@@ -1704,11 +1706,10 @@ function packingCostUsd(rec){
 function shell(){
   root.innerHTML = `
     <div class="section card">
-      <div class="section-head"><h2>비용 기준 설정</h2><span class="hint">자동 계산에 사용되는 단가 · 환율입니다. 직접 수정하면 즉시 반영됩니다.</span></div>
+      <div class="section-head"><h2>비용 기준 설정</h2></div>
       <div class="grid settings3" style="margin-bottom:14px;">
         <div class="card tight">
           <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">출고비 (공통, USD 기준)</b></div>
-          <div class="help" style="margin-bottom:8px;">박스 1개 기준가 + 제품 종류가 하나 늘 때마다 추가 (1~20개 개별 계산, 그래프는 5개 이상을 묶어 표시)</div>
           <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
             <div class="field"><label>기본 단가 (1개, $)</label><input type="number" min="0" step="0.01" class="num-input" id="rBaseUsd"></div>
             <div class="field"><label>종류 추가당 (+$)</label><input type="number" min="0" step="0.01" class="num-input" id="rStepUsd"></div>
@@ -1716,7 +1717,6 @@ function shell(){
         </div>
         <div class="card tight">
           <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">항공 비용 (공통, USD 기준)</b></div>
-          <div class="help" style="margin-bottom:8px;">Actual Weight 기준 2단계 요율 — 기준 중량 이상이면 낮은 단가가 적용됩니다.</div>
           <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
             <div class="field"><label>기준 중량 (kg)</label><input type="number" min="0" class="num-input" id="rAirThreshold"></div>
             <div class="field"></div>
@@ -1726,13 +1726,12 @@ function shell(){
         </div>
         <div class="card tight">
           <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">환율 (USD 기준)</b></div>
-          <div class="help" style="margin-bottom:8px;" id="rFxHelp">이 페이지가 열려있는 동안 매시간 실시간 시세로 자동 갱신됩니다. 직접 입력하면 자동 갱신이 꺼집니다.</div>
           <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
             <div class="field"><label>1 USD = ? KRW</label><input type="number" min="0" step="0.01" class="num-input" id="rFxKrw"></div>
             <div class="field"><label>1 USD = ? JPY</label><input type="number" min="0" step="0.01" class="num-input" id="rFxJpy"></div>
           </div>
           <div class="help" id="rFxUpdated" style="margin-top:6px;"></div>
-          <button type="button" class="btn ghost" id="rFxAutoBtn" style="margin-top:8px; display:none;">실시간 자동 갱신 다시 켜기</button>
+          <button type="button" class="btn ghost small" id="rFxAutoBtn" style="margin-top:8px; display:none;">실시간 갱신 켜기</button>
         </div>
       </div>
       <div class="grid two" id="rateForms"></div>
@@ -1762,7 +1761,7 @@ function shell(){
     <div class="section grid kpis" id="aKpis"></div>
 
     <div class="section">
-      <div class="section-head"><h2>건당 평균 물류비용 추이</h2><span class="hint">출고비+통관 택배비용+항공비용 ÷ 출고수량</span></div>
+      <div class="section-head"><h2>건당 평균 물류비용 추이</h2></div>
       <div class="card">
         <div id="aTrendChart"></div>
         <div class="chart-legend" id="aTrendLegend"></div>
@@ -1849,7 +1848,7 @@ function renderRateForms(){
   document.getElementById("rFxKrw").value = fxRate("KR");
   document.getElementById("rFxJpy").value = fxRate("JP");
   const fxMeta = CD.Cache.settings.fx||{};
-  document.getElementById("rFxUpdated").textContent = fxMeta.updatedAt ? `기준일: ${fxMeta.updatedAt}${fxMeta.auto?' · 실시간 자동 갱신 중':' · 수동 입력 (자동 갱신 꺼짐)'}` : "";
+  document.getElementById("rFxUpdated").textContent = fxMeta.updatedAt ? `${fxMeta.updatedAt}${fxMeta.auto?' · 실시간':' · 수동'}` : "";
   document.getElementById("rFxAutoBtn").style.display = fxMeta.auto===false ? "" : "none";
 
   const wrap = document.getElementById("rateForms");
@@ -1963,7 +1962,7 @@ function refresh(){
   });
   {
     const fx = CD.Cache.settings.fx || {};
-    const fxNote = `환율 적용: 1 USD = ₩${CD.fmtNum(fx.usdKrw||0)} · ¥${CD.fmtNum(fx.usdJpy||0)}${fx.auto?' · 실시간 자동 갱신 중':' · 수동 입력'}`;
+    const fxNote = `1 USD = ₩${CD.fmtNum(fx.usdKrw||0)} · ¥${CD.fmtNum(fx.usdJpy||0)}${fx.auto?' · 실시간':''}`;
     document.getElementById("aTrendLegend").insertAdjacentHTML("beforeend", `<div class="item" style="color:var(--muted)">${fxNote}</div>`);
   }
 
