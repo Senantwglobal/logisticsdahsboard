@@ -3,65 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>카고데스크 CargoDesk</title>
+<title>OPLE Logistics Dashboard</title>
 <meta name="color-scheme" content="light dark">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ============================= TOKENS ============================= */
+/* ============================= TOKENS — warm neutral + soft pastel badges, pill controls ============================= */
 :root{
   color-scheme: light;
-  --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f1f1ee; --surface-3:#e8e8e4;
-  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
-  --line:#e1e0d9; --line-strong:#c3c2b7; --border:rgba(11,11,11,0.10);
-  --accent:#2a78d6; --accent-ink:#ffffff; --accent-soft:#e5eefb; --accent-soft-line:#c4dafa;
-  --kr:#2a78d6; --kr-soft:#e5eefb;
-  --jp:#1baf7a; --jp-soft:#e0f5ec;
-  --us:#eb6834; --us-soft:#fce8de;
-  --good:#0ca30c; --good-soft:#e2f6e2;
-  --warning:#c98500; --warning-soft:#fdf1d9;
-  --serious:#ec835a; --serious-soft:#fce3d8;
-  --critical:#d03b3b; --critical-soft:#fbe1e1;
-  --cost-pack:#2a78d6; --cost-lastmile:#eb6834; --cost-air:#1baf7a;
-  --shadow: 0 1px 2px rgba(11,11,11,.05), 0 6px 20px -8px rgba(11,11,11,.18);
-  --radius-s:6px; --radius-m:10px; --radius-l:16px;
-  --font-ui:"IBM Plex Sans KR","IBM Plex Sans",-apple-system,"Segoe UI",sans-serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --page:#f6f4ee; --surface:#ffffff; --surface-2:#efece3; --surface-3:#e6e2d5;
+  --ink:#1a1a17; --ink-2:#6b6a63; --muted:#9b988f;
+  --line:#e8e4d8; --line-strong:#d8d3c2; --border:rgba(20,18,12,0.08);
+  --accent:#1a1a17; --accent-ink:#ffffff; --accent-soft:#eae5d6; --accent-soft-line:#ddd6c0;
+  --kr:#3568d4; --kr-soft:#e8effc;
+  --jp:#6c4fd1; --jp-soft:#efeafa;
+  --us:#c2703d; --us-soft:#faeee1;
+  --good:#20905a; --good-soft:#e3f3e9;
+  --warning:#ad8a17; --warning-soft:#faf1d9;
+  --serious:#c2492e; --serious-soft:#fbe8e1;
+  --critical:#c0392b; --critical-soft:#fbe6e4;
+  --cost-pack:#20905a; --cost-lastmile:#c2703d; --cost-air:#6c4fd1;
+  --shadow: 0 1px 2px rgba(20,18,12,.04), 0 10px 24px -14px rgba(20,18,12,.12);
+  --radius-s:9px; --radius-m:14px; --radius-l:18px;
+  --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Apple SD Gothic Neo","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232322; --surface-3:#2b2b29;
-    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#8f8d87;
-    --line:#2c2c2a; --line-strong:#383835; --border:rgba(255,255,255,0.10);
-    --accent:#3987e5; --accent-ink:#ffffff; --accent-soft:#1c2a3b; --accent-soft-line:#2c4870;
-    --kr:#3987e5; --kr-soft:#1c2a3b;
-    --jp:#199e70; --jp-soft:#122c22;
-    --us:#d95926; --us-soft:#33200f;
-    --good:#0ca30c; --good-soft:#0f2413;
-    --warning:#fab219; --warning-soft:#332a0d;
-    --serious:#ec835a; --serious-soft:#33201a;
-    --critical:#d03b3b; --critical-soft:#331414;
-    --cost-pack:#3987e5; --cost-lastmile:#d95926; --cost-air:#199e70;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -10px rgba(0,0,0,.55);
+    --page:#141311; --surface:#1d1c19; --surface-2:#28261f; --surface-3:#343128;
+    --ink:#f3f1e9; --ink-2:#b3b0a4; --muted:#847f72;
+    --line:#332f26; --line-strong:#433d31; --border:rgba(255,255,255,0.10);
+    --accent:#f3f1e9; --accent-ink:#1a1a17; --accent-soft:#2a2720; --accent-soft-line:#3a352a;
+    --kr:#82a6f2; --kr-soft:#1c2a44;
+    --jp:#b3a1f0; --jp-soft:#26203c;
+    --us:#e2a874; --us-soft:#3a2a19;
+    --good:#6bcf96; --good-soft:#17301f;
+    --warning:#e2c168; --warning-soft:#372c14;
+    --serious:#e8896d; --serious-soft:#3a241a;
+    --critical:#ef8c7c; --critical-soft:#3a1d17;
+    --cost-pack:#6bcf96; --cost-lastmile:#e2a874; --cost-air:#b3a1f0;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.55);
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232322; --surface-3:#2b2b29;
-  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#8f8d87;
-  --line:#2c2c2a; --line-strong:#383835; --border:rgba(255,255,255,0.10);
-  --accent:#3987e5; --accent-ink:#ffffff; --accent-soft:#1c2a3b; --accent-soft-line:#2c4870;
-  --kr:#3987e5; --kr-soft:#1c2a3b;
-  --jp:#199e70; --jp-soft:#122c22;
-  --us:#d95926; --us-soft:#33200f;
-  --good:#0ca30c; --good-soft:#0f2413;
-  --warning:#fab219; --warning-soft:#332a0d;
-  --serious:#ec835a; --serious-soft:#33201a;
-  --critical:#d03b3b; --critical-soft:#331414;
-  --cost-pack:#3987e5; --cost-lastmile:#d95926; --cost-air:#199e70;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -10px rgba(0,0,0,.55);
+  --page:#141311; --surface:#1d1c19; --surface-2:#28261f; --surface-3:#343128;
+  --ink:#f3f1e9; --ink-2:#b3b0a4; --muted:#847f72;
+  --line:#332f26; --line-strong:#433d31; --border:rgba(255,255,255,0.10);
+  --accent:#f3f1e9; --accent-ink:#1a1a17; --accent-soft:#2a2720; --accent-soft-line:#3a352a;
+  --kr:#82a6f2; --kr-soft:#1c2a44;
+  --jp:#b3a1f0; --jp-soft:#26203c;
+  --us:#e2a874; --us-soft:#3a2a19;
+  --good:#6bcf96; --good-soft:#17301f;
+  --warning:#e2c168; --warning-soft:#372c14;
+  --serious:#e8896d; --serious-soft:#3a241a;
+  --critical:#ef8c7c; --critical-soft:#3a1d17;
+  --cost-pack:#6bcf96; --cost-lastmile:#e2a874; --cost-air:#b3a1f0;
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.55);
 }
 
 /* ============================= BASE ============================= */
@@ -77,8 +74,7 @@ a{color:var(--accent);}
 /* ============================= HEADER ============================= */
 .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 4px 14px; border-bottom:1px solid var(--line);}
 .brand{display:flex; align-items:center; gap:11px;}
-.brand-mark{width:34px; height:34px; border-radius:9px; background:linear-gradient(155deg,var(--accent),var(--jp)); display:flex; align-items:center; justify-content:center; flex:none; box-shadow: var(--shadow);}
-.brand-mark svg{width:19px; height:19px;}
+.brand-mark{width:30px; height:30px; border-radius:8px; background:var(--ink); color:var(--page); display:flex; align-items:center; justify-content:center; flex:none; font-size:13px; font-weight:600; letter-spacing:0;}
 .brand-text h1{font-size:17px; letter-spacing:-.01em;}
 .brand-text .tag{font-size:11.5px; color:var(--muted); letter-spacing:.02em; margin-top:1px;}
 .topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
@@ -87,7 +83,6 @@ a{color:var(--accent);}
 /* ============================= TABS ============================= */
 .tabs{display:flex; gap:4px; margin:18px 0 22px; border-bottom:1px solid var(--line); overflow-x:auto;}
 .tab-btn{appearance:none; background:none; border:none; padding:10px 16px; font-size:13.5px; font-weight:500; color:var(--muted); cursor:pointer; border-radius:8px 8px 0 0; position:relative; top:1px; white-space:nowrap; display:flex; align-items:center; gap:7px;}
-.tab-btn svg{width:15px; height:15px; opacity:.8;}
 .tab-btn:hover{color:var(--ink);}
 .tab-btn.active{color:var(--ink); border-bottom:2px solid var(--accent);}
 .view{display:none;}
@@ -103,13 +98,16 @@ a{color:var(--accent);}
 .section-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
 .section-head h2{font-size:15px;}
 .section-head .hint{font-size:12px; color:var(--muted);}
-.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:18px; box-shadow:var(--shadow);}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:18px; box-shadow:var(--shadow); min-width:0;}
 .card.tight{padding:14px 16px;}
-.grid{display:grid; gap:14px;}
+.grid{display:grid; gap:14px; min-width:0;}
+.grid > *{min-width:0;}
 .grid.kpis{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));}
 .grid.two{grid-template-columns:1.3fr 1fr;}
 .grid.charts2{grid-template-columns:1.5fr 1fr;}
+.grid.settings3{grid-template-columns:repeat(3,1fr);}
 @media (max-width:860px){.grid.two, .grid.charts2{grid-template-columns:1fr;}}
+@media (max-width:960px){.grid.settings3{grid-template-columns:1fr;}}
 
 /* ============================= KPI TILES ============================= */
 .kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:14px 15px; display:flex; flex-direction:column; gap:6px;}
@@ -120,14 +118,15 @@ a{color:var(--accent);}
 .kpi .dot{width:8px; height:8px; border-radius:50%; flex:none;}
 
 /* ============================= FORM ELEMENTS ============================= */
-.field{display:flex; flex-direction:column; gap:5px;}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0;}
 .field label{font-size:11.5px; color:var(--ink-2); font-weight:500;}
-input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-s); padding:8px 10px; outline:none;}
+.field > input, .field > select, .field > textarea{width:100%;}
+input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-s); padding:8px 10px; outline:none; box-sizing:border-box;}
 input.mono, .num-input{font-family:var(--font-mono);}
 input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
 input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
 select{cursor:pointer;}
-.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:500; padding:8px 13px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:500; padding:7px 14px; border-radius:100px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; transition:filter .12s ease, background .12s ease;}
 .btn:hover{background:var(--surface-2);}
 .btn:focus-visible, .tab-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
 .btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
@@ -136,11 +135,11 @@ select{cursor:pointer;}
 .btn.ghost:hover{background:var(--surface-2);}
 .btn.danger{color:var(--critical); border-color:var(--critical-soft);}
 .btn.danger:hover{background:var(--critical-soft);}
-.btn.small{padding:5px 9px; font-size:11.5px; border-radius:6px;}
+.btn.small{padding:5px 11px; font-size:11.5px; border-radius:100px;}
 .btn svg{width:14px; height:14px;}
-.seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface-2);}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface-2); padding:2px;}
 .seg button{appearance:none; border:none; background:none; padding:7px 13px; font-size:12.5px; font-weight:500; color:var(--ink-2); cursor:pointer;}
-.seg button.active{background:var(--accent); color:var(--accent-ink);}
+.seg button.active{background:var(--accent); color:var(--accent-ink); border-radius:9px;}
 
 /* ============================= TABLE ============================= */
 .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-m);}
@@ -153,7 +152,7 @@ tbody tr:hover{background:var(--surface-2);}
 tfoot td{padding:9px 12px; font-weight:600; border-top:1px solid var(--line-strong); font-family:var(--font-mono);}
 
 /* ============================= BADGES / TAGS ============================= */
-.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:100px; line-height:1.5;}
+.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:500; padding:3px 8px; border-radius:100px; line-height:1.5;}
 .badge.kr{background:var(--kr-soft); color:var(--kr);}
 .badge.jp{background:var(--jp-soft); color:var(--jp);}
 .badge.us{background:var(--us-soft); color:var(--us);}
@@ -163,6 +162,12 @@ tfoot td{padding:9px 12px; font-weight:600; border-top:1px solid var(--line-stro
 .badge.sample{background:var(--surface-3); color:var(--muted); font-weight:500;}
 .badge.auto{background:var(--surface-3); color:var(--ink-2); font-weight:500;}
 .dotline{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+/* ---- connection status indicator: small dot + short label, no pill/background ---- */
+.status-ind{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-2); font-weight:500;}
+.status-ind .status-dot{width:7px; height:7px; border-radius:50%; background:var(--muted); flex:none;}
+.status-ind .status-dot.on{background:var(--good);}
+.status-ind .status-dot.warn{background:var(--warning);}
 
 /* ============================= CHART ============================= */
 .chart-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin-top:10px;}
@@ -226,37 +231,23 @@ svg.chart .gridline{stroke:var(--line);}
 
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 16.5L21 12L2 7.5V11L14 12L2 13V16.5Z" fill="white"/></svg>
-      </div>
+      <div class="brand-mark">C</div>
       <div class="brand-text">
-        <h1>카고데스크 CargoDesk</h1>
+        <h1>OPLE Logistics Dashboard</h1>
         <div class="tag">한국 · 일본 풀필먼트 &amp; 항공물류 운영 대시보드</div>
       </div>
     </div>
     <div class="topbar-right">
-      <span id="storeStatus" class="badge auto">연결 확인 중</span>
+      <span id="storeStatus" class="status-ind"><span class="status-dot"></span><span class="status-txt">확인 중</span></span>
       <span class="clock" id="clockNow">--</span>
     </div>
   </div>
 
   <div class="tabs" id="tabNav" role="tablist">
-    <button class="tab-btn active" data-tab="dashboard" role="tab">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg>
-      대시보드
-    </button>
-    <button class="tab-btn" data-tab="holidays" role="tab">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10H21M8 3V6M16 3V6"/></svg>
-      휴무일
-    </button>
-    <button class="tab-btn" data-tab="flights" role="tab">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 16L21 11.5L2 7V10.5L13 11.5L2 12.5V16Z"/></svg>
-      항공스케줄 &amp; 컷오프
-    </button>
-    <button class="tab-btn" data-tab="accounting" role="tab">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7V12L15.5 14.5"/></svg>
-      회계 &amp; 분석
-    </button>
+    <button class="tab-btn active" data-tab="dashboard" role="tab">대시보드</button>
+    <button class="tab-btn" data-tab="holidays" role="tab">휴무일</button>
+    <button class="tab-btn" data-tab="flights" role="tab">항공스케줄 &amp; 컷오프</button>
+    <button class="tab-btn" data-tab="accounting" role="tab">회계 &amp; 분석</button>
   </div>
 
   <!-- ============ DASHBOARD ============ -->
@@ -673,8 +664,14 @@ CD.refreshFxLive = refreshFxLive;
 async function boot(){
   const statusEl = document.getElementById("storeStatus");
   const backend = await Store.init();
-  statusEl.textContent = backend==="cloud" ? "팀 공유 저장소 연결됨 (실시간 동기화)" : (backend==="local" ? "이 브라우저에 저장 중" : "임시 저장 (새로고침 시 초기화)");
-  statusEl.className = "badge " + (backend==="cloud" ? "good" : "auto");
+  const statusInfo = backend==="cloud"
+    ? { txt:"실시간", dot:"on",   title:"팀 공유 저장소에 연결되어 실시간으로 동기화됩니다" }
+    : backend==="local"
+    ? { txt:"저장됨",  dot:"on",   title:"이 브라우저에 저장 중입니다" }
+    : { txt:"임시 저장", dot:"warn", title:"새로고침하면 초기화됩니다" };
+  statusEl.title = statusInfo.title;
+  statusEl.querySelector(".status-dot").className = "status-dot " + statusInfo.dot;
+  statusEl.querySelector(".status-txt").textContent = statusInfo.txt;
   await seedIfEmpty();
 
   Store.onDaily(rows=>{ Cache.daily = rows.sort((a,b)=> a.date<b.date?-1:1); emit("daily"); });
@@ -1644,7 +1641,7 @@ function shell(){
   root.innerHTML = `
     <div class="section card">
       <div class="section-head"><h2>비용 기준 설정</h2><span class="hint">자동 계산에 사용되는 단가 · 환율입니다. 직접 수정하면 즉시 반영됩니다.</span></div>
-      <div class="grid" style="grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px;">
+      <div class="grid settings3" style="margin-bottom:14px;">
         <div class="card tight">
           <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">합포장 비용 (공통, USD 기준)</b></div>
           <div class="help" style="margin-bottom:8px;">박스 1개 기준가 + 제품 종류가 하나 늘 때마다 추가 (1~20개 개별 계산, 그래프는 5개 이상을 묶어 표시)</div>
