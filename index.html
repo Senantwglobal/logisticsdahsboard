@@ -145,10 +145,12 @@ input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--
 input.mono, .num-input{font-family:var(--font-mono);}
 input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
 input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
-/* kill the tiny native ▲▼ steppers — these are typed-in fields */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
-input[type=number]{-moz-appearance:textfield; appearance:textfield;}
+/* kill the tiny native ▲▼ steppers on every field (number/date/time) — these are all typed-in.
+   NOTE: do NOT set `appearance:textfield` on the input itself; recent Chrome treats it as
+   deprecated and brings the spinner back. Hiding the pseudo-elements is the reliable way. */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button{-webkit-appearance:none; appearance:none; margin:0;}
+input[type=number]{-moz-appearance:textfield;}
 /* custom caret so selects match the button set instead of the OS dropdown */
 select{cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:30px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%23868697' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -281,6 +283,7 @@ svg.chart .gridline{stroke:var(--line);}
 
   <div class="tabs" id="tabNav" role="tablist">
     <button class="tab-btn active" data-tab="dashboard" role="tab">대시보드</button>
+    <button class="tab-btn" data-tab="report" role="tab">월간 리포트</button>
     <button class="tab-btn" data-tab="holidays" role="tab">휴무일</button>
     <button class="tab-btn" data-tab="flights" role="tab">항공스케줄 &amp; 컷오프</button>
     <button class="tab-btn" data-tab="accounting" role="tab">회계 &amp; 분석</button>
@@ -288,6 +291,9 @@ svg.chart .gridline{stroke:var(--line);}
 
   <!-- ============ DASHBOARD ============ -->
   <div class="view active" id="view-dashboard"></div>
+
+  <!-- ============ MONTHLY REPORT ============ -->
+  <div class="view" id="view-report"></div>
 
   <!-- ============ HOLIDAYS ============ -->
   <div class="view" id="view-holidays"></div>
@@ -2290,6 +2296,324 @@ CD.on("daily", refresh);
 CD.on("shipments", refresh);
 CD.on("settings", refresh);
 CD.on("tab", t=>{ if(t==="accounting") refresh(); });
+CD.on("ready", ()=>{ shell(); refresh(); });
+})();
+</script>
+
+
+<script>
+/* =====================================================================
+   MONTHLY REPORT — 물류 총괄용 월간 요약.
+   "이번 달이 어땠고, 전월 대비 무엇이 달라졌나"를 한 화면에서 판단할 수 있게
+   물량 / 처리 단계별 전환율 / 합포장 효율 / 건당 물류비를 전월과 나란히 둔다.
+   ===================================================================== */
+(function(){
+"use strict";
+const CD = window.CD, Charts = window.CDCharts;
+const root = document.getElementById("view-report");
+let built = false;
+let month = null;                 // "YYYY-MM"
+let countryFilter = "ALL";
+let cur = "KRW";
+try{ cur = localStorage.getItem("cargodesk_dispCurrency") || "KRW"; }catch(e){}
+
+/* ---------- 비용 기준 (회계 탭과 동일한 계산식) ---------- */
+function S(){ return CD.Cache.settings || {}; }
+function fxRate(c){ const f=S().fx||{}; return c==="KR" ? (f.usdKrw||1300) : (f.usdJpy||150); }
+function fxOf(x){ const f=S().fx||{}; return x==="USD"?1 : x==="KRW"?(f.usdKrw||1300) : (f.usdJpy||150); }
+function sym(){ return cur==="USD"?"$" : cur==="KRW"?"₩" : "¥"; }
+function toDisp(localAmt, c){ return ((localAmt||0)/fxRate(c))*fxOf(cur); }
+function fmtMoney(v){
+  if(cur==="USD") return "$"+(v||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return sym()+CD.fmtNum(v||0);
+}
+function packRates(){ return S().packing || {baseUsd:1.29, stepUsd:0.6}; }
+function tierUsd(k){ const p=packRates(); return p.baseUsd + p.stepUsd*(k-1); }
+function airTiers(){ return S().air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
+function lastMileOf(c){ return (S()[c]||{}).lastMile || 0; }
+
+/* ---------- 한 달치 집계 ---------- */
+function aggregate(m, countries){
+  const a = { days:0, picked:0, packed:0, shipped:0, boxes:0, skuUnits:0,
+              packCost:0, lastMileCost:0, airCost:0, peak:{date:null, v:0}, byCountry:{} };
+  countries.forEach(c=> a.byCountry[c] = {picked:0,packed:0,shipped:0,boxes:0,skuUnits:0,cost:0,days:0});
+  CD.Cache.daily.forEach(r=>{
+    if(!r.date || r.date.slice(0,7)!==m || !countries.includes(r.country)) return;
+    const b = a.byCountry[r.country];
+    a.days++; b.days++;
+    a.picked += r.picked||0; a.packed += r.packed||0; a.shipped += r.shipped||0;
+    b.picked += r.picked||0; b.packed += r.packed||0; b.shipped += r.shipped||0;
+    let pkUsd = 0;
+    for(let k=1;k<=CD.PACK_MAX;k++){
+      const n = r["pack"+k]||0;
+      if(!n) continue;
+      a.boxes += n; b.boxes += n;
+      a.skuUnits += n*k; b.skuUnits += n*k;
+      pkUsd += n*tierUsd(k);
+    }
+    const pc = toDisp(pkUsd*fxRate(r.country), r.country);
+    const lm = toDisp((r.shipped||0)*lastMileOf(r.country), r.country);
+    a.packCost += pc; a.lastMileCost += lm;
+    b.cost += pc + lm;
+    if((r.shipped||0) > a.peak.v) a.peak = {date:r.date, v:r.shipped||0};
+  });
+  CD.Cache.shipments.forEach(s=>{
+    if(!s.cutoffDate || s.cutoffDate.slice(0,7)!==m || !countries.includes(s.country)) return;
+    const aw = s.actualWeight||0;
+    const t = airTiers();
+    const usd = aw * (aw >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd);
+    const v = toDisp(usd*fxRate(s.country), s.country);
+    a.airCost += v;
+    if(a.byCountry[s.country]) a.byCountry[s.country].cost += v;
+  });
+  a.total = a.packCost + a.lastMileCost + a.airCost;
+  a.perOrder = a.shipped>0 ? a.total/a.shipped : 0;
+  a.packRate = a.picked>0 ? a.packed/a.picked : null;      // 픽킹 → 팩킹
+  a.shipRate = a.packed>0 ? a.shipped/a.packed : null;     // 팩킹 → 출고
+  a.skuPerBox = a.boxes>0 ? a.skuUnits/a.boxes : 0;
+  a.avgDaily = a.days>0 ? a.shipped/a.days : 0;
+  return a;
+}
+
+function months(){
+  const set = new Set();
+  CD.Cache.daily.forEach(r=>{ if(r.date) set.add(r.date.slice(0,7)); });
+  return [...set].sort();
+}
+function prevMonth(m){
+  const [y,mm] = m.split("-").map(Number);
+  const d = new Date(y, mm-2, 1);
+  return d.getFullYear()+"-"+CD.pad2(d.getMonth()+1);
+}
+function pct(now, before){
+  if(before===null || before===undefined || before===0) return null;
+  return ((now-before)/before)*100;
+}
+/** delta chip — 증가가 좋은 지표(good=true)면 초록, 비용처럼 낮을수록 좋은 지표면 반대 */
+function delta(now, before, goodUp){
+  const p = pct(now, before);
+  if(p===null) return `<span class="sub" style="color:var(--muted)">전월 데이터 없음</span>`;
+  const up = p>0;
+  const good = goodUp ? up : !up;
+  const col = Math.abs(p)<0.05 ? "var(--ink-2)" : good ? "var(--good-ink)" : "var(--critical-ink)";
+  return `<span style="color:${col}">전월 대비 ${up?"+":""}${p.toFixed(1)}%</span>`;
+}
+
+/* ---------- 자동 인사이트 ---------- */
+function insights(m, a, b){
+  const out = [];
+  const pShip = pct(a.shipped, b.shipped);
+  if(pShip!==null && Math.abs(pShip)>=3){
+    out.push(`출고량이 전월 대비 <b>${pShip>0?"+":""}${pShip.toFixed(1)}%</b> (${CD.fmtNum(b.shipped)} → ${CD.fmtNum(a.shipped)}개) ${pShip>0?"증가":"감소"}했습니다.`);
+  }
+  const pDay = pct(a.avgDaily, b.avgDaily);
+  if(pShip!==null && pDay!==null && Math.abs(pShip-pDay)>=4){
+    out.push(`가동일이 ${b.days}일 → ${a.days}일로 달라져, 일평균 기준으로 보면 <b>${pDay>0?"+":""}${pDay.toFixed(1)}%</b>입니다. 총량 증감과 실제 처리 능력 변화를 구분해서 보셔야 합니다.`);
+  }
+  const pCost = pct(a.perOrder, b.perOrder);
+  if(pCost!==null && Math.abs(pCost)>=2){
+    out.push(`건당 물류비가 ${fmtMoney(b.perOrder)} → <b>${fmtMoney(a.perOrder)}</b> (${pCost>0?"+":""}${pCost.toFixed(1)}%)로 ${pCost>0?"악화":"개선"}됐습니다.`);
+  }
+  if(a.skuPerBox && b.skuPerBox){
+    const d = a.skuPerBox - b.skuPerBox;
+    if(Math.abs(d)>=0.03){
+      out.push(`박스당 SKU가 ${b.skuPerBox.toFixed(2)} → <b>${a.skuPerBox.toFixed(2)}</b>로 ${d>0?"올라 합포장 효율이 개선":"떨어져 합포장 효율이 악화"}됐습니다. 박스 수가 ${d>0?"줄어 출고비 절감":"늘어 출고비 상승"} 요인입니다.`);
+    }
+  }
+  if(a.shipRate!==null && a.shipRate < 0.95){
+    const carry = a.packed - a.shipped;
+    out.push(`팩킹 대비 출고율이 <b>${(a.shipRate*100).toFixed(1)}%</b>로, ${CD.fmtNum(carry)}건이 이번 달 안에 출고되지 않았습니다. 항공 스케줄 또는 컷오프 일정을 확인해보세요.`);
+  } else if(a.shipRate!==null && a.shipRate > 1.05){
+    out.push(`팩킹보다 출고가 <b>${(a.shipRate*100).toFixed(1)}%</b>로 많습니다. 전월 이월 물량이 이번 달에 나간 것으로 보입니다.`);
+  }
+  if(a.packRate!==null && a.packRate < 0.95){
+    out.push(`픽킹 대비 팩킹률이 <b>${(a.packRate*100).toFixed(1)}%</b>입니다. 픽킹 후 포장까지 넘어가지 못한 물량이 있는지 확인이 필요합니다.`);
+  }
+  if(a.peak.date && a.avgDaily>0 && a.peak.v/a.avgDaily >= 2){
+    out.push(`최다 출고일은 ${CD.fmtFull(a.peak.date)} <b>${CD.fmtNum(a.peak.v)}개</b>로 일평균(${CD.fmtNum(a.avgDaily)}개)의 ${(a.peak.v/a.avgDaily).toFixed(1)}배입니다. 특정일 물량 집중이 큽니다.`);
+  }
+  const cs = Object.keys(a.byCountry).filter(c=>a.byCountry[c].shipped>0);
+  if(cs.length>1){
+    const tot = cs.reduce((s,c)=>s+a.byCountry[c].shipped,0);
+    const totB = cs.reduce((s,c)=>s+(b.byCountry[c]?b.byCountry[c].shipped:0),0);
+    cs.forEach(c=>{
+      if(!tot || !totB) return;
+      const sh = a.byCountry[c].shipped/tot*100;
+      const shB = (b.byCountry[c]?b.byCountry[c].shipped:0)/totB*100;
+      if(Math.abs(sh-shB)>=5){
+        out.push(`${CD.COUNTRY_LABEL[c]} 비중이 ${shB.toFixed(1)}% → <b>${sh.toFixed(1)}%</b>로 ${sh>shB?"확대":"축소"}됐습니다.`);
+      }
+    });
+  }
+  if(!out.length) out.push("전월과 비교해 특별히 눈에 띄는 변화는 없습니다.");
+  return out;
+}
+
+/* ---------- 화면 ---------- */
+function shell(){
+  root.innerHTML = `
+    <div class="section row between">
+      <div class="row">
+        <select id="rpMonth" style="min-width:130px;"></select>
+        <div class="seg" id="rpCountrySeg">
+          <button data-v="ALL" class="active">전체</button>
+          <button data-v="KR">한국</button>
+          <button data-v="JP">일본</button>
+        </div>
+      </div>
+      <div class="seg" id="rpCurSeg">
+        <button data-v="KRW">₩ 원화</button>
+        <button data-v="JPY">¥ 엔화</button>
+        <button data-v="USD">$ 달러</button>
+      </div>
+    </div>
+
+    <div class="section grid kpis" id="rpKpis"></div>
+
+    <div class="section grid two">
+      <div class="card">
+        <div class="section-head"><h2>이번 달 요약</h2><span class="hint" id="rpVs"></span></div>
+        <ul id="rpInsights" style="margin:0; padding-left:18px; font-size:12.5px; line-height:1.85;"></ul>
+      </div>
+      <div class="card">
+        <div class="section-head"><h2>처리 단계별 전환</h2></div>
+        <div id="rpFunnel"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>국가별 비교</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>박스</th><th>박스당 SKU</th><th>물류비</th><th>건당비용</th><th>전월 대비 출고</th></tr></thead>
+          <tbody id="rpTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>월별 출고량 추이</h2></div>
+      <div class="card"><div id="rpTrendChart"></div><div class="chart-legend" id="rpTrendLegend"></div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>월별 건당 물류비 추이</h2></div>
+      <div class="card"><div id="rpCostChart"></div><div class="chart-legend" id="rpCostLegend"></div></div>
+    </div>
+  `;
+  document.getElementById("rpMonth").addEventListener("change", e=>{ month = e.target.value; refresh(); });
+  document.getElementById("rpCountrySeg").addEventListener("click", e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    countryFilter=b.dataset.v; [...b.parentElement.children].forEach(c=>c.classList.toggle("active",c===b)); refresh();
+  });
+  document.getElementById("rpCurSeg").querySelectorAll("button").forEach(b=> b.classList.toggle("active", b.dataset.v===cur));
+  document.getElementById("rpCurSeg").addEventListener("click", e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    cur=b.dataset.v; [...b.parentElement.children].forEach(c=>c.classList.toggle("active",c===b));
+    try{ localStorage.setItem("cargodesk_dispCurrency", cur); }catch(err){}
+    refresh();
+  });
+  built = true;
+}
+
+function kpi(label, value, sub){
+  return `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+}
+function bar(label, value, ofValue, color){
+  const wPct = ofValue>0 ? Math.min(100, value/ofValue*100) : 0;
+  return `<div style="margin-bottom:12px;">
+    <div class="row between" style="font-size:12px; margin-bottom:5px;">
+      <span>${label}</span><span class="mono">${CD.fmtNum(value)} <span style="color:var(--muted)">(${wPct.toFixed(1)}%)</span></span>
+    </div>
+    <div style="height:8px; border-radius:5px; background:var(--surface-2); overflow:hidden;">
+      <div style="height:100%; width:${wPct}%; background:${color}; border-radius:5px;"></div>
+    </div>
+  </div>`;
+}
+
+function refresh(){
+  if(!built) return;
+  const ms = months();
+  if(!ms.length){ document.getElementById("rpKpis").innerHTML = `<div class="empty-note">데이터가 없습니다.</div>`; return; }
+  if(!month || !ms.includes(month)) month = ms[ms.length-1];
+  const sel = document.getElementById("rpMonth");
+  sel.innerHTML = [...ms].reverse().map(m=>`<option value="${m}" ${m===month?"selected":""}>${CD.monthLabel(m)}</option>`).join("");
+
+  const countries = countryFilter==="ALL" ? CD.COUNTRIES : [countryFilter];
+  const pm = prevMonth(month);
+  const a = aggregate(month, countries);
+  const b = aggregate(pm, countries);
+  document.getElementById("rpVs").textContent = `${CD.monthLabel(month)} vs ${CD.monthLabel(pm)}`;
+
+  document.getElementById("rpKpis").innerHTML = [
+    kpi("출고 수량", CD.fmtNum(a.shipped), delta(a.shipped, b.shipped, true)),
+    kpi("팩킹 수량", CD.fmtNum(a.packed), delta(a.packed, b.packed, true)),
+    kpi("일평균 출고", CD.fmtNum(a.avgDaily), `가동 ${a.days}일 (전월 ${b.days}일)`),
+    kpi("총 물류비", fmtMoney(a.total), delta(a.total, b.total, false)),
+    kpi("건당 물류비", fmtMoney(a.perOrder), delta(a.perOrder, b.perOrder, false)),
+    kpi("박스당 SKU", a.skuPerBox.toFixed(2), b.skuPerBox ? delta(a.skuPerBox, b.skuPerBox, true) : "전월 데이터 없음"),
+  ].join("");
+
+  document.getElementById("rpInsights").innerHTML = insights(month, a, b).map(t=>`<li>${t}</li>`).join("");
+
+  document.getElementById("rpFunnel").innerHTML =
+      bar("픽킹", a.picked, a.picked, "var(--kr)")
+    + bar("팩킹", a.packed, a.picked, "var(--jp)")
+    + bar("출고", a.shipped, a.picked, "var(--good)")
+    + `<div class="row" style="gap:18px; margin-top:14px; font-size:12px;">
+         <span>픽킹→팩킹 <b>${a.packRate!==null?(a.packRate*100).toFixed(1)+"%":"-"}</b></span>
+         <span>팩킹→출고 <b>${a.shipRate!==null?(a.shipRate*100).toFixed(1)+"%":"-"}</b></span>
+       </div>`;
+
+  document.getElementById("rpTableBody").innerHTML = countries.map(c=>{
+    const x = a.byCountry[c], y = b.byCountry[c] || {shipped:0};
+    const spb = x.boxes>0 ? x.skuUnits/x.boxes : 0;
+    const po = x.shipped>0 ? x.cost/x.shipped : 0;
+    return `<tr>
+      <td class="text"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></td>
+      <td>${CD.fmtNum(x.picked)}</td><td>${CD.fmtNum(x.packed)}</td><td>${CD.fmtNum(x.shipped)}</td>
+      <td>${CD.fmtNum(x.boxes)}</td><td>${spb.toFixed(2)}</td>
+      <td>${fmtMoney(x.cost)}</td><td>${fmtMoney(po)}</td>
+      <td class="text">${delta(x.shipped, y.shipped, true)}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="9" class="text empty-note">데이터가 없습니다.</td></tr>`;
+
+  // 최근 12개월 추이
+  const recent = ms.slice(-12);
+  const trendData = recent.map(m=>{
+    const g = aggregate(m, countries);
+    const row = {date:m};
+    countries.forEach(c=> row[c] = g.byCountry[c].shipped);
+    return row;
+  });
+  Charts.stackedBarChart(document.getElementById("rpTrendChart"), {
+    data: trendData, keys: countries,
+    colorFn: c=> CD.cssVar("--"+c.toLowerCase()),
+    labelFn: c=> CD.COUNTRY_LABEL[c],
+    xLabelFn: CD.monthLabel, tipTitleFn: CD.monthLabel,
+    valueFmt: v=> CD.fmtNum(v)+"개",
+    legend: document.getElementById("rpCostLegend") ? document.getElementById("rpTrendLegend") : null
+  });
+
+  const costSeries = countries.map(c=>({
+    key:c, label: CD.COUNTRY_LABEL[c], color: CD.cssVar("--"+c.toLowerCase()),
+    fmt: v=> fmtMoney(v),
+    values: recent.map(m=>{
+      const g = aggregate(m, [c]);
+      return g.shipped>0 ? g.total/g.shipped : NaN;
+    })
+  }));
+  Charts.lineChart(document.getElementById("rpCostChart"), {
+    series: costSeries, labels: recent.map(CD.monthLabel),
+    yFmt: v=> sym()+CD.fmtNum(v),
+    legend: document.getElementById("rpCostLegend")
+  });
+}
+
+CD.on("daily", refresh);
+CD.on("shipments", refresh);
+CD.on("settings", refresh);
+CD.on("tab", t=>{ if(t==="report") refresh(); });
 CD.on("ready", ()=>{ shell(); refresh(); });
 })();
 </script>
