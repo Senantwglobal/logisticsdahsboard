@@ -166,6 +166,9 @@ select{cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:3
 .btn.danger{color:var(--critical-ink); border-color:var(--critical-soft);}
 .btn.danger:hover{background:var(--critical-soft);}
 .btn.small{padding:5px 11px; font-size:11.5px; border-radius:8px;}
+.btn.on{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+.btn.on:hover{background:var(--accent); filter:brightness(1.06);}
+td.offday{color:var(--critical-ink);}
 /* square icon button (calendar prev/next, paging) — matches the button set, no OS glyphs */
 .btn.icon{width:34px; height:34px; padding:0; font-size:16px; line-height:1; color:var(--ink-2);}
 .btn.icon:hover{color:var(--ink);}
@@ -918,6 +921,7 @@ function bandBarChart(container, {data, thresholds, unitLabel, metricKey}){
              + `<span style="color:${col}; font-weight:600;">${sign}${CD.fmtNum(diff)}`
              + (pct!==null ? ` (${sign}${pct.toFixed(1)}%)` : "") + `</span></div>`;
       }
+      if(d.offLabel) html += `<div style="margin-top:4px; color:#ffa993;">${d.offLabel} · 비가동일</div>`;
       html += `<div style="margin-top:4px; opacity:.6;">${st.label} 구간</div>`;
       showTip(e, html);
     });
@@ -925,6 +929,8 @@ function bandBarChart(container, {data, thresholds, unitLabel, metricKey}){
     svg.appendChild(rect);
     if(n<=16){
       const lbl = svgEl("text",{x:cx, y:h-8, "text-anchor":"middle", "font-size":"9.5"});
+      // weekends and warehouse holidays read red on the axis
+      if(d.off) lbl.setAttribute("fill", CD.cssVar("--critical-ink"));
       lbl.textContent = CD.fmtShort(d.date);
       svg.appendChild(lbl);
     }
@@ -1062,7 +1068,22 @@ window.CDCharts = { bandBarChart, stackedBarChart, lineChart, statusColor, niceM
 const CD = window.CD, Charts = window.CDCharts;
 const root = document.getElementById("view-dashboard");
 let built = false;
-const filt = { country:"ALL", start: CD.addDays(CD.todayISO(),-13), end: CD.todayISO(), metric:"packed" };
+const filt = { country:"ALL", start: CD.addDays(CD.todayISO(),-13), end: CD.todayISO(), metric:"packed", excludeOff:false };
+try{ filt.excludeOff = localStorage.getItem("cargodesk_excludeOff")==="1"; }catch(e){}
+
+/* ---------- 비가동일 판정: 주말 + 미국 창고 공휴일 (창고가 미국에 있으므로 미국 달력 기준) ---------- */
+function isWeekend(iso){ const w = CD.weekdayOf(iso); return w===0 || w===6; }
+function isWarehouseHoliday(iso){
+  return CD.Cache.holidays.some(h=> h.country==="US" && h.date===iso && h.closed!==false);
+}
+function isOffDay(iso){ return isWeekend(iso) || isWarehouseHoliday(iso); }
+function offReason(iso){
+  if(isWarehouseHoliday(iso)){
+    const h = CD.Cache.holidays.find(x=> x.country==="US" && x.date===iso && x.closed!==false);
+    return h ? h.name : "미국 휴무일";
+  }
+  return isWeekend(iso) ? "주말" : null;
+}
 let editingId = null;
 
 function packFieldId(key){ return "f"+key[0].toUpperCase()+key.slice(1); } // pack1 -> fPack1
@@ -1090,6 +1111,7 @@ function shell(){
             <button data-v="KR">한국</button>
             <button data-v="JP">일본</button>
           </div>
+          <button type="button" class="btn small" id="dOffToggle" title="주말과 미국 창고 공휴일을 그래프·집계에서 제외합니다">주말 · 휴무 제외</button>
           <div class="seg" id="dRangeSeg">
             <button data-v="7">최근 7일</button>
             <button data-v="14" class="active">최근 14일</button>
@@ -1215,6 +1237,14 @@ function shell(){
   document.getElementById("dForm").addEventListener("submit", onSubmitForm);
   document.getElementById("fCancelEdit").addEventListener("click", resetForm);
   document.querySelector("#dForm .pack-grid").addEventListener("input", updatePackHint);
+  const offBtn = document.getElementById("dOffToggle");
+  function syncOffBtn(){ offBtn.classList.toggle("on", filt.excludeOff); }
+  offBtn.addEventListener("click", ()=>{
+    filt.excludeOff = !filt.excludeOff;
+    try{ localStorage.setItem("cargodesk_excludeOff", filt.excludeOff?"1":"0"); }catch(e){}
+    syncOffBtn(); refresh();
+  });
+  syncOffBtn();
   document.getElementById("dClearSample").addEventListener("click", async ()=>{
     if(confirm("샘플로 등록된 일일 데이터를 모두 삭제할까요?")) await CD.Store.bulkDeleteSample("daily");
   });
@@ -1271,21 +1301,25 @@ function loadIntoForm(rec){
 }
 
 function filteredDaily(){
-  return CD.Cache.daily.filter(d=> d.date>=filt.start && d.date<=filt.end && (filt.country==="ALL" || d.country===filt.country));
+  return CD.Cache.daily.filter(d=> d.date>=filt.start && d.date<=filt.end
+    && (filt.country==="ALL" || d.country===filt.country)
+    && (!filt.excludeOff || !isOffDay(d.date)));
+}
+/** every date in the current range, minus the excluded ones */
+function rangeDates(){
+  const out=[]; let cur=filt.start;
+  while(cur<=filt.end){ if(!filt.excludeOff || !isOffDay(cur)) out.push(cur); cur=CD.addDays(cur,1); }
+  return out;
 }
 
 function fillSeries(country, key){
   // dense date series between filt.start..filt.end for one country
   const map = {};
   CD.Cache.daily.filter(d=>d.country===country).forEach(d=> map[d.date]=d);
-  const out = [];
-  let cur = filt.start;
-  while(cur<=filt.end){
+  return rangeDates().map(cur=>{
     const rec = map[cur];
-    out.push({date:cur, value: rec?(rec[key]||0):0, rec});
-    cur = CD.addDays(cur,1);
-  }
-  return out;
+    return {date:cur, value: rec?(rec[key]||0):0, rec, off:isOffDay(cur), offLabel:offReason(cur)};
+  });
 }
 
 function refresh(){
@@ -1294,7 +1328,7 @@ function refresh(){
   const totalPicked = rows.reduce((s,r)=>s+(r.picked||0),0);
   const totalPacked = rows.reduce((s,r)=>s+(r.packed||0),0);
   const totalShipped = rows.reduce((s,r)=>s+(r.shipped||0),0);
-  const days = Math.max(1, (CD.parseISO(filt.end)-CD.parseISO(filt.start))/86400000 + 1);
+  const days = Math.max(1, rangeDates().length);
   const avgShipped = totalShipped/days;
   const totalBoxes = rows.reduce((s,r)=> s+CD.PACK_KEYS.reduce((a,k)=>a+(r[k]||0),0), 0);
   const avgItemsPerBox = totalBoxes>0 ? totalShipped/totalBoxes : 0;
@@ -1303,7 +1337,7 @@ function refresh(){
     <div class="kpi"><div class="label">총 픽킹 수량</div><div class="value">${CD.fmtNum(totalPicked)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
     <div class="kpi"><div class="label">총 팩킹 수량</div><div class="value">${CD.fmtNum(totalPacked)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
     <div class="kpi"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(totalShipped)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
-    <div class="kpi"><div class="label">일 평균 출고</div><div class="value">${CD.fmtNum(avgShipped)}</div><div class="sub">기간 ${Math.round(days)}일 기준</div></div>
+    <div class="kpi"><div class="label">일 평균 출고</div><div class="value">${CD.fmtNum(avgShipped)}</div><div class="sub">${filt.excludeOff?"가동일":"기간"} ${Math.round(days)}일 기준</div></div>
     <div class="kpi"><div class="label">박스당 평균 제품수</div><div class="value">${avgItemsPerBox.toFixed(2)}</div><div class="sub">총 ${CD.fmtNum(totalBoxes)}박스</div></div>
   `;
 
@@ -1334,8 +1368,7 @@ function refresh(){
     packWrap.appendChild(box);
     const holder = box.querySelector(".chart-holder");
     const map = {}; CD.Cache.daily.filter(d=>d.country===c).forEach(d=>map[d.date]=d);
-    const series = []; let cur = filt.start;
-    while(cur<=filt.end){ series.push({date:cur, ...CD.toDisplayBuckets(map[cur])}); cur = CD.addDays(cur,1); }
+    const series = rangeDates().map(cur=> ({date:cur, ...CD.toDisplayBuckets(map[cur])}));
     Charts.stackedBarChart(holder, {
       data:series, keys:CD.PACK_DISPLAY_KEYS, colorFn:CD.packColor, labelFn:k=>CD.PACK_LABEL[k],
       valueFmt:v=>CD.fmtNum(v)+"박스",
@@ -1348,7 +1381,7 @@ function refresh(){
   tbody.innerHTML = sorted.slice(0,60).map(r=>{
     const boxes = CD.PACK_KEYS.reduce((a,k)=>a+(r[k]||0),0);
     return `<tr>
-      <td>${CD.fmtShort(r.date)}</td>
+      <td class="${isOffDay(r.date)?'offday':''}" title="${offReason(r.date)||''}">${CD.fmtShort(r.date)}${isWarehouseHoliday(r.date)?' *':''}</td>
       <td class="text"><span class="badge ${r.country.toLowerCase()}">${CD.COUNTRY_LABEL[r.country]}</span></td>
       <td>${CD.fmtNum(r.picked||0)}</td>
       <td>${CD.fmtNum(r.packed||0)}</td>
@@ -1367,6 +1400,7 @@ function refresh(){
 }
 
 CD.on("daily", refresh);
+CD.on("holidays", refresh);
 CD.on("settings", refresh);
 CD.on("tab", t=>{ if(t==="dashboard") refresh(); });
 CD.on("ready", ()=>{ shell(); refresh(); });
