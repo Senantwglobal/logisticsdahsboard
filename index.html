@@ -135,10 +135,10 @@ a{color:var(--accent);}
 @media (max-width:960px){.grid.settings3{grid-template-columns:1fr;}}
 
 /* ============================= KPI TILES ============================= */
-.kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:14px 15px; display:flex; flex-direction:column; gap:6px;}
-.kpi .label{font-size:11.5px; color:var(--muted); letter-spacing:.02em; text-transform:uppercase; display:flex; align-items:center; gap:6px;}
-.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:22px; font-weight:300; letter-spacing:-.01em;}
-.kpi .sub{font-size:12px; color:var(--ink-2);}
+.kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:16px 18px; display:flex; flex-direction:column; gap:8px; justify-content:space-between; min-height:104px;}
+.kpi .label{font-size:12px; color:var(--muted); letter-spacing:0; display:flex; align-items:center; gap:6px; line-height:1.35;}
+.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:27px; font-weight:300; letter-spacing:-.02em; line-height:1.15; color:var(--ink);}
+.kpi .sub{font-size:11.5px; color:var(--muted); line-height:1.45;}
 .kpi .sub.up{color:var(--good-ink);} .kpi .sub.down{color:var(--critical-ink);}
 .kpi .dot{width:8px; height:8px; border-radius:50%; flex:none;}
 
@@ -187,6 +187,20 @@ td.offday{color:var(--critical-ink);}
 
 /* ============================= TABLE ============================= */
 .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-m);}
+/* ---- 목록 도구모음 (검색 / 필터 / 페이지) ---- */
+.list-tools{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+.list-tools .search{position:relative; flex:none;}
+.list-tools .search input{width:220px; padding-left:30px;}
+.list-tools .search::before{content:""; position:absolute; left:11px; top:50%; width:12px; height:12px; margin-top:-6px;
+  background:var(--muted); pointer-events:none;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") center/contain no-repeat;}
+.list-tools .spacer{flex:1;}
+.pager{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap;}
+.pager .info{font-size:11.5px; color:var(--muted);}
+.pager .pages{display:flex; align-items:center; gap:4px;}
+.pager .pages button{min-width:30px; height:30px; padding:0 7px; font-size:11.5px;}
+.pager .pages button.cur{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
 table{border-collapse:collapse; width:100%; font-size:12.5px; min-width:640px;}
 thead th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:300; padding:9px 12px; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0;}
 tbody td{padding:9px 12px; border-bottom:1px solid var(--line); white-space:nowrap; font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
@@ -697,8 +711,49 @@ window.CD = {
   COUNTRIES, COUNTRY_LABEL, CURRENCY, PACK_MAX, PACK_KEYS, PACK_DISPLAY_KEYS, PACK_LABEL, packColor, toDisplayBuckets,
   isDark, cssVar, pad2, toISO, parseISO, todayISO, addDays, fmtShort, fmtFull, weekdayOf,
   isoWeekKey, monthKey, yearKey, monthLabel, daysInMonth, fmtNum, fmtMoney, uid,
-  Store, Cache, defaultSettings, mergeSettings, on, emit
+  Store, Cache, defaultSettings, mergeSettings, on, emit,
+  renderPager, matchQuery
 };
+
+/** 목록 페이저를 그린다. onGo(page)로 페이지 전환을 알린다. */
+function renderPager(el, {total, page, perPage, onGo}){
+  if(!el) return;
+  const pages = Math.max(1, Math.ceil(total/perPage));
+  page = Math.min(Math.max(0, page), pages-1);
+  const from = total===0 ? 0 : page*perPage+1;
+  const to = Math.min(total, (page+1)*perPage);
+  const win = [];
+  const push = n=> win.push(n);
+  push(0);
+  for(let i=page-1;i<=page+1;i++) if(i>0 && i<pages-1) push(i);
+  if(pages>1) push(pages-1);
+  const uniq = [...new Set(win)].sort((a,b)=>a-b);
+  let btns = "";
+  let prev = -1;
+  uniq.forEach(n=>{
+    if(prev>=0 && n-prev>1) btns += `<span style="color:var(--muted); padding:0 2px;">…</span>`;
+    btns += `<button class="btn small ${n===page?'cur':''}" data-go="${n}">${n+1}</button>`;
+    prev = n;
+  });
+  el.innerHTML = `
+    <div class="info">${CD.fmtNum(from)}–${CD.fmtNum(to)} / 총 ${CD.fmtNum(total)}건</div>
+    <div class="pages">
+      <button class="btn small" data-go="${page-1}" ${page===0?"disabled":""}>‹</button>
+      ${btns}
+      <button class="btn small" data-go="${page+1}" ${page>=pages-1?"disabled":""}>›</button>
+    </div>`;
+  el.querySelectorAll("[data-go]").forEach(b=> b.addEventListener("click", ()=>{
+    const n = Number(b.dataset.go);
+    if(n>=0 && n<pages && n!==page) onGo(n);
+  }));
+}
+/** 공백으로 나눈 검색어가 모두 포함되는지 (대소문자 무시) */
+function matchQuery(q, ...fields){
+  const t = String(q||"").trim().toLowerCase();
+  if(!t) return true;
+  const hay = fields.filter(Boolean).join(" ").toLowerCase();
+  return t.split(/\s+/).every(w=> hay.includes(w));
+}
 window.__CD_HOLIDAY_SEED__ = HOLIDAY_SEED;
 
 /* ---------------------------- boot ---------------------------- */
@@ -1117,6 +1172,8 @@ function offReason(iso){
   return isWeekend(iso) ? "주말" : null;
 }
 let editingId = null;
+let dQ = "", dPage = 0;
+const D_PER = 20;
 
 function packFieldId(key){ return "f"+key[0].toUpperCase()+key.slice(1); } // pack1 -> fPack1
 function packGridHtml(){
@@ -1225,12 +1282,16 @@ function shell(){
         <div class="section-head"><h2>최근 기록</h2>
           <button class="btn small danger ghost" id="dClearSample">샘플 데이터 삭제</button>
         </div>
+        <div class="list-tools">
+          <div class="search"><input type="text" id="dSearch" placeholder="날짜 검색 (예: 2026-09)"></div>
+        </div>
         <div class="table-wrap" style="max-height:360px; overflow-y:auto;">
           <table>
             <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>합포장</th><th></th></tr></thead>
             <tbody id="dTableBody"></tbody>
           </table>
         </div>
+        <div class="pager" id="dPager"></div>
       </div>
     </div>
   `;
@@ -1277,6 +1338,7 @@ function shell(){
     syncOffBtn(); refresh();
   });
   syncOffBtn();
+  document.getElementById("dSearch").addEventListener("input", e=>{ dQ = e.target.value; dPage = 0; refresh(); });
   document.getElementById("dClearSample").addEventListener("click", async ()=>{
     if(confirm("샘플로 등록된 일일 데이터를 모두 삭제할까요?")) await CD.Store.bulkDeleteSample("daily");
   });
@@ -1409,8 +1471,14 @@ function refresh(){
   });
 
   const tbody = document.getElementById("dTableBody");
-  const sorted = [...rows].sort((a,b)=> a.date<b.date?1:-1);
-  tbody.innerHTML = sorted.slice(0,60).map(r=>{
+  const sorted = [...rows].sort((a,b)=> a.date<b.date?1:-1)
+    .filter(r=> CD.matchQuery(dQ, r.date, CD.COUNTRY_LABEL[r.country], r.country));
+  const dPages = Math.max(1, Math.ceil(sorted.length/D_PER));
+  if(dPage >= dPages) dPage = dPages-1;
+  CD.renderPager(document.getElementById("dPager"), {
+    total: sorted.length, page: dPage, perPage: D_PER, onGo: n=>{ dPage = n; refresh(); }
+  });
+  tbody.innerHTML = sorted.slice(dPage*D_PER, (dPage+1)*D_PER).map(r=>{
     const boxes = CD.PACK_KEYS.reduce((a,k)=>a+(r[k]||0),0);
     return `<tr>
       <td class="${isOffDay(r.date)?'offday':''}" title="${offReason(r.date)||''}">${CD.fmtShort(r.date)}${isWarehouseHoliday(r.date)?' *':''}</td>
@@ -1450,6 +1518,8 @@ const root = document.getElementById("view-holidays");
 let built = false;
 let country = "KR";
 let cursor = { y: Number(CD.todayISO().slice(0,4)), m: Number(CD.todayISO().slice(5,7))-1 };
+let hQ = "", hPage = 0;
+const H_PER = 15;
 
 function shell(){
   root.innerHTML = `
@@ -1490,12 +1560,14 @@ function shell(){
         </div>
         <div class="card" style="flex:1;">
           <div class="section-head"><h2>휴무일 목록</h2><span class="hint" id="hCount"></span></div>
-          <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
+          <div class="list-tools"><div class="search"><input type="text" id="hSearch" placeholder="명칭 · 날짜 검색"></div></div>
+          <div class="table-wrap">
             <table style="min-width:0;">
               <thead><tr><th>날짜</th><th>명칭</th><th>등록</th><th>근무</th><th></th></tr></thead>
               <tbody id="hTableBody"></tbody>
             </table>
           </div>
+          <div class="pager" id="hPager"></div>
         </div>
       </div>
     </div>
@@ -1507,6 +1579,7 @@ function shell(){
     [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
     refresh();
   });
+  document.getElementById("hSearch").addEventListener("input", e=>{ hQ = e.target.value; hPage = 0; refresh(); });
   document.getElementById("hPrev").addEventListener("click", ()=>{ cursor.m--; if(cursor.m<0){cursor.m=11;cursor.y--;} refresh(); });
   document.getElementById("hNext").addEventListener("click", ()=>{ cursor.m++; if(cursor.m>11){cursor.m=0;cursor.y++;} refresh(); });
   let formClosed = true; // 창고 휴무(true) vs 정상 근무(false) for the "휴무일 추가" form
@@ -1573,9 +1646,16 @@ function refresh(){
     </div>`;
   }).join("");
 
-  const sorted = [...list].sort((a,b)=>a.date<b.date?-1:1);
-  document.getElementById("hCount").textContent = `${sorted.length}건`;
-  document.getElementById("hTableBody").innerHTML = sorted.map(h=>{
+  const allList = [...list].sort((a,b)=>a.date<b.date?-1:1);
+  const sorted = allList.filter(h=> CD.matchQuery(hQ, h.name, h.date));
+  const hPages = Math.max(1, Math.ceil(sorted.length/H_PER));
+  if(hPage >= hPages) hPage = hPages-1;
+  document.getElementById("hCount").textContent =
+    sorted.length===allList.length ? `${allList.length}건` : `${sorted.length}건 / 전체 ${allList.length}건`;
+  CD.renderPager(document.getElementById("hPager"), {
+    total: sorted.length, page: hPage, perPage: H_PER, onGo: n=>{ hPage = n; refresh(); }
+  });
+  document.getElementById("hTableBody").innerHTML = sorted.slice(hPage*H_PER, (hPage+1)*H_PER).map(h=>{
     const isClosed = h.closed!==false;
     return `
     <tr>
@@ -1764,6 +1844,16 @@ function shell(){
 
     <div class="section">
       <div class="section-head"><h2>컷오프 · 항공 정보 목록</h2><span class="hint" id="sCount"></span></div>
+      <div class="list-tools">
+        <div class="search"><input type="text" id="sSearch" placeholder="MAWB · 편명 · 항공사 검색"></div>
+        <select id="sMonth" style="min-width:120px;"></select>
+        <div class="seg" id="sListCountry">
+          <button data-v="ALL" class="active">전체</button>
+          <button data-v="KR">한국</button>
+          <button data-v="JP">일본</button>
+        </div>
+        <button class="btn small ghost" id="sReset">초기화</button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
@@ -1773,6 +1863,7 @@ function shell(){
           <tbody id="sTableBody"></tbody>
         </table>
       </div>
+      <div class="pager" id="sPager"></div>
     </div>
 
     <!-- ===== 항공편 마스터(CARGO): 등록해두면 컷오프 등록 시 드롭다운으로 자동 입력 ===== -->
@@ -1818,6 +1909,20 @@ function shell(){
     refresh();
   });
   document.getElementById("sAddBtn").addEventListener("click", ()=>openForm(null));
+  document.getElementById("sSearch").addEventListener("input", e=>{ listQ = e.target.value; listPage = 0; refresh(); });
+  document.getElementById("sMonth").addEventListener("change", e=>{ listMonth = e.target.value; listPage = 0; refresh(); });
+  document.getElementById("sListCountry").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    listCountry = b.dataset.v; listPage = 0;
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
+  document.getElementById("sReset").addEventListener("click", ()=>{
+    listQ=""; listMonth=""; listCountry="ALL"; listPage=0;
+    document.getElementById("sSearch").value="";
+    document.getElementById("sListCountry").querySelectorAll("button").forEach(b=>b.classList.toggle("active", b.dataset.v==="ALL"));
+    refresh();
+  });
   document.getElementById("sPrev").addEventListener("click", ()=>{ cursor.m--; if(cursor.m<0){cursor.m=11;cursor.y--;} refresh(); });
   document.getElementById("sNext").addEventListener("click", ()=>{ cursor.m++; if(cursor.m>11){cursor.m=0;cursor.y++;} refresh(); });
 
@@ -1854,6 +1959,9 @@ function fmtDT(v){
 
 /* ---------------- 항공편 마스터(CARGO) ---------------- */
 let editingCargoId = null;
+/* 목록 필터 상태 — 건수가 수백 건이라 검색 · 월 · 국가 · 페이지로 좁혀서 본다 */
+let listQ = "", listMonth = "", listCountry = "ALL", listPage = 0;
+const LIST_PER = 25;
 function resetCargoForm(){
   editingCargoId = null;
   const f = document.getElementById("cgForm"); if(!f) return;
@@ -1953,8 +2061,29 @@ function refresh(){
   });
 
   const sorted = [...all].sort((a,b)=> (a.cutoffDate+((a.cutoffTime)||'')) < (b.cutoffDate+((b.cutoffTime)||'')) ? -1:1);
-  document.getElementById("sCount").textContent = `${sorted.length}건`;
-  document.getElementById("sTableBody").innerHTML = sorted.map(s=>`
+  // 월 선택지 채우기 (데이터에 있는 달만)
+  const monthSel = document.getElementById("sMonth");
+  const allMonths = [...new Set(all.map(x=>(x.cutoffDate||"").slice(0,7)).filter(Boolean))].sort().reverse();
+  const monthOpts = `<option value="">전체 기간</option>` + allMonths.map(m=>`<option value="${m}">${CD.monthLabel(m)}</option>`).join("");
+  if(monthSel.innerHTML !== monthOpts){ monthSel.innerHTML = monthOpts; }
+  monthSel.value = listMonth;
+
+  const filtered = sorted.filter(x=>
+       (listCountry==="ALL" || x.country===listCountry)
+    && (!listMonth || (x.cutoffDate||"").slice(0,7)===listMonth)
+    && CD.matchQuery(listQ, x.mawb, x.flightNo, x.carrier, x.origin, x.dest, x.cutoffDate)
+  );
+  const pageCount = Math.max(1, Math.ceil(filtered.length/LIST_PER));
+  if(listPage >= pageCount) listPage = pageCount-1;
+  const shown = filtered.slice(listPage*LIST_PER, (listPage+1)*LIST_PER);
+
+  document.getElementById("sCount").textContent =
+    filtered.length===all.length ? `${all.length}건` : `${filtered.length}건 / 전체 ${all.length}건`;
+  CD.renderPager(document.getElementById("sPager"), {
+    total: filtered.length, page: listPage, perPage: LIST_PER,
+    onGo: n=>{ listPage = n; refresh(); }
+  });
+  document.getElementById("sTableBody").innerHTML = shown.map(s=>`
     <tr>
       <td>${CD.fmtShort(s.cutoffDate)} ${s.cutoffTime||''}</td>
       <td class="text"><span class="badge ${s.country.toLowerCase()}">${CD.COUNTRY_LABEL[s.country]}</span></td>
@@ -1970,7 +2099,7 @@ function refresh(){
       <td>${CD.fmtNum(s.volumeWeight||0)}</td>
       <td class="text"><button class="btn small ghost" data-edit="${s.id}">수정</button></td>
     </tr>
-  `).join("") || `<tr><td colspan="13" class="text empty-note">등록된 항공편 · 컷오프가 없습니다.</td></tr>`;
+  `).join("") || `<tr><td colspan="13" class="text empty-note">${all.length? "조건에 맞는 항공편이 없습니다." : "등록된 항공편 · 컷오프가 없습니다."}</td></tr>`;
 
   document.getElementById("sTableBody").querySelectorAll("[data-edit]").forEach(b=>{
     b.addEventListener("click", ()=>{ const rec = all.find(s=>s.id===b.dataset.edit); if(rec) openForm(rec); });
@@ -2118,15 +2247,7 @@ function shell(){
 
     <div class="section">
       <div class="section-head"><h2>기간별 상세 내역</h2><span class="hint" id="aTableHint"></span></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>기간</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>항공부킹</th><th>중량(kg)</th>
-            <th>출고비</th><th>통관 택배비용</th><th>항공비용</th><th>총비용</th><th>건당비용</th>
-          </tr></thead>
-          <tbody id="aTableBody"></tbody>
-        </table>
-      </div>
+      <div id="aTables"></div>
     </div>
   `;
 
@@ -2275,7 +2396,7 @@ function refresh(){
   const cards = [`<div class="kpi"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${kpiCountries.map(c=>CD.COUNTRY_LABEL[c]).join('+')} 합계</div></div>`];
   if(kpiCountries.length>1){
     const totalCostDisp = kpiCountries.reduce((s,c)=> s + toDisp(countryStats(c).cost, c), 0);
-    cards.push(`<div class="kpi"><div class="label">총 물류비용 (${dispSym()} 환산 합계)</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">${kpiCountries.map(c=>CD.COUNTRY_LABEL[c]).join('+')} · 출고비+통관·택배+항공</div></div>`);
+    cards.push(`<div class="kpi"><div class="label">총 물류비</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">${kpiCountries.map(c=>CD.COUNTRY_LABEL[c]).join('+')} 합계</div></div>`);
   }
   kpiCountries.forEach(c=>{
     const st = countryStats(c);
@@ -2332,20 +2453,35 @@ function refresh(){
     });
   });
 
-  // table — all cost columns converted to the selected display currency
-  document.getElementById("aTableHint").textContent = `최근 ${rows.length}개 구간 · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'} · ${dispSym()} 기준`;
-  const trs = [];
-  [...rows].reverse().forEach(r=>{
-    countries.forEach(c=>{
-      const b = r.byCountry[c]; if(!b) return;
+  // 기간별 상세 — 국가별로 표를 나누고, 각 구간에 직전 구간 대비 증감을 붙인다
+  const granLabel = gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별';
+  document.getElementById("aTableHint").textContent = `최근 ${rows.length}개 구간 · ${granLabel} · ${dispSym()} 기준`;
+
+  /** 직전 구간 대비 증감 칩 (비용은 낮을수록 좋으므로 내려가면 초록) */
+  function chg(now, before, goodUp){
+    if(before===null || before===undefined || before===0) return `<span style="color:var(--muted)">-</span>`;
+    const p = (now-before)/before*100;
+    if(!isFinite(p)) return `<span style="color:var(--muted)">-</span>`;
+    let col = "var(--ink-2)";
+    if(Math.abs(p)>=0.05) col = ((goodUp?p>0:p<0)) ? "var(--good-ink)" : "var(--critical-ink)";
+    return `<span style="color:${col}">${p>0?"+":""}${p.toFixed(1)}%</span>`;
+  }
+
+  document.getElementById("aTables").innerHTML = countries.map(c=>{
+    const ordered = [...rows];                 // 오래된 → 최신 (증감 계산용)
+    const trs = [];
+    for(let i=ordered.length-1; i>=0; i--){    // 표시는 최신 → 오래된
+      const b = ordered[i].byCountry[c]; if(!b) continue;
+      const prev = i>0 ? ordered[i-1].byCountry[c] : null;
       const total = bucketCost(b);
       const po = b.shipped>0 ? total/b.shipped : 0;
+      const prevPo = prev && prev.shipped>0 ? bucketCost(prev)/prev.shipped : null;
       trs.push(`<tr>
-        <td class="text">${keyLabel(r.key)}</td>
-        <td class="text"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></td>
+        <td class="text">${keyLabel(ordered[i].key)}</td>
         <td>${CD.fmtNum(b.picked)}</td>
         <td>${CD.fmtNum(b.packed)}</td>
         <td>${CD.fmtNum(b.shipped)}</td>
+        <td class="text">${chg(b.shipped, prev?prev.shipped:null, true)}</td>
         <td>${CD.fmtNum(b.bookings)}건 / ${CD.fmtNum(b.pallet)}PLT</td>
         <td>${CD.fmtNum(b.weight)}</td>
         <td>${fmtDisp(toDisp(b.packingCost, c))}</td>
@@ -2353,10 +2489,23 @@ function refresh(){
         <td>${fmtDisp(toDisp(b.airCost, c))}</td>
         <td>${fmtDisp(toDisp(total, c))}</td>
         <td>${fmtDisp(toDisp(po, c))}</td>
+        <td class="text">${chg(po, prevPo, false)}</td>
       </tr>`);
-    });
-  });
-  document.getElementById("aTableBody").innerHTML = trs.join("") || `<tr><td colspan="12" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`;
+    }
+    return `<div class="card" style="margin-bottom:14px;">
+      <div class="row" style="margin-bottom:10px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>기간</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>출고 증감</th>
+            <th>항공부킹</th><th>중량(kg)</th>
+            <th>출고비</th><th>통관 택배비용</th><th>항공비용</th><th>총비용</th><th>건당비용</th><th>건당 증감</th>
+          </tr></thead>
+          <tbody>${trs.join("") || `<tr><td colspan="13" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join("");
 }
 
 CD.on("daily", refresh);
