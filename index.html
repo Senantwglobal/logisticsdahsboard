@@ -140,17 +140,28 @@ input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--
 input.mono, .num-input{font-family:var(--font-mono);}
 input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
 input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
-select{cursor:pointer;}
-.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:300; padding:7px 14px; border-radius:100px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; transition:filter .12s ease, background .12s ease;}
-.btn:hover{background:var(--surface-2);}
+/* kill the tiny native ▲▼ steppers — these are typed-in fields */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+input[type=number]{-moz-appearance:textfield; appearance:textfield;}
+/* custom caret so selects match the button set instead of the OS dropdown */
+select{cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:30px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%23868697' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;}
+.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:300; padding:7px 14px; border-radius:10px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; transition:background .12s ease, border-color .12s ease, filter .12s ease;}
+.btn:hover{background:var(--surface-2); border-color:var(--line-strong);}
+.btn:active{transform:translateY(1px);}
 .btn:focus-visible, .tab-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
 .btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
-.btn.primary:hover{filter:brightness(1.06);}
+.btn.primary:hover{filter:brightness(1.06); background:var(--accent);}
 .btn.ghost{border-color:transparent; background:none;}
 .btn.ghost:hover{background:var(--surface-2);}
 .btn.danger{color:var(--critical-ink); border-color:var(--critical-soft);}
 .btn.danger:hover{background:var(--critical-soft);}
-.btn.small{padding:5px 11px; font-size:11.5px; border-radius:100px;}
+.btn.small{padding:5px 11px; font-size:11.5px; border-radius:8px;}
+/* square icon button (calendar prev/next, paging) — matches the button set, no OS glyphs */
+.btn.icon{width:34px; height:34px; padding:0; font-size:16px; line-height:1; color:var(--ink-2);}
+.btn.icon:hover{color:var(--ink);}
 .btn svg{width:14px; height:14px;}
 .seg{display:inline-flex; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface-2); padding:2px;}
 .seg button{appearance:none; border:none; background:none; padding:7px 13px; font-size:12.5px; font-weight:300; color:var(--ink-2); cursor:pointer;}
@@ -204,9 +215,9 @@ svg.chart .gridline{stroke:var(--line);}
 .cal-dow{font-size:11px; color:var(--muted); text-align:center; padding-bottom:4px; text-transform:uppercase; letter-spacing:.03em;}
 .cal-cell{min-height:88px; border:none; border-radius:10px; padding:7px; background:var(--surface-2); display:flex; flex-direction:column; gap:3px; font-size:11px;}
 .cal-cell.out{background:transparent; opacity:.4;}
-.cal-cell.today{background:var(--ink);}
-.cal-cell.today .d, .cal-cell.today .d.weekend{color:var(--surface);}
-.cal-cell.today .holi{color:var(--surface); opacity:.85;}
+.cal-cell.today{background:var(--accent);}
+.cal-cell.today .d, .cal-cell.today .d.weekend{color:var(--accent-ink);}
+.cal-cell.today .holi{color:var(--accent-ink); opacity:.85;}
 .cal-cell .d{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2); font-weight:300;}
 .cal-cell .d.weekend{color:var(--critical-ink);}
 .cal-cell .holi{font-size:10px; color:var(--critical-ink); font-weight:300; line-height:1.25;}
@@ -225,7 +236,8 @@ svg.chart .gridline{stroke:var(--line);}
 .modal .grid.form{grid-template-columns:1fr 1fr; gap:12px;}
 .modal .grid.form .full{grid-column:1/-1;}
 .modal-foot{display:flex; justify-content:flex-end; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
-.close-x{background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px; line-height:1; padding:4px;}
+.close-x{background:var(--surface-2); border:1px solid var(--line); color:var(--ink-2); cursor:pointer; font-size:16px; line-height:1; width:30px; height:30px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center;}
+.close-x:hover{background:var(--surface-3); color:var(--ink);}
 
 /* ============================= MISC ============================= */
 .empty-note{font-size:12.5px; color:var(--muted); padding:20px; text-align:center;}
@@ -592,8 +604,10 @@ async function seedIfEmpty(){
         const scale = country==="KR" ? 1 : 0.62;
         const weekendCut = (wd===0||wd===6) ? 0.35 : 1;
         const noise = 0.82 + Math.random()*0.36;
+        // pick → pack → ship, so each stage is slightly smaller than the one before it
         const shipped = Math.round(720*scale*weekendCut*noise);
-        const picked = Math.round(shipped * (1.03 + Math.random()*0.08));
+        const packed = Math.round(shipped * (1.01 + Math.random()*0.04));
+        const picked = Math.round(packed * (1.02 + Math.random()*0.06));
         // distribute BOX counts (not item counts) across 1~20 items/box, weighted toward single-item boxes
         const DECAY = 0.55;
         const rawWeights = Array.from({length:PACK_MAX}, (_,idx)=>Math.pow(DECAY, idx));
@@ -608,7 +622,7 @@ async function seedIfEmpty(){
           packCounts[key] = n; assigned += n;
         });
         jobs.push(Store.upsertDaily({
-          id:`${country}_${date}`, country, date, picked, shipped,
+          id:`${country}_${date}`, country, date, picked, packed, shipped,
           ...packCounts, isSample:true
         }));
       });
@@ -1002,10 +1016,11 @@ function shell(){
 
     <div class="section">
       <div class="section-head">
-        <h2>일자별 픽킹 · 출고 수량</h2>
+        <h2>일자별 픽킹 · 팩킹 · 출고 수량</h2>
         <div class="row">
           <div class="seg" id="dMetricSeg">
             <button data-v="shipped" class="active">출고량</button>
+            <button data-v="packed">팩킹량</button>
             <button data-v="picked">픽킹량</button>
           </div>
           <span class="hint">위험 ≤</span>
@@ -1044,7 +1059,8 @@ function shell(){
             </div>
             <div class="field"><label>날짜</label><input type="date" id="fDate" required></div>
             <div class="field"><label>픽킹 수량</label><input type="number" id="fPicked" min="0" required></div>
-            <div class="field"><label>출고 수량</label><input type="number" id="fShipped" min="0" required></div>
+            <div class="field"><label>팩킹 수량</label><input type="number" id="fPacked" min="0" required></div>
+            <div class="field" style="grid-column:1/-1;"><label>출고 수량</label><input type="number" id="fShipped" min="0" required></div>
             <div class="field" style="grid-column:1/-1;">
               <label>합포장 박스 수</label>
               <div class="pack-grid">${packGridHtml()}</div>
@@ -1064,7 +1080,7 @@ function shell(){
         </div>
         <div class="table-wrap" style="max-height:360px; overflow-y:auto;">
           <table>
-            <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>출고</th><th>합포장</th><th></th></tr></thead>
+            <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>합포장</th><th></th></tr></thead>
             <tbody id="dTableBody"></tbody>
           </table>
         </div>
@@ -1138,6 +1154,7 @@ async function onSubmitForm(e){
   const rec = {
     id: `${country}_${date}`, country, date,
     picked: Number(document.getElementById("fPicked").value)||0,
+    packed: Number(document.getElementById("fPacked").value)||0,
     shipped: Number(document.getElementById("fShipped").value)||0,
     ...readPackFields(),
   };
@@ -1154,6 +1171,7 @@ function loadIntoForm(rec){
   document.getElementById("fCountry").value = rec.country;
   document.getElementById("fDate").value = rec.date;
   document.getElementById("fPicked").value = rec.picked||0;
+  document.getElementById("fPacked").value = rec.packed||0;
   document.getElementById("fShipped").value = rec.shipped||0;
   CD.PACK_KEYS.forEach(k=> document.getElementById(packFieldId(k)).value = rec[k]||0);
   updatePackHint();
@@ -1181,6 +1199,7 @@ function refresh(){
   if(!built) return;
   const rows = filteredDaily();
   const totalPicked = rows.reduce((s,r)=>s+(r.picked||0),0);
+  const totalPacked = rows.reduce((s,r)=>s+(r.packed||0),0);
   const totalShipped = rows.reduce((s,r)=>s+(r.shipped||0),0);
   const days = Math.max(1, (CD.parseISO(filt.end)-CD.parseISO(filt.start))/86400000 + 1);
   const avgShipped = totalShipped/days;
@@ -1189,6 +1208,7 @@ function refresh(){
 
   document.getElementById("dKpis").innerHTML = `
     <div class="kpi"><div class="label">총 픽킹 수량</div><div class="value">${CD.fmtNum(totalPicked)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
+    <div class="kpi"><div class="label">총 팩킹 수량</div><div class="value">${CD.fmtNum(totalPacked)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
     <div class="kpi"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(totalShipped)}</div><div class="sub">${filt.start}~${filt.end}</div></div>
     <div class="kpi"><div class="label">일 평균 출고</div><div class="value">${CD.fmtNum(avgShipped)}</div><div class="sub">기간 ${Math.round(days)}일 기준</div></div>
     <div class="kpi"><div class="label">박스당 평균 제품수</div><div class="value">${avgItemsPerBox.toFixed(2)}</div><div class="sub">총 ${CD.fmtNum(totalBoxes)}박스</div></div>
@@ -1208,7 +1228,8 @@ function refresh(){
     wrap.appendChild(box);
     const holder = box.querySelector(".chart-holder");
     const series = fillSeries(c, filt.metric);
-    Charts.bandBarChart(holder, {data:series, thresholds:th, unitLabel: filt.metric==="shipped"?"출고":"픽킹"});
+    const metricLabel = filt.metric==="shipped" ? "출고" : filt.metric==="packed" ? "팩킹" : "픽킹";
+    Charts.bandBarChart(holder, {data:series, thresholds:th, unitLabel: metricLabel});
   });
 
   const packWrap = document.getElementById("dPackWrap");
@@ -1237,11 +1258,12 @@ function refresh(){
       <td>${CD.fmtShort(r.date)}</td>
       <td class="text"><span class="badge ${r.country.toLowerCase()}">${CD.COUNTRY_LABEL[r.country]}</span></td>
       <td>${CD.fmtNum(r.picked||0)}</td>
+      <td>${CD.fmtNum(r.packed||0)}</td>
       <td>${CD.fmtNum(r.shipped||0)}</td>
       <td>${CD.fmtNum(boxes)}박스${r.isSample?' <span class="badge sample">예시</span>':''}</td>
       <td class="text"><button class="btn small ghost" data-edit="${r.id}">수정</button> <button class="btn small danger ghost" data-del="${r.id}">삭제</button></td>
     </tr>`;
-  }).join("") || `<tr><td colspan="6" class="text empty-note">해당 기간의 데이터가 없습니다.</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="text empty-note">해당 기간의 데이터가 없습니다.</td></tr>`;
 
   tbody.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=>{
     const rec = CD.Cache.daily.find(x=>x.id===b.dataset.edit); if(rec) loadIntoForm(rec);
@@ -1284,9 +1306,9 @@ function shell(){
     <div class="grid two">
       <div class="card">
         <div class="cal-head">
-          <button class="btn ghost small" id="hPrev">◀</button>
+          <button class="btn icon" id="hPrev" aria-label="이전 달">‹</button>
           <div class="month-label mono" id="hMonthLabel"></div>
-          <button class="btn ghost small" id="hNext">▶</button>
+          <button class="btn icon" id="hNext" aria-label="다음 달">›</button>
         </div>
         <div class="cal-grid" id="hCalDow"></div>
         <div class="cal-grid" id="hCalGrid" style="margin-top:6px;"></div>
@@ -1526,9 +1548,9 @@ function shell(){
 
     <div class="card section">
       <div class="cal-head">
-        <button class="btn ghost small" id="sPrev">◀</button>
+        <button class="btn icon" id="sPrev" aria-label="이전 달">‹</button>
         <div class="month-label mono" id="sMonthLabel"></div>
-        <button class="btn ghost small" id="sNext">▶</button>
+        <button class="btn icon" id="sNext" aria-label="다음 달">›</button>
       </div>
       <div class="cal-grid" id="sCalDow"></div>
       <div class="cal-grid" id="sCalGrid" style="margin-top:6px;"></div>
@@ -1781,7 +1803,7 @@ function shell(){
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>기간</th><th>국가</th><th>출고</th><th>픽킹</th><th>항공부킹</th><th>중량(kg)</th>
+            <th>기간</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>항공부킹</th><th>중량(kg)</th>
             <th>출고비</th><th>통관 택배비용</th><th>항공비용</th><th>총비용</th><th>건당비용</th>
           </tr></thead>
           <tbody id="aTableBody"></tbody>
@@ -1874,13 +1896,13 @@ function aggregate(countries){
   const buckets = {};
   function cell(k,c){
     buckets[k] = buckets[k] || {};
-    buckets[k][c] = buckets[k][c] || {shipped:0,picked:0,pallet:0,pkg:0,weight:0,bookings:0,packingCost:0,lastMileCost:0,airCost:0};
+    buckets[k][c] = buckets[k][c] || {shipped:0,packed:0,picked:0,pallet:0,pkg:0,weight:0,bookings:0,packingCost:0,lastMileCost:0,airCost:0};
     return buckets[k][c];
   }
   CD.Cache.daily.forEach(r=>{
     if(!countries.includes(r.country)) return;
     const k = kf(r.date); const b = cell(k, r.country);
-    b.shipped += r.shipped||0; b.picked += r.picked||0;
+    b.shipped += r.shipped||0; b.packed += r.packed||0; b.picked += r.picked||0;
     b.packingCost += packingCostUsd(r) * fxRate(r.country);
     b.lastMileCost += (r.shipped||0) * (rateFor(r.country).lastMile||0);
   });
@@ -2003,8 +2025,9 @@ function refresh(){
       trs.push(`<tr>
         <td class="text">${keyLabel(r.key)}</td>
         <td class="text"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></td>
-        <td>${CD.fmtNum(b.shipped)}</td>
         <td>${CD.fmtNum(b.picked)}</td>
+        <td>${CD.fmtNum(b.packed)}</td>
+        <td>${CD.fmtNum(b.shipped)}</td>
         <td>${CD.fmtNum(b.bookings)}건 / ${CD.fmtNum(b.pallet)}PLT</td>
         <td>${CD.fmtNum(b.weight)}</td>
         <td>${fmtDisp(toDisp(b.packingCost, c))}</td>
@@ -2015,7 +2038,7 @@ function refresh(){
       </tr>`);
     });
   });
-  document.getElementById("aTableBody").innerHTML = trs.join("") || `<tr><td colspan="11" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`;
+  document.getElementById("aTableBody").innerHTML = trs.join("") || `<tr><td colspan="12" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`;
 }
 
 CD.on("daily", refresh);
