@@ -128,7 +128,7 @@ a{color:var(--accent);}
 .card.tight{padding:14px 16px;}
 .grid{display:grid; gap:14px; min-width:0;}
 .grid > *{min-width:0;}
-.grid.kpis{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));}
+.grid.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
 .grid.two{grid-template-columns:1.3fr 1fr;}
 .grid.even{grid-template-columns:1fr 1fr;}
 .grid.master{grid-template-columns:300px 1fr;}
@@ -140,7 +140,7 @@ a{color:var(--accent);}
 /* ============================= KPI TILES ============================= */
 .kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:16px 18px; display:flex; flex-direction:column; gap:8px; justify-content:space-between; min-height:104px;}
 .kpi .label{font-size:12px; color:var(--muted); letter-spacing:0; display:flex; align-items:center; gap:6px; line-height:1.35;}
-.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:27px; font-weight:300; letter-spacing:-.02em; line-height:1.15; color:var(--ink);}
+.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:27px; font-weight:300; letter-spacing:-.02em; line-height:1.2; color:var(--ink); white-space:nowrap; overflow:hidden; min-width:0;}
 .kpi .sub{font-size:11.5px; color:var(--muted); line-height:1.45;}
 .kpi .sub.up{color:var(--good-ink);} .kpi .sub.down{color:var(--critical-ink);}
 .kpi .dot{width:8px; height:8px; border-radius:50%; flex:none;}
@@ -715,9 +715,22 @@ window.CD = {
   isDark, cssVar, pad2, toISO, parseISO, todayISO, addDays, fmtShort, fmtFull, weekdayOf,
   isoWeekKey, monthKey, yearKey, monthLabel, daysInMonth, fmtNum, fmtMoney, uid,
   Store, Cache, defaultSettings, mergeSettings, on, emit,
-  renderPager, matchQuery
+  renderPager, matchQuery, fitKpi
 };
 
+/** KPI 숫자가 카드 폭을 넘치면 들어갈 때까지 글자 크기를 낮춘다. 통화·자릿수에 상관없이 안전. */
+function fitKpi(container){
+  if(!container) return;
+  container.querySelectorAll(".kpi .value").forEach(el=>{
+    el.style.fontSize = "";                       // 기본값에서 다시 시작
+    let size = parseFloat(getComputedStyle(el).fontSize) || 27;
+    let guard = 0;
+    while(el.scrollWidth > el.clientWidth && size > 13 && guard++ < 40){
+      size -= 1;
+      el.style.fontSize = size + "px";
+    }
+  });
+}
 /** 목록 페이저를 그린다. onGo(page)로 페이지 전환을 알린다. */
 function renderPager(el, {total, page, perPage, onGo}){
   if(!el) return;
@@ -873,6 +886,15 @@ async function boot(){
 
   emit("ready");
 }
+
+// 창 폭이 바뀌면 카드가 좁아지므로 숫자 크기를 다시 맞춘다
+let fitTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(()=>{
+    ["dKpis","aKpis","rpKpis"].forEach(id=> fitKpi(document.getElementById(id)));
+  }, 120);
+});
 
 document.addEventListener("DOMContentLoaded", boot);
 if(document.readyState!=="loading") boot();
@@ -1437,6 +1459,8 @@ function refresh(){
     <div class="kpi"><div class="label">일 평균 출고</div><div class="value">${CD.fmtNum(avgShipped)}</div><div class="sub">${filt.excludeOff?"가동일":"기간"} ${Math.round(days)}일 기준</div></div>
     <div class="kpi"><div class="label">박스당 평균 제품수</div><div class="value">${avgItemsPerBox.toFixed(2)}</div><div class="sub">총 ${CD.fmtNum(totalBoxes)}박스</div></div>
   `;
+
+  CD.fitKpi(document.getElementById("dKpis"));
 
   const th = CD.Cache.settings.thresholds || {low:500,high:1000};
   document.getElementById("dThreshLow").value = th.low;
@@ -2419,6 +2443,7 @@ function refresh(){
     cards.push(`<div class="kpi"><div class="label"><span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${st.deltaPct==null?'inherit':(st.deltaPct<=0?'var(--good)':'var(--critical)')}">${st.deltaPct==null?'직전 구간 비교 불가':'직전 구간 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
   });
   document.getElementById("aKpis").innerHTML = cards.join("");
+  CD.fitKpi(document.getElementById("aKpis"));
 
   // trend chart: one line per country (cost per order), all converted to the selected display currency
   const labels = rows.map(r=>keyLabel(r.key));
@@ -2787,6 +2812,8 @@ function refresh(){
     kpi("건당 물류비", fmtMoney(a.perOrder), delta(a.perOrder, b.perOrder, false)),
     kpi("박스당 SKU", a.skuPerBox.toFixed(2), b.skuPerBox ? delta(a.skuPerBox, b.skuPerBox, null) : "전월 데이터 없음"),
   ].join("");
+
+  CD.fitKpi(document.getElementById("rpKpis"));
 
   document.getElementById("rpInsights").innerHTML = insights(month, a, b).map(t=>`<li>${t}</li>`).join("");
 
