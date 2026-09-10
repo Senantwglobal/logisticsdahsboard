@@ -17,9 +17,9 @@
    ============================= */
 :root{
   color-scheme: light;
-  --page:#f5f5f8; --surface:#ffffff; --surface-2:#f1f1f6; --surface-3:#e5e5ed;
+  --page:#f4f4f4; --surface:#ffffff; --surface-2:#f1f1f1; --surface-3:#e6e6e6;
   --ink:#25265E; --ink-2:#868697; --muted:#9d9dab;
-  --line:#e9e9ef; --line-strong:#d3d4df; --border:rgba(37,38,94,0.10);
+  --line:#e7e7e7; --line-strong:#d6d6d6; --border:rgba(0,0,0,0.09);
   --accent:#2F61D5; --accent-ink:#ffffff; --accent-soft:#eaeffb; --accent-soft-line:#c8d6f5;
   --kr:#2F61D5; --kr-ink:#2F61D5; --kr-soft:#eaeffb;
   --jp:#7540EE; --jp-ink:#7540EE; --jp-soft:#f1ecfd;
@@ -29,7 +29,7 @@
   --serious:#FF7052; --serious-ink:#c7452a; --serious-soft:#fff1ee;
   --critical:#FF7052; --critical-ink:#c7452a; --critical-soft:#fff1ee;
   --cost-pack:#2F61D5; --cost-lastmile:#3FB6DC; --cost-air:#7540EE;
-  --shadow: 0 1px 2px rgba(37,38,94,.05), 0 8px 20px -14px rgba(37,38,94,.14);
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 20px -14px rgba(0,0,0,.12);
   --radius-s:9px; --radius-m:14px; --radius-l:18px;
   --font-ui:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   /* numbers use the same 산돌고딕(Pretendard/Apple SD Gothic Neo) face as everything else —
@@ -39,40 +39,41 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --page:#15162b; --surface:#1d1e38; --surface-2:#262745; --surface-3:#323357;
-    --ink:#edeef5; --ink-2:#a3a4bb; --muted:#7b7c96;
-    --line:#2c2d4e; --line-strong:#3b3c63; --border:rgba(255,255,255,0.10);
-    --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#232a4d; --accent-soft-line:#33406e;
-    --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#222a4c;
-    --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#2a2450;
-    --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1c3244;
-    --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#173a2c;
-    --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#3a3418;
-    --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#3f2622;
-    --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#3f2622;
+    --page:#141414; --surface:#1c1c1c; --surface-2:#242424; --surface-3:#303030;
+    --ink:#eeeeee; --ink-2:#a8a8a8; --muted:#7d7d7d;
+    --line:#2b2b2b; --line-strong:#3a3a3a; --border:rgba(255,255,255,0.10);
+    --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#22293d; --accent-soft-line:#32405c;
+    --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#212739;
+    --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#27223a;
+    --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1d2c34;
+    --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#1a3025;
+    --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#33301c;
+    --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
+    --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
     --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5;
     --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --page:#15162b; --surface:#1d1e38; --surface-2:#262745; --surface-3:#323357;
-  --ink:#edeef5; --ink-2:#a3a4bb; --muted:#7b7c96;
-  --line:#2c2d4e; --line-strong:#3b3c63; --border:rgba(255,255,255,0.10);
-  --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#232a4d; --accent-soft-line:#33406e;
-  --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#222a4c;
-  --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#2a2450;
-  --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1c3244;
-  --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#173a2c;
-  --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#3a3418;
-  --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#3f2622;
-  --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#3f2622;
+  --page:#141414; --surface:#1c1c1c; --surface-2:#242424; --surface-3:#303030;
+  --ink:#eeeeee; --ink-2:#a8a8a8; --muted:#7d7d7d;
+  --line:#2b2b2b; --line-strong:#3a3a3a; --border:rgba(255,255,255,0.10);
+  --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#22293d; --accent-soft-line:#32405c;
+  --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#212739;
+  --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#27223a;
+  --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1d2c34;
+  --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#1a3025;
+  --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#33301c;
+  --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
+  --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
   --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5;
   --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
 }
 
 /* ============================= BASE ============================= */
 *{box-sizing:border-box;}
+[hidden]{display:none !important;}
 /* ---- TYPE SCALE (산돌고딕 3단계) ----
    메인 타이틀 = ExtraBold 800 · 섭타이틀(섹션/카드 제목) = SemiBold 600 · 그 외 본문·숫자 = Light 300 */
 body{background:var(--page); color:var(--ink); font-family:var(--font-ui); font-weight:300; margin:0;
@@ -89,7 +90,9 @@ a{color:var(--accent);}
 /* ============================= HEADER ============================= */
 .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 4px 14px; border-bottom:1px solid var(--line);}
 .brand{display:flex; align-items:center; gap:11px;}
-.brand-mark{width:30px; height:30px; border-radius:8px; background:var(--ink); color:var(--page); display:flex; align-items:center; justify-content:center; flex:none; font-size:13px; font-weight:800; letter-spacing:0;}
+.brand-mark{width:30px; height:30px; border-radius:8px; background:var(--ink); color:var(--page); display:flex; align-items:center; justify-content:center; flex:none; font-size:13px; font-weight:800; letter-spacing:0; padding:0; cursor:pointer; overflow:hidden; position:relative;}
+.brand-mark img{width:100%; height:100%; object-fit:cover; display:block;}
+.brand-mark:hover{filter:brightness(1.08);}
 .brand-text h1{font-size:17px; letter-spacing:-.01em;}
 .brand-text .tag{font-size:11.5px; color:var(--muted); letter-spacing:.02em; margin-top:1px;}
 .topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
@@ -119,9 +122,11 @@ a{color:var(--accent);}
 .grid > *{min-width:0;}
 .grid.kpis{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));}
 .grid.two{grid-template-columns:1.3fr 1fr;}
+.grid.even{grid-template-columns:1fr 1fr;}
+.grid.master{grid-template-columns:300px 1fr;}
 .grid.charts2{grid-template-columns:1.5fr 1fr;}
 .grid.settings3{grid-template-columns:repeat(3,1fr);}
-@media (max-width:860px){.grid.two, .grid.charts2{grid-template-columns:1fr;}}
+@media (max-width:860px){.grid.two, .grid.charts2, .grid.even, .grid.master{grid-template-columns:1fr;}}
 @media (max-width:960px){.grid.settings3{grid-template-columns:1fr;}}
 
 /* ============================= KPI TILES ============================= */
@@ -261,7 +266,8 @@ svg.chart .gridline{stroke:var(--line);}
 
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">C</div>
+      <button type="button" class="brand-mark" id="brandMark" title="클릭해서 로고 이미지 변경">C</button>
+      <input type="file" id="brandLogoInput" accept="image/*" hidden>
       <div class="brand-text">
         <h1>OPLE Logistics Dashboard</h1>
         <div class="tag">한국 · 일본 풀필먼트 &amp; 항공물류 운영 대시보드</div>
@@ -419,9 +425,9 @@ const SUPABASE_ROW_ID = "cargodesk";
 const Store = (function(){
   let sb = null;
   let backend = "memory"; // "cloud" | "local" | "memory"
-  const LS_KEYS = {daily:"cargodesk_daily", holidays:"cargodesk_holidays", shipments:"cargodesk_shipments", settings:"cargodesk_settings"};
-  const local = {daily:{}, holidays:{}, shipments:{}, settings:{}};
-  const listeners = {daily:[], holidays:[], shipments:[], settings:[]};
+  const LS_KEYS = {daily:"cargodesk_daily", holidays:"cargodesk_holidays", shipments:"cargodesk_shipments", cargo:"cargodesk_cargo", settings:"cargodesk_settings"};
+  const local = {daily:{}, holidays:{}, shipments:{}, cargo:{}, settings:{}};
+  const listeners = {daily:[], holidays:[], shipments:[], cargo:[], settings:[]};
 
   function lsLoad(){
     try{
@@ -450,14 +456,16 @@ const Store = (function(){
     local.daily = d.daily || {};
     local.holidays = d.holidays || {};
     local.shipments = d.shipments || {};
+    local.cargo = d.cargo || {};
     local.settings = d.settings || {};
   }
   function applyIncoming(d){
     local.daily = (d && d.daily) || {};
     local.holidays = (d && d.holidays) || {};
     local.shipments = (d && d.shipments) || {};
+    local.cargo = (d && d.cargo) || {};
     local.settings = (d && d.settings) || {};
-    notify("daily"); notify("holidays"); notify("shipments"); notifySettings();
+    notify("daily"); notify("holidays"); notify("shipments"); notify("cargo"); notifySettings();
   }
   function subscribeRealtime(){
     sb.channel("cargodesk-sync")
@@ -488,6 +496,7 @@ const Store = (function(){
   function onDaily(cb){ listeners.daily.push(cb); notify("daily"); return ()=>{ listeners.daily = listeners.daily.filter(f=>f!==cb); }; }
   function onHolidays(cb){ listeners.holidays.push(cb); notify("holidays"); return ()=>{ listeners.holidays = listeners.holidays.filter(f=>f!==cb); }; }
   function onShipments(cb){ listeners.shipments.push(cb); notify("shipments"); return ()=>{ listeners.shipments = listeners.shipments.filter(f=>f!==cb); }; }
+  function onCargo(cb){ listeners.cargo.push(cb); notify("cargo"); return ()=>{ listeners.cargo = listeners.cargo.filter(f=>f!==cb); }; }
   function onSettings(cb){ listeners.settings.push(cb); notifySettings(); return ()=>{ listeners.settings = listeners.settings.filter(f=>f!==cb); }; }
 
   // ---- one-time reads (for seeding checks) ----
@@ -536,6 +545,17 @@ const Store = (function(){
     if(backend==="cloud"){ await rpc("delete_item","shipments",id); } else { lsSave("shipments"); }
     notify("shipments");
   }
+  async function upsertCargo(rec){
+    const value = {...rec}; delete value.id;
+    local.cargo[rec.id] = value;
+    if(backend==="cloud"){ await rpc("set_item","cargo",rec.id,value); } else { lsSave("cargo"); }
+    notify("cargo");
+  }
+  async function deleteCargo(id){
+    delete local.cargo[id];
+    if(backend==="cloud"){ await rpc("delete_item","cargo",id); } else { lsSave("cargo"); }
+    notify("cargo");
+  }
   async function saveSettings(patch){
     local.settings = {...local.settings, ...patch};
     if(backend==="cloud"){ await rpc("merge_settings","settings",null,patch); } else { lsSave("settings"); }
@@ -549,15 +569,15 @@ const Store = (function(){
 
   return {
     init, get backend(){ return backend; },
-    onDaily, onHolidays, onShipments, onSettings,
+    onDaily, onHolidays, onShipments, onCargo, onSettings,
     countDaily, countHolidays, countShipments, hasSettings,
     upsertDaily, deleteDaily, upsertHoliday, deleteHoliday,
-    addShipment, updateShipment, deleteShipment, saveSettings, bulkDeleteSample
+    addShipment, updateShipment, deleteShipment, upsertCargo, deleteCargo, saveSettings, bulkDeleteSample
   };
 })();
 
 /* ---------------------------- app-wide cache ---------------------------- */
-const Cache = { daily:[], holidays:[], shipments:[], settings:{} };
+const Cache = { daily:[], holidays:[], shipments:[], cargo:[], settings:{} };
 
 function defaultSettings(){
   return {
@@ -710,11 +730,54 @@ async function boot(){
   Store.onDaily(rows=>{ Cache.daily = rows.sort((a,b)=> a.date<b.date?-1:1); emit("daily"); });
   Store.onHolidays(rows=>{ Cache.holidays = rows.sort((a,b)=> a.date<b.date?-1:1); emit("holidays"); });
   Store.onShipments(rows=>{ Cache.shipments = rows.sort((a,b)=> (a.cutoffDate||"")<(b.cutoffDate||"")?-1:1); emit("shipments"); });
+  Store.onCargo(rows=>{ Cache.cargo = rows.sort((a,b)=> (a.carrier+a.flightNo) < (b.carrier+b.flightNo) ? -1 : 1); emit("cargo"); });
   Store.onSettings(s=>{ Cache.settings = mergeSettings(s); emit("settings"); });
 
   // live FX: refresh once now, then hourly while this tab stays open
   refreshFxLive();
   setInterval(refreshFxLive, 60*60*1000);
+
+  // brand logo: click the mark to swap in an image (shared with the team via settings)
+  const markEl = document.getElementById("brandMark");
+  const logoInput = document.getElementById("brandLogoInput");
+  function renderLogo(){
+    const url = (Cache.settings && Cache.settings.logoUrl) || "";
+    markEl.innerHTML = url ? `<img src="${url}" alt="로고">` : "C";
+    markEl.style.background = url ? "transparent" : "";
+  }
+  markEl.addEventListener("click", ()=>{
+    if(Cache.settings && Cache.settings.logoUrl){
+      if(confirm("로고를 새 이미지로 바꿀까요? (취소를 누르면 기본 'C'로 되돌립니다)")) logoInput.click();
+      else Store.saveSettings({ logoUrl:"" });
+      return;
+    }
+    logoInput.click();
+  });
+  logoInput.addEventListener("change", ()=>{
+    const file = logoInput.files && logoInput.files[0];
+    logoInput.value = "";
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = async () => {
+        // downscale to 128px so the shared settings blob stays small
+        const size = 128;
+        const cv = document.createElement("canvas");
+        cv.width = size; cv.height = size;
+        const ctx = cv.getContext("2d");
+        const side = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width-side)/2, (img.height-side)/2, side, side, 0, 0, size, size);
+        try{ await Store.saveSettings({ logoUrl: cv.toDataURL("image/png") }); }
+        catch(err){ alert("로고 저장에 실패했습니다. 이미지 용량을 줄여서 다시 시도해주세요."); }
+      };
+      img.onerror = ()=> alert("이미지를 읽을 수 없습니다.");
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  on("settings", renderLogo);
+  renderLogo();
 
   // clock
   function tickClock(){
@@ -1030,7 +1093,7 @@ function shell(){
         </div>
       </div>
       <div class="card" id="dChartCard">
-        <div id="dChartsWrap" class="grid two"></div>
+        <div id="dChartsWrap" class="grid even"></div>
         <div class="chart-legend">
           <div class="item"><span class="swatch" style="background:var(--critical)"></span>위험 (기준↓ 이하)</div>
           <div class="item"><span class="swatch" style="background:var(--warning)"></span>주의</div>
@@ -1044,7 +1107,7 @@ function shell(){
         <h2>합포장 비율 (박스당 제품 수)</h2>
       </div>
       <div class="card">
-        <div id="dPackWrap" class="grid two"></div>
+        <div id="dPackWrap" class="grid even"></div>
         <div class="chart-legend" id="dPackLegend"></div>
       </div>
     </div>
@@ -1221,7 +1284,7 @@ function refresh(){
   const countries = filt.country==="ALL" ? CD.COUNTRIES : [filt.country];
   const wrap = document.getElementById("dChartsWrap");
   wrap.innerHTML = "";
-  wrap.className = "grid " + (countries.length>1 ? "two" : "");
+  wrap.className = "grid " + (countries.length>1 ? "even" : "");
   countries.forEach(c=>{
     const box = document.createElement("div");
     box.innerHTML = `<div class="row" style="margin-bottom:6px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div><div class="chart-holder"></div>`;
@@ -1234,7 +1297,7 @@ function refresh(){
 
   const packWrap = document.getElementById("dPackWrap");
   packWrap.innerHTML = "";
-  packWrap.className = "grid " + (countries.length>1 ? "two" : "");
+  packWrap.className = "grid " + (countries.length>1 ? "even" : "");
   countries.forEach(c=>{
     const box = document.createElement("div");
     box.innerHTML = `<div class="row" style="margin-bottom:6px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div><div class="chart-holder"></div>`;
@@ -1480,8 +1543,10 @@ function openForm(existing){
         <div></div>
         ${fieldRow("컷오프 날짜", `<input type="date" id="mCutoffDate" value="${s.cutoffDate||''}" required>`)}
         ${fieldRow("컷오프 시간", `<input type="time" id="mCutoffTime" value="${s.cutoffTime||''}">`)}
-        ${fieldRow("항공사", `<input type="text" id="mCarrier" value="${s.carrier||''}" placeholder="예: Asiana Cargo">`)}
-        ${fieldRow("편명 (FLT)", `<input type="text" id="mFlightNo" class="mono" value="${s.flightNo||''}" placeholder="예: OZ983">`)}
+        ${fieldRow("항공사", `<select id="mCarrierSel"></select>`)}
+        ${fieldRow("편명 (FLT)", `<select id="mFlightSel"></select>`)}
+        ${fieldRow("항공사명 (직접 입력)", `<input type="text" id="mCarrier" value="${s.carrier||''}" placeholder="예: Asiana Cargo">`)}
+        ${fieldRow("편명 (직접 입력)", `<input type="text" id="mFlightNo" class="mono" value="${s.flightNo||''}" placeholder="예: OZ983">`)}
         ${fieldRow("출발지 (Origin)", `<input type="text" id="mOrigin" class="mono" value="${s.origin||''}" placeholder="ICN">`)}
         ${fieldRow("도착지 (Dest)", `<input type="text" id="mDest" class="mono" value="${s.dest||''}" placeholder="LAX">`)}
         ${fieldRow("ETD", `<input type="datetime-local" id="mEtd" value="${(s.etd||'').slice(0,16)}">`)}
@@ -1504,6 +1569,47 @@ function openForm(existing){
   overlay.hidden = false;
   document.getElementById("mClose").addEventListener("click", closeModal);
   document.getElementById("mCancel").addEventListener("click", closeModal);
+
+  /* ---- 등록해둔 항공편에서 골라 자동 입력 (값은 이후 자유롭게 수정 가능) ---- */
+  const carrierSel = document.getElementById("mCarrierSel");
+  const flightSel  = document.getElementById("mFlightSel");
+  function activeCargo(){ return (CD.Cache.cargo||[]).filter(c=> c.enabled !== false); }
+  function fillCarrierSel(){
+    const names = [...new Set(activeCargo().map(c=>c.carrier).filter(Boolean))].sort();
+    carrierSel.innerHTML = `<option value="">직접 입력</option>` +
+      names.map(n=>`<option value="${n}" ${s.carrier===n?'selected':''}>${n}</option>`).join("");
+  }
+  function fillFlightSel(){
+    const list = activeCargo().filter(c=> !carrierSel.value || c.carrier===carrierSel.value);
+    flightSel.innerHTML = `<option value="">직접 입력</option>` +
+      list.map(c=>`<option value="${c.id}" ${s.flightNo===c.flightNo?'selected':''}>${c.flightNo} (${c.origin||'-'}→${c.dest||'-'})</option>`).join("");
+  }
+  /** Apply a preset to the form: carrier/flight/route always, ETD/ETA built from the cutoff date. */
+  function applyCargo(rec){
+    if(!rec) return;
+    document.getElementById("mCarrier").value = rec.carrier || "";
+    document.getElementById("mFlightNo").value = rec.flightNo || "";
+    if(rec.origin) document.getElementById("mOrigin").value = rec.origin;
+    if(rec.dest) document.getElementById("mDest").value = rec.dest;
+    if(rec.country) document.getElementById("mCountry").value = rec.country;
+    const base = document.getElementById("mCutoffDate").value || CD.todayISO();
+    if(rec.etd) document.getElementById("mEtd").value = `${base}T${rec.etd}`;
+    if(rec.eta){
+      // arrival earlier than departure means it lands the next day
+      const nextDay = (rec.etd && rec.eta < rec.etd) ? CD.addDays(base,1) : base;
+      document.getElementById("mEta").value = `${nextDay}T${rec.eta}`;
+    }
+  }
+  fillCarrierSel(); fillFlightSel();
+  carrierSel.addEventListener("change", ()=>{
+    fillFlightSel();
+    const list = activeCargo().filter(c=>c.carrier===carrierSel.value);
+    if(list.length===1){ flightSel.value = list[0].id; applyCargo(list[0]); }
+    else if(carrierSel.value){ document.getElementById("mCarrier").value = carrierSel.value; }
+  });
+  flightSel.addEventListener("change", ()=>{
+    applyCargo(activeCargo().find(c=>c.id===flightSel.value));
+  });
   if(existing){
     document.getElementById("mDelete").addEventListener("click", async ()=>{
       if(confirm("이 항공편 · 컷오프 정보를 삭제할까요?")){ await CD.Store.deleteShipment(existing.id); closeModal(); }
@@ -1572,6 +1678,42 @@ function shell(){
         </table>
       </div>
     </div>
+
+    <!-- ===== 항공편 마스터(CARGO): 등록해두면 컷오프 등록 시 드롭다운으로 자동 입력 ===== -->
+    <div class="section grid master" id="cargoSection">
+      <div class="card">
+        <div class="section-head"><h2>항공편 등록</h2></div>
+        <form id="cgForm" class="stack" style="gap:10px;">
+          <div class="field"><label>국가</label>
+            <select id="cgCountry"><option value="KR">한국</option><option value="JP">일본</option></select>
+          </div>
+          <div class="field"><label>항공사</label><input type="text" id="cgCarrier" placeholder="예: ASIANA" required></div>
+          <div class="field"><label>편명 (FLT)</label><input type="text" id="cgFlightNo" class="mono" placeholder="예: OZ983" required></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field"><label>출발지</label><input type="text" id="cgOrigin" class="mono" placeholder="ICN"></div>
+            <div class="field"><label>도착지</label><input type="text" id="cgDest" class="mono" placeholder="LAX"></div>
+          </div>
+          <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field"><label>ETD</label><input type="time" id="cgEtd"></div>
+            <div class="field"><label>ETA</label><input type="time" id="cgEta"></div>
+          </div>
+          <div class="field"><label>구분</label>
+            <select id="cgDirect"><option value="Direct">Direct</option><option value="Transit">Transit</option></select>
+          </div>
+          <button type="submit" class="btn primary" id="cgSubmit">등록</button>
+          <button type="button" class="btn ghost" id="cgCancel" hidden>편집 취소</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="section-head"><h2>항공편 목록</h2><span class="hint" id="cgCount"></span></div>
+        <div class="table-wrap">
+          <table style="min-width:0;">
+            <thead><tr><th>항공사 / 편명</th><th>구간</th><th>ETD</th><th>ETA</th><th>사용</th><th></th></tr></thead>
+            <tbody id="cgTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   `;
   document.getElementById("sCountrySeg").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
@@ -1582,6 +1724,28 @@ function shell(){
   document.getElementById("sAddBtn").addEventListener("click", ()=>openForm(null));
   document.getElementById("sPrev").addEventListener("click", ()=>{ cursor.m--; if(cursor.m<0){cursor.m=11;cursor.y--;} refresh(); });
   document.getElementById("sNext").addEventListener("click", ()=>{ cursor.m++; if(cursor.m>11){cursor.m=0;cursor.y++;} refresh(); });
+
+  // ---- 항공편 마스터 등록/수정 ----
+  document.getElementById("cgForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const carrier = document.getElementById("cgCarrier").value.trim();
+    const flightNo = document.getElementById("cgFlightNo").value.trim().toUpperCase();
+    if(!carrier || !flightNo) return;
+    const rec = {
+      id: editingCargoId || `cg_${carrier.replace(/\s+/g,"").toUpperCase()}_${flightNo}`,
+      country: document.getElementById("cgCountry").value,
+      carrier, flightNo,
+      origin: document.getElementById("cgOrigin").value.trim().toUpperCase(),
+      dest: document.getElementById("cgDest").value.trim().toUpperCase(),
+      etd: document.getElementById("cgEtd").value,
+      eta: document.getElementById("cgEta").value,
+      direct: document.getElementById("cgDirect").value,
+      enabled: editingCargoId ? (CD.Cache.cargo.find(x=>x.id===editingCargoId)||{}).enabled !== false : true
+    };
+    await CD.Store.upsertCargo(rec);
+    resetCargoForm();
+  });
+  document.getElementById("cgCancel").addEventListener("click", resetCargoForm);
   built = true;
 }
 
@@ -1589,6 +1753,62 @@ function fmtDT(v){
   if(!v) return "-";
   const s = String(v).replace("T"," ");
   return s.slice(5,16);
+}
+
+/* ---------------- 항공편 마스터(CARGO) ---------------- */
+let editingCargoId = null;
+function resetCargoForm(){
+  editingCargoId = null;
+  const f = document.getElementById("cgForm"); if(!f) return;
+  f.reset();
+  document.getElementById("cgSubmit").textContent = "등록";
+  document.getElementById("cgCancel").hidden = true;
+}
+function loadCargoIntoForm(rec){
+  editingCargoId = rec.id;
+  document.getElementById("cgCountry").value = rec.country || "KR";
+  document.getElementById("cgCarrier").value = rec.carrier || "";
+  document.getElementById("cgFlightNo").value = rec.flightNo || "";
+  document.getElementById("cgOrigin").value = rec.origin || "";
+  document.getElementById("cgDest").value = rec.dest || "";
+  document.getElementById("cgEtd").value = rec.etd || "";
+  document.getElementById("cgEta").value = rec.eta || "";
+  document.getElementById("cgDirect").value = rec.direct || "Direct";
+  document.getElementById("cgSubmit").textContent = "수정 저장";
+  document.getElementById("cgCancel").hidden = false;
+}
+function renderCargo(){
+  const body = document.getElementById("cgTableBody"); if(!body) return;
+  const list = CD.Cache.cargo || [];
+  document.getElementById("cgCount").textContent = `${list.length}편`;
+  body.innerHTML = list.map(c=>{
+    const on = c.enabled !== false;
+    return `<tr>
+      <td class="text">
+        <div style="color:var(--muted); font-size:11px;">${c.flightNo||''} · ${c.direct||'Direct'}</div>
+        <div><span class="badge ${(c.country||'KR').toLowerCase()}">${CD.COUNTRY_LABEL[c.country||'KR']}</span> ${c.carrier||''}</div>
+      </td>
+      <td>${c.origin||'-'} → ${c.dest||'-'}</td>
+      <td>${c.etd||'-'}</td>
+      <td>${c.eta||'-'}</td>
+      <td class="text"><button class="badge ${on?'good':'sample'}" style="appearance:none; border:none; font-family:inherit; cursor:pointer;" data-cgtoggle="${c.id}">${on?'ON':'OFF'}</button></td>
+      <td class="text" style="white-space:nowrap;">
+        <button class="btn small ghost" data-cgedit="${c.id}">수정</button>
+        <button class="btn small danger ghost" data-cgdel="${c.id}">삭제</button>
+      </td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" class="text empty-note">등록된 항공편이 없습니다.</td></tr>`;
+
+  body.querySelectorAll("[data-cgedit]").forEach(b=> b.addEventListener("click", ()=>{
+    const rec = CD.Cache.cargo.find(x=>x.id===b.dataset.cgedit); if(rec) loadCargoIntoForm(rec);
+  }));
+  body.querySelectorAll("[data-cgdel]").forEach(b=> b.addEventListener("click", async ()=>{
+    if(confirm("이 항공편을 목록에서 삭제할까요?")){ await CD.Store.deleteCargo(b.dataset.cgdel); if(editingCargoId===b.dataset.cgdel) resetCargoForm(); }
+  }));
+  body.querySelectorAll("[data-cgtoggle]").forEach(b=> b.addEventListener("click", async ()=>{
+    const rec = CD.Cache.cargo.find(x=>x.id===b.dataset.cgtoggle); if(!rec) return;
+    await CD.Store.upsertCargo({ ...rec, enabled: rec.enabled === false });
+  }));
 }
 
 function refresh(){
@@ -1661,8 +1881,9 @@ function refresh(){
 }
 
 CD.on("shipments", refresh);
-CD.on("tab", t=>{ if(t==="flights") refresh(); });
-CD.on("ready", ()=>{ shell(); refresh(); });
+CD.on("cargo", renderCargo);
+CD.on("tab", t=>{ if(t==="flights"){ refresh(); renderCargo(); } });
+CD.on("ready", ()=>{ shell(); refresh(); renderCargo(); });
 })();
 </script>
 
@@ -1793,7 +2014,7 @@ function shell(){
     <div class="section">
       <div class="section-head"><h2>비용 구성 (출고비 · 통관·택배 · 항공)</h2></div>
       <div class="card">
-        <div id="aCompWrap" class="grid two"></div>
+        <div id="aCompWrap" class="grid even"></div>
         <div class="chart-legend" id="aCompLegend"></div>
       </div>
     </div>
@@ -1991,7 +2212,7 @@ function refresh(){
   // composition chart: per country small multiple, stacked fulfill vs air — values converted to the selected display currency
   const compWrap = document.getElementById("aCompWrap");
   compWrap.innerHTML = "";
-  compWrap.className = "grid " + (countries.length>1?"two":"");
+  compWrap.className = "grid " + (countries.length>1?"even":"");
   countries.forEach((c,i)=>{
     const box = document.createElement("div");
     box.innerHTML = `<div class="row" style="margin-bottom:6px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div><div class="chart-holder"></div>`;
