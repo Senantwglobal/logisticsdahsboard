@@ -93,6 +93,11 @@ a{color:var(--accent);}
 .brand-mark{width:30px; height:30px; border-radius:8px; background:var(--ink); color:var(--page); display:flex; align-items:center; justify-content:center; flex:none; font-size:13px; font-weight:800; letter-spacing:0; padding:0; cursor:pointer; overflow:hidden; position:relative;}
 .brand-mark img{width:100%; height:100%; object-fit:cover; display:block;}
 .brand-mark:hover{filter:brightness(1.08);}
+/* with a real logo: drop the tile entirely and show the artwork as-is */
+.brand-mark.has-logo{background:transparent; border:none; border-radius:0; overflow:visible;
+  width:auto; max-width:170px; height:34px; box-shadow:none;}
+.brand-mark.has-logo img{width:auto; max-width:170px; height:100%; object-fit:contain;}
+.brand-mark.has-logo:hover{filter:brightness(1); opacity:.75;}
 .brand-text h1{font-size:17px; letter-spacing:-.01em;}
 .brand-text .tag{font-size:11.5px; color:var(--muted); letter-spacing:.02em; margin-top:1px;}
 .topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
@@ -149,7 +154,10 @@ input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nu
    NOTE: do NOT set `appearance:textfield` on the input itself; recent Chrome treats it as
    deprecated and brings the spinner back. Hiding the pseudo-elements is the reliable way. */
 input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button{-webkit-appearance:none; appearance:none; margin:0;}
+input::-webkit-inner-spin-button{-webkit-appearance:none !important; appearance:none !important; display:none !important; margin:0;}
+input[type=date]::-webkit-inner-spin-button,
+input[type=time]::-webkit-inner-spin-button,
+input[type=datetime-local]::-webkit-inner-spin-button{display:none !important;}
 input[type=number]{-moz-appearance:textfield;}
 /* custom caret so selects match the button set instead of the OS dropdown */
 select{cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:30px;
@@ -752,7 +760,7 @@ async function boot(){
   function renderLogo(){
     const url = (Cache.settings && Cache.settings.logoUrl) || "";
     markEl.innerHTML = url ? `<img src="${url}" alt="로고">` : "C";
-    markEl.style.background = url ? "transparent" : "";
+    markEl.classList.toggle("has-logo", !!url);
   }
   markEl.addEventListener("click", ()=>{
     if(Cache.settings && Cache.settings.logoUrl){
@@ -770,13 +778,14 @@ async function boot(){
     reader.onload = () => {
       const img = new Image();
       img.onload = async () => {
-        // downscale to 128px so the shared settings blob stays small
-        const size = 128;
+        // fit inside 256px, preserving aspect ratio — no cropping, transparency kept (PNG)
+        const max = 256;
+        const scale = Math.min(1, max/Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width*scale));
+        const h = Math.max(1, Math.round(img.height*scale));
         const cv = document.createElement("canvas");
-        cv.width = size; cv.height = size;
-        const ctx = cv.getContext("2d");
-        const side = Math.min(img.width, img.height);
-        ctx.drawImage(img, (img.width-side)/2, (img.height-side)/2, side, side, 0, 0, size, size);
+        cv.width = w; cv.height = h;
+        cv.getContext("2d").drawImage(img, 0, 0, w, h);
         try{ await Store.saveSettings({ logoUrl: cv.toDataURL("image/png") }); }
         catch(err){ alert("로고 저장에 실패했습니다. 이미지 용량을 줄여서 다시 시도해주세요."); }
       };
@@ -1035,14 +1044,37 @@ function lineChart(container, {series, labels, yFmt, legend}){
     pts.forEach((p,i)=>{
       const v = s.values[i];
       if(!Number.isFinite(v)) return;
-      const dot = svgEl("circle",{cx:p[0], cy:p[1], r:3.4, fill:s.color, stroke:CD.cssVar("--surface"), "stroke-width":1.4, class:"bar-rect"});
-      const fmt = s.fmt || yFmt;
-      dot.addEventListener("mousemove", e=>showTip(e, `<b>${labels[i]}</b><br>${s.label}: <b>${fmt(v)}</b>`));
-      dot.addEventListener("mouseleave", hideTip);
+      const dot = svgEl("circle",{cx:p[0], cy:p[1], r:3.4, fill:s.color, stroke:CD.cssVar("--surface"), "stroke-width":1.4});
       svg.appendChild(dot);
     });
   });
   svg.appendChild(svgEl("line",{class:"axisline", x1:padL, x2:w-padR, y1:padT+plotH, y2:padT+plotH, "stroke-width":1}));
+
+  /* Hover by COLUMN, not by dot: when two series sit on the same point the upper dot used to
+     swallow the hover and the other line never showed. One band per x shows every series. */
+  const bandW = n>1 ? plotW/(n-1) : plotW;
+  labels.forEach((lb,i)=>{
+    const cx = padL + stepX*i;
+    const band = svgEl("rect",{ x: cx-bandW/2, y: padT, width: bandW, height: plotH,
+                                fill:"transparent", class:"bar-rect" });
+    const guide = svgEl("line",{ x1:cx, x2:cx, y1:padT, y2:padT+plotH,
+                                 stroke:CD.cssVar("--line-strong"), "stroke-width":1, opacity:0 });
+    band.addEventListener("mousemove", e=>{
+      guide.setAttribute("opacity", 1);
+      const rows = series.map(s=>{
+        const v = s.values[i];
+        const fmt = s.fmt || yFmt;
+        return `<div style="display:flex; justify-content:space-between; gap:16px;">`
+             + `<span style="opacity:.75"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:6px;"></span>${s.label}</span>`
+             + `<span style="font-weight:600">${Number.isFinite(v)?fmt(v):"-"}</span></div>`;
+      }).join("");
+      showTip(e, `<b>${lb}</b><div style="margin-top:5px;">${rows}</div>`);
+    });
+    band.addEventListener("mouseleave", ()=>{ guide.setAttribute("opacity", 0); hideTip(); });
+    svg.appendChild(guide);
+    svg.appendChild(band);
+  });
+
   container.appendChild(svg);
 
   if(legend){
