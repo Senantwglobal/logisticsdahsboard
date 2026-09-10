@@ -1849,7 +1849,8 @@ function shell(){
       <div class="section-head"><h2>컷오프 · 항공 정보 목록</h2><span class="hint" id="sCount"></span></div>
       <div class="list-tools">
         <div class="search"><input type="text" id="sSearch" placeholder="MAWB · 편명 · 항공사 검색"></div>
-        <select id="sMonth" style="min-width:120px;"></select>
+        <select id="sYear" style="min-width:105px;"></select>
+        <select id="sMonth" style="min-width:100px;"></select>
         <div class="seg" id="sListCountry">
           <button data-v="ALL" class="active">전체</button>
           <button data-v="KR">한국</button>
@@ -1913,6 +1914,7 @@ function shell(){
   });
   document.getElementById("sAddBtn").addEventListener("click", ()=>openForm(null));
   document.getElementById("sSearch").addEventListener("input", e=>{ listQ = e.target.value; listPage = 0; refresh(); });
+  document.getElementById("sYear").addEventListener("change", e=>{ listYear = e.target.value; listPage = 0; refresh(); });
   document.getElementById("sMonth").addEventListener("change", e=>{ listMonth = e.target.value; listPage = 0; refresh(); });
   document.getElementById("sListCountry").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
@@ -1921,7 +1923,7 @@ function shell(){
     refresh();
   });
   document.getElementById("sReset").addEventListener("click", ()=>{
-    listQ=""; listMonth=""; listCountry="ALL"; listPage=0;
+    listQ=""; listYear=""; listMonth=""; listCountry="ALL"; listPage=0;
     document.getElementById("sSearch").value="";
     document.getElementById("sListCountry").querySelectorAll("button").forEach(b=>b.classList.toggle("active", b.dataset.v==="ALL"));
     refresh();
@@ -1963,7 +1965,7 @@ function fmtDT(v){
 /* ---------------- 항공편 마스터(CARGO) ---------------- */
 let editingCargoId = null;
 /* 목록 필터 상태 — 건수가 수백 건이라 검색 · 월 · 국가 · 페이지로 좁혀서 본다 */
-let listQ = "", listMonth = "", listCountry = "ALL", listPage = 0;
+let listQ = "", listYear = "", listMonth = "", listCountry = "ALL", listPage = 0;
 const LIST_PER = 25;
 function resetCargoForm(){
   editingCargoId = null;
@@ -2064,16 +2066,25 @@ function refresh(){
   });
 
   const sorted = [...all].sort((a,b)=> (a.cutoffDate+((a.cutoffTime)||'')) < (b.cutoffDate+((b.cutoffTime)||'')) ? -1:1);
-  // 월 선택지 채우기 (데이터에 있는 달만)
+  // 연도 · 월 선택지 채우기 (데이터에 실제로 있는 것만)
+  const yearSel = document.getElementById("sYear");
   const monthSel = document.getElementById("sMonth");
-  const allMonths = [...new Set(all.map(x=>(x.cutoffDate||"").slice(0,7)).filter(Boolean))].sort().reverse();
-  const monthOpts = `<option value="">전체 기간</option>` + allMonths.map(m=>`<option value="${m}">${CD.monthLabel(m)}</option>`).join("");
-  if(monthSel.innerHTML !== monthOpts){ monthSel.innerHTML = monthOpts; }
+  const allDates = all.map(x=>x.cutoffDate||"").filter(Boolean);
+  const years = [...new Set(allDates.map(d=>d.slice(0,4)))].sort().reverse();
+  const yearOpts = `<option value="">전체 연도</option>` + years.map(y=>`<option value="${y}">${y}년</option>`).join("");
+  if(yearSel.innerHTML !== yearOpts) yearSel.innerHTML = yearOpts;
+  yearSel.value = listYear;
+
+  const monthsIn = [...new Set(allDates.filter(d=>!listYear || d.slice(0,4)===listYear).map(d=>d.slice(5,7)))].sort();
+  if(listMonth && !monthsIn.includes(listMonth)) listMonth = "";   // 연도를 바꿔 해당 월이 없어지면 해제
+  const monthOpts = `<option value="">전체 월</option>` + monthsIn.map(m=>`<option value="${m}">${Number(m)}월</option>`).join("");
+  if(monthSel.innerHTML !== monthOpts) monthSel.innerHTML = monthOpts;
   monthSel.value = listMonth;
 
   const filtered = sorted.filter(x=>
        (listCountry==="ALL" || x.country===listCountry)
-    && (!listMonth || (x.cutoffDate||"").slice(0,7)===listMonth)
+    && (!listYear  || (x.cutoffDate||"").slice(0,4)===listYear)
+    && (!listMonth || (x.cutoffDate||"").slice(5,7)===listMonth)
     && CD.matchQuery(listQ, x.mawb, x.flightNo, x.carrier, x.origin, x.dest, x.cutoffDate)
   );
   const pageCount = Math.max(1, Math.ceil(filtered.length/LIST_PER));
