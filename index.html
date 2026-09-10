@@ -208,7 +208,7 @@ tfoot td{padding:9px 12px; font-weight:300; border-top:1px solid var(--line-stro
 svg.chart text{font-family:var(--font-ui); fill:var(--muted);}
 svg.chart .axisline{stroke:var(--line-strong);}
 svg.chart .gridline{stroke:var(--line);}
-.tooltip{position:fixed; background:var(--ink); color:var(--page); font-size:11.5px; padding:7px 10px; border-radius:7px; pointer-events:none; z-index:80; opacity:0; transition:opacity .08s; line-height:1.5; box-shadow:var(--shadow); max-width:220px;}
+.tooltip{position:fixed; background:var(--ink); color:var(--page); font-size:11.5px; padding:8px 11px; border-radius:8px; pointer-events:none; z-index:80; opacity:0; transition:opacity .08s; line-height:1.55; box-shadow:var(--shadow); max-width:260px; min-width:170px;}
 .tooltip.show{opacity:1;}
 .bar-rect{cursor:pointer;}
 .bar-rect:hover{filter:brightness(1.12);}
@@ -828,7 +828,7 @@ function tip(){ if(!tipEl) tipEl = document.getElementById("tooltip"); return ti
 function showTip(evt, html){
   const t = tip(); t.innerHTML = html; t.classList.add("show");
   const x = evt.clientX, y = evt.clientY;
-  const w = 230, pad = 14;
+  const w = 250, pad = 14;
   t.style.left = Math.min(x+pad, window.innerWidth-w) + "px";
   t.style.top = Math.max(y-38, 8) + "px";
 }
@@ -856,7 +856,7 @@ function statusColor(value, thresholds){
 }
 
 /* ---------------- banded bar chart (dashboard picked/shipped) ---------------- */
-function bandBarChart(container, {data, thresholds, unitLabel}){
+function bandBarChart(container, {data, thresholds, unitLabel, metricKey}){
   clear(container);
   const w = container.clientWidth || 640, h = 220;
   const maxV = niceMax(Math.max(thresholds.high*1.15, ...data.map(d=>d.value), 10));
@@ -890,7 +890,31 @@ function bandBarChart(container, {data, thresholds, unitLabel}){
     const y = padT+plotH-bh;
     const st = statusColor(d.value, thresholds);
     const rect = svgEl("rect",{class:"bar-rect", x:cx-bw/2, y, width:bw, height:bh, rx:4, ry:4, fill:CD.cssVar("--"+st.key)});
-    rect.addEventListener("mousemove", e=>showTip(e, `<b>${CD.fmtFull(d.date)}</b><br>${unitLabel}: <b>${CD.fmtNum(d.value)}</b>개<br><span style="opacity:.75">${st.label} 구간</span>`));
+    rect.addEventListener("mousemove", e=>{
+      const r = d.rec || {};
+      const line = (label, v, strong) =>
+        `<div style="display:flex; justify-content:space-between; gap:16px;">`
+        + `<span style="opacity:${strong?'1':'.7'}">${label}</span>`
+        + `<span style="font-weight:${strong?'600':'300'}">${CD.fmtNum(v||0)}</span></div>`;
+      let html = `<b>${CD.fmtFull(d.date)}</b><div style="margin-top:5px;">`
+        + line("픽킹", r.picked, metricKey==="picked")
+        + line("팩킹", r.packed, metricKey==="packed")
+        + line("출고", r.shipped, metricKey==="shipped")
+        + `</div>`;
+      const prev = i>0 ? data[i-1] : null;
+      if(prev){
+        const diff = (d.value||0) - (prev.value||0);
+        const pct = prev.value ? (diff/prev.value*100) : null;
+        const sign = diff>0 ? "+" : "";
+        const col = diff>0 ? "#6ee0a2" : diff<0 ? "#ffa993" : "inherit";
+        html += `<div style="margin-top:5px; padding-top:5px; border-top:1px solid rgba(255,255,255,.18);">`
+             + `<span style="opacity:.7">${unitLabel} 전일 대비</span> `
+             + `<span style="color:${col}; font-weight:600;">${sign}${CD.fmtNum(diff)}`
+             + (pct!==null ? ` (${sign}${pct.toFixed(1)}%)` : "") + `</span></div>`;
+      }
+      html += `<div style="margin-top:4px; opacity:.6;">${st.label} 구간</div>`;
+      showTip(e, html);
+    });
     rect.addEventListener("mouseleave", hideTip);
     svg.appendChild(rect);
     if(n<=16){
@@ -1032,7 +1056,7 @@ window.CDCharts = { bandBarChart, stackedBarChart, lineChart, statusColor, niceM
 const CD = window.CD, Charts = window.CDCharts;
 const root = document.getElementById("view-dashboard");
 let built = false;
-const filt = { country:"ALL", start: CD.addDays(CD.todayISO(),-13), end: CD.todayISO(), metric:"shipped" };
+const filt = { country:"ALL", start: CD.addDays(CD.todayISO(),-13), end: CD.todayISO(), metric:"packed" };
 let editingId = null;
 
 function packFieldId(key){ return "f"+key[0].toUpperCase()+key.slice(1); } // pack1 -> fPack1
@@ -1082,9 +1106,9 @@ function shell(){
         <h2>일자별 픽킹 · 팩킹 · 출고 수량</h2>
         <div class="row">
           <div class="seg" id="dMetricSeg">
-            <button data-v="shipped" class="active">출고량</button>
-            <button data-v="packed">팩킹량</button>
             <button data-v="picked">픽킹량</button>
+            <button data-v="packed" class="active">팩킹량</button>
+            <button data-v="shipped">출고량</button>
           </div>
           <span class="hint">위험 ≤</span>
           <input type="number" id="dThreshLow" class="num-input" style="width:64px" title="이 값 이하면 위험">
@@ -1292,7 +1316,7 @@ function refresh(){
     const holder = box.querySelector(".chart-holder");
     const series = fillSeries(c, filt.metric);
     const metricLabel = filt.metric==="shipped" ? "출고" : filt.metric==="packed" ? "팩킹" : "픽킹";
-    Charts.bandBarChart(holder, {data:series, thresholds:th, unitLabel: metricLabel});
+    Charts.bandBarChart(holder, {data:series, thresholds:th, unitLabel: metricLabel, metricKey: filt.metric});
   });
 
   const packWrap = document.getElementById("dPackWrap");
