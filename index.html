@@ -1407,21 +1407,40 @@ async function onSubmitForm(e){
   const country = document.getElementById("fCountry").value;
   const date = document.getElementById("fDate").value;
   if(!date){ return; }
+  const newId = `${country}_${date}`;
+  // 수정 중에 날짜·국가를 바꾸면 키가 달라진다. 기존 건을 지워야 중복이 안 생긴다.
+  const keyChanged = editingId && editingId !== newId;
+  if(keyChanged && CD.Cache.daily.some(d=>d.id===newId)){
+    if(!confirm(`${CD.COUNTRY_LABEL[country]} ${date} 데이터가 이미 있습니다. 덮어쓸까요?`)) return;
+  }
   const rec = {
-    id: `${country}_${date}`, country, date,
+    id: newId, country, date,
     picked: Number(document.getElementById("fPicked").value)||0,
     packed: Number(document.getElementById("fPacked").value)||0,
     shipped: Number(document.getElementById("fShipped").value)||0,
     ...readPackFields(),
   };
   await CD.Store.upsertDaily(rec);
-  document.getElementById("fHelp").textContent = "저장되었습니다.";
-  setTimeout(()=>{ const h = document.getElementById("fHelp"); if(h) h.textContent=""; }, 2000);
+  if(keyChanged) await CD.Store.deleteDaily(editingId);
+  const wasEdit = !!editingId;
   resetForm();
+  const h = document.getElementById("fHelp");
+  h.textContent = wasEdit ? "수정되었습니다." : "저장되었습니다.";
+  setTimeout(()=>{ if(h) h.textContent=""; }, 2000);
 }
 
 function loadIntoForm(rec){
   editingId = rec.id;
+  const form = document.getElementById("dForm");
+  if(form){                                   // 폼이 화면 밖에 있으면 눌러도 반응이 없어 보인다
+    form.scrollIntoView({behavior:"smooth", block:"center"});
+    const card = form.closest(".card");
+    if(card){
+      card.style.transition = "box-shadow .25s";
+      card.style.boxShadow = "0 0 0 2px var(--accent)";
+      setTimeout(()=>{ card.style.boxShadow = ""; }, 900);
+    }
+  }
   document.getElementById("dFormTitle").textContent = "일일 데이터 수정";
   document.getElementById("fCancelEdit").hidden = false;
   document.getElementById("fCountry").value = rec.country;
@@ -2282,6 +2301,11 @@ function shell(){
     <div class="section grid kpis2" id="aKpis"></div>
 
     <div class="section">
+      <div class="section-head"><h2>비용 항목별</h2><span class="hint" id="aCostHint"></span></div>
+      <div class="grid kpis3" id="aCostKpis"></div>
+    </div>
+
+    <div class="section">
       <div class="section-head"><h2>건당 평균 물류비용 추이</h2></div>
       <div class="card">
         <div id="aTrendChart"></div>
@@ -2466,6 +2490,47 @@ function refresh(){
   aK.className = "section grid kpis24";
   aK.innerHTML = cards.join("");
   CD.fitKpi(document.getElementById("aKpis"));
+
+  /* ---- 비용 항목별 (출고비 / 통관·택배비 / 항공비) ---- */
+  const COST_KEYS = [
+    {key:"packingCost",  label:"출고비",      color:"--cost-pack"},
+    {key:"lastMileCost", label:"통관·택배비",  color:"--cost-lastmile"},
+    {key:"airCost",      label:"항공비",      color:"--cost-air"},
+  ];
+  /** 한 구간(row)의 특정 비용 항목을 표시 통화로 합산 */
+  function bucketTypeSum(row, key){
+    return kpiCountries.reduce((sum,c)=>{
+      const b = row.byCountry[c];
+      return b ? sum + toDisp(b[key]||0, c) : sum;
+    }, 0);
+  }
+  const typeTotals = {};
+  COST_KEYS.forEach(t=>{ typeTotals[t.key] = rows.reduce((sum,r)=> sum + bucketTypeSum(r, t.key), 0); });
+  const grandTotal = COST_KEYS.reduce((sum,t)=> sum + typeTotals[t.key], 0);
+
+  document.getElementById("aCostHint").textContent =
+    `${label} · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'} 합계 · ${dispSym()} 기준`;
+  document.getElementById("aCostKpis").innerHTML = COST_KEYS.map(t=>{
+    const total = typeTotals[t.key];
+    const share = grandTotal>0 ? total/grandTotal*100 : 0;
+    let d = null;                                   // 직전 구간 대비 (마지막 구간 vs 그 앞 구간)
+    if(rows.length>=2){
+      const now = bucketTypeSum(rows[rows.length-1], t.key);
+      const before = bucketTypeSum(rows[rows.length-2], t.key);
+      if(before>0) d = (now-before)/before*100;
+    }
+    const dCol = d==null ? "var(--muted)" : (d<=0 ? "var(--good-ink)" : "var(--critical-ink)");
+    const dTxt = d==null ? "직전 구간 비교 불가" : `직전 구간 대비 ${d>0?"+":""}${d.toFixed(1)}%`;
+    return `<div class="kpi">
+      <div class="label"><span class="dot" style="background:var(${t.color})"></span>${t.label}</div>
+      <div class="value">${fmtDisp(total)}</div>
+      <div class="sub">전체의 ${share.toFixed(1)}% · <span style="color:${dCol}">${dTxt}</span></div>
+      <div style="height:5px; border-radius:3px; background:var(--surface-2); overflow:hidden;">
+        <div style="height:100%; width:${share}%; background:var(${t.color}); border-radius:3px;"></div>
+      </div>
+    </div>`;
+  }).join("");
+  CD.fitKpi(document.getElementById("aCostKpis"));
 
   // trend chart: one line per country (cost per order), all converted to the selected display currency
   const labels = rows.map(r=>keyLabel(r.key));
