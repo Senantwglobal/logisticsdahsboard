@@ -161,7 +161,83 @@
   .chartrow{display:flex; gap:18px; flex-wrap:wrap; margin-top:16px;}
   .chartbox{flex:1; min-width:230px; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px;}
   .chartbox h4{margin:0 0 10px; font-size:13px; font-weight:600;}
-  .chartbox svg{width:100%;     <div class="bd-item"><div class="k">판매가</div><div class="v tabular" id="bd_price">-</div></div>
+  .chartbox svg{width:100%; height:auto; display:block;}
+  .muted{color:var(--ink-dim);}
+  .foot{margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-dim); font-size:12px;}
+  .refreshbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .lastsync{font-size:12px; color:var(--ink-dim);}
+  /* ---- upload card ---- */
+  .upload-title{font-size:15px; margin:0 0 4px;}
+  .upload-desc{font-size:12.5px; color:var(--ink-dim); font-weight:300; margin-bottom:14px;}
+  .upload-file-input{
+    border:1px dashed var(--line); border-radius:8px; padding:9px 12px; background:var(--paper);
+    font-size:13px; font-weight:300; width:100%;
+  }
+  .preview-wrap{margin-top:16px; display:none;}
+  .preview-wrap.show{display:block;}
+  .preview-actions{display:flex; gap:10px; margin-top:12px; align-items:center;}
+  /* ---- pivot table ---- */
+  #trend_pivot td.pivot-cell{text-align:right; line-height:1.35;}
+  #trend_pivot .pivot-rev{display:block; font-size:13.5px;}
+  #trend_pivot .pivot-rate{display:inline-block; font-size:11px; padding:1px 6px; border-radius:99px; margin-top:2px;}
+  .rate-good{background:var(--good-soft); color:var(--good);}
+  .rate-warn{background:var(--warn-soft); color:var(--warn);}
+  .rate-bad{background:var(--bad-soft); color:var(--bad);}
+  #trend_pivot tr.subtotal td{background:color-mix(in srgb, var(--accent) 6%, transparent); font-weight:600;}
+  #trend_pivot tr.grandtotal td{background:color-mix(in srgb, var(--accent) 12%, transparent); font-weight:800;}
+  #trend_pivot td.rowlabel{font-weight:600;}
+  #trend_pivot tr.subrow td.rowlabel{padding-left:22px; font-weight:300; color:var(--ink-dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>OPLE 공헌이익 시스템</h1>
+      <div class="sub">실시간 Supabase 연동 · 한국 물류비 기준 (일본 제외)</div>
+    </div>
+    <div class="sub" id="fxLine">환율 불러오는 중…</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="calc">빠른 계산기</button>
+    <button data-tab="price">권장 판매가</button>
+    <button data-tab="trend">월별 정산 트렌드</button>
+    <button data-tab="logi">물류비 동기화</button>
+  </nav>
+
+  <!-- TAB 1: QUICK CALCULATOR -->
+  <section class="panel active" id="panel-calc">
+    <div class="card">
+      <div class="field"><label>코드 (마스터 SKU / UPC / 자사 SKU / 채널 판매자코드)</label>
+        <input id="calc_code" placeholder="예: DOC-P012166, 8801234567890, 1511982479 ..." autocomplete="off">
+      </div>
+      <div class="row">
+        <div class="field"><label>판매가 (KRW)</label><input id="calc_price" type="number" inputmode="numeric" placeholder="예: 40000"></div>
+        <div class="field"><label>채널 (선택)</label>
+          <select id="calc_channel"><option value="">전체 / 자동</option><option value="coupang">쿠팡</option><option value="11st">11번가</option><option value="ebay">이베이 (지마켓/옥션)</option><option value="naver">네이버</option><option value="owned">오플닷컴</option></select>
+        </div>
+        <div class="field" id="calc_acct_field" style="display:none"><label>계정</label><select id="calc_acct"></select></div>
+        <div class="field" id="calc_sub_field" style="display:none"><label>마켓</label>
+          <select id="calc_sub"><option value="">선택</option><option value="gmarket">지마켓</option><option value="auction">옥션</option></select>
+        </div>
+      </div>
+      <button class="primary" id="calc_btn" onclick="runQuickCalc()">공헌이익 계산</button>
+      <div class="notice bad" id="calc_err" style="display:none"></div>
+
+      <div class="result" id="calc_result">
+        <div class="resultHead">
+          <div>
+            <h3 id="calc_name">-</h3>
+            <div class="meta"><span id="calc_sku" class="tabular"></span> · <span id="calc_brand"></span> · <span class="badge" id="calc_via"></span></div>
+          </div>
+          <div style="text-align:right">
+            <div class="bignum tabular" id="calc_cm">-</div>
+            <div class="rate" id="calc_rate"></div>
+          </div>
+        </div>
+        <div class="breakdown">
+          <div class="bd-item"><div class="k">판매가</div><div class="v tabular" id="bd_price">-</div></div>
           <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v tabular" id="bd_cost">-</div></div>
           <div class="bd-item"><div class="k">부자재비</div><div class="v tabular" id="bd_pack">-</div></div>
           <div class="bd-item"><div class="k">수수료 (<span id="bd_feerate"></span>)</div><div class="v tabular" id="bd_fee">-</div></div>
