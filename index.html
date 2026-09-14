@@ -2302,7 +2302,22 @@ let gran = "month";     // day | week | month | year
 let countryFilter = "ALL";
 let dispCurrency = "KRW"; // USD | KRW | JPY — currency all costs are DISPLAYED in (converted live)
 try{ dispCurrency = localStorage.getItem("cargodesk_dispCurrency") || "KRW"; }catch(e){}
-const LOOKBACK = { day:30, week:12, month:12, year:8 };
+/* 집계 대상 기간 — 카드·차트·표가 모두 이 기간만 본다 */
+const aRange = { start: CD.addDays(CD.todayISO(), -89), end: CD.todayISO() };
+try{
+  const saved = JSON.parse(localStorage.getItem("cargodesk_acctRange") || "null");
+  if(saved && saved.start && saved.end){ aRange.start = saved.start; aRange.end = saved.end; }
+}catch(e){}
+function saveRange(){ try{ localStorage.setItem("cargodesk_acctRange", JSON.stringify(aRange)); }catch(e){} }
+function inRange(iso){ return !!iso && iso >= aRange.start && iso <= aRange.end; }
+function rangeText(){ return `${aRange.start} ~ ${aRange.end}`; }
+/** 데이터가 존재하는 가장 이른 날짜 (전체 기간 프리셋용) */
+function earliestDate(){
+  let min = null;
+  CD.Cache.daily.forEach(r=>{ if(r.date && (!min || r.date < min)) min = r.date; });
+  CD.Cache.shipments.forEach(s=>{ if(s.cutoffDate && (!min || s.cutoffDate < min)) min = s.cutoffDate; });
+  return min || CD.addDays(CD.todayISO(), -89);
+}
 
 function keyFn(){ return gran==="day"?(d=>d) : gran==="week"?CD.isoWeekKey : gran==="month"?CD.monthKey : CD.yearKey; }
 function keyLabel(k){
@@ -2403,6 +2418,23 @@ function shell(){
       </div>
     </div>
 
+    <div class="section row between">
+      <div class="row">
+        <div class="seg" id="aRangeSeg">
+          <button data-v="30">최근 30일</button>
+          <button data-v="90">최근 90일</button>
+          <button data-v="365">최근 1년</button>
+          <button data-v="ytd">올해</button>
+          <button data-v="all">전체</button>
+        </div>
+      </div>
+      <div class="row">
+        <input type="date" id="aStart" class="mono">
+        <span style="color:var(--muted); font-size:12px;">~</span>
+        <input type="date" id="aEnd" class="mono">
+      </div>
+    </div>
+
     <div class="section grid kpis2" id="aKpis"></div>
 
     <div class="section">
@@ -2451,6 +2483,27 @@ function shell(){
     try{ localStorage.setItem("cargodesk_dispCurrency", dispCurrency); }catch(err){}
     refresh();
   });
+  document.getElementById("aRangeSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    const today = CD.todayISO();
+    const v = b.dataset.v;
+    if(v === "ytd")      { aRange.start = today.slice(0,4)+"-01-01"; aRange.end = today; }
+    else if(v === "all") { aRange.start = earliestDate();            aRange.end = today; }
+    else                 { aRange.start = CD.addDays(today, -(Number(v)-1)); aRange.end = today; }
+    saveRange(); syncRangeUi(); refresh();
+  });
+  document.getElementById("aStart").addEventListener("change", e=>{
+    if(!e.target.value) return;
+    aRange.start = e.target.value;
+    if(aRange.start > aRange.end) aRange.end = aRange.start;   // 시작이 종료보다 뒤면 같이 밀어준다
+    saveRange(); syncRangeUi(); refresh();
+  });
+  document.getElementById("aEnd").addEventListener("change", e=>{
+    if(!e.target.value) return;
+    aRange.end = e.target.value;
+    if(aRange.end < aRange.start) aRange.start = aRange.end;
+    saveRange(); syncRangeUi(); refresh();
+  });
   document.getElementById("rBaseUsd").addEventListener("change", async e=>{
     await CD.Store.saveSettings({ packing:{ ...packingRates(), baseUsd: Number(e.target.value)||0 } });
   });
@@ -2478,7 +2531,25 @@ function shell(){
   document.getElementById("rAirHigh").addEventListener("change", async e=>{
     await CD.Store.saveSettings({ air:{ ...airTiers(), highRateUsd: Number(e.target.value)||0 } });
   });
+  syncRangeUi();
   built = true;
+}
+
+/** 날짜 입력과 프리셋 버튼 상태를 현재 기간에 맞춘다 */
+function syncRangeUi(){
+  const sEl = document.getElementById("aStart"), eEl = document.getElementById("aEnd");
+  if(sEl) sEl.value = aRange.start;
+  if(eEl) eEl.value = aRange.end;
+  const today = CD.todayISO();
+  let active = null;
+  if(aRange.end === today){
+    const span = Math.round((CD.parseISO(aRange.end) - CD.parseISO(aRange.start)) / 86400000) + 1;
+    if(span === 30) active = "30";
+    else if(span === 90) active = "90";
+    else if(span === 365) active = "365";
+    if(aRange.start === today.slice(0,4)+"-01-01") active = "ytd";
+  }
+  document.querySelectorAll("#aRangeSeg button").forEach(b=> b.classList.toggle("active", b.dataset.v === active));
 }
 
 function renderRateForms(){
@@ -2520,14 +2591,14 @@ function aggregate(countries){
     return buckets[k][c];
   }
   CD.Cache.daily.forEach(r=>{
-    if(!countries.includes(r.country)) return;
+    if(!countries.includes(r.country) || !inRange(r.date)) return;
     const k = kf(r.date); const b = cell(k, r.country);
     b.shipped += r.shipped||0; b.packed += r.packed||0; b.picked += r.picked||0;
     b.packingCost += packingCostUsd(r) * fxRate(r.country);
     b.lastMileCost += (r.shipped||0) * (rateFor(r.country).lastMile||0);
   });
   CD.Cache.shipments.forEach(s=>{
-    if(!countries.includes(s.country) || !s.cutoffDate) return;
+    if(!countries.includes(s.country) || !inRange(s.cutoffDate)) return;
     const k = kf(s.cutoffDate); const b = cell(k, s.country);
     const w = chargeableWeight(s);
     b.weight += w; b.pallet += s.palletCount||0; b.pkg += s.packageCount||0; b.bookings += 1;
@@ -2535,8 +2606,7 @@ function aggregate(countries){
     b.airCost += aw * airRateUsdFor(aw) * fxRate(s.country);
   });
   const keys = Object.keys(buckets).sort();
-  const lookback = LOOKBACK[gran];
-  return keys.slice(Math.max(0, keys.length-lookback)).map(k=>({key:k, byCountry:buckets[k]}));
+  return keys.map(k=>({key:k, byCountry:buckets[k]}));
 }
 
 function bucketTotal(row){
@@ -2591,6 +2661,20 @@ function refresh(){
   let sumShipped=0;
   rows.forEach(r=>{ const t = bucketTotal(r); sumShipped+=t.shipped; });
 
+  if(!rows.length){
+    const aK0 = document.getElementById("aKpis");
+    aK0.className = "section";
+    aK0.innerHTML = `<div class="card"><div class="empty-note">${rangeText()} 구간에 데이터가 없습니다. 기간을 넓혀보세요.</div></div>`;
+    document.getElementById("aCostKpis").innerHTML = "";
+    document.getElementById("aCostHint").textContent = rangeText();
+    document.getElementById("aTrendChart").innerHTML = "";
+    document.getElementById("aTrendLegend").innerHTML = "";
+    document.getElementById("aCompWrap").innerHTML = "";
+    document.getElementById("aCompLegend").innerHTML = "";
+    document.getElementById("aTables").innerHTML = "";
+    document.getElementById("aTableHint").textContent = rangeText();
+    return;
+  }
   const cur30 = rangeAgg(dw.start, dw.end, countries);
   const prev30 = rangeAgg(dw.pStart, dw.pEnd, countries);
   function countryStats(c){
@@ -2611,9 +2695,10 @@ function refresh(){
   const label = kpiCountries.map(c=>CD.COUNTRY_LABEL[c]).join('+');
   // 윗줄: 총 출고 수량 · 총 물류비 (각 2칸)  /  아랫줄: 국가별 물류비 · 건당 평균비용 (각 1칸)
   const oneCountry = kpiCountries.length === 1;
+  const rangeSub = rangeText();
   const cards = [
-    `<div class="kpi wide"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${label} 합계</div></div>`,
-    `<div class="kpi wide"><div class="label">총 물류비</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공</div></div>`
+    `<div class="kpi wide"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${label} 합계 · ${rangeSub}</div></div>`,
+    `<div class="kpi wide"><div class="label">총 물류비</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공 · ${rangeSub}</div></div>`
   ];
   kpiCountries.forEach(c=>{
     const st = countryStats(c);
@@ -2621,7 +2706,7 @@ function refresh(){
     const dCol = st.deltaPct==null ? "var(--muted)" : (st.deltaPct<=0 ? "var(--good-ink)" : "var(--critical-ink)");
     const dot = `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>`;
     const wide = oneCountry ? " wide" : "";     // 국가 하나면 아랫줄도 2칸씩 채운다
-    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp(costDisp)}</div><div class="sub">출고비+통관·택배+항공</div></div>`);
+    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp(costDisp)}</div><div class="sub" title="${rangeSub}">출고비+통관·택배+항공 · ${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)}</div></div>`);
     cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${dCol}">${st.deltaPct==null?'최근 30일 비교 불가':'직전 30일 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
   });
   const aK = document.getElementById("aKpis");
@@ -2654,7 +2739,7 @@ function refresh(){
     }, 0);
   }
   document.getElementById("aCostHint").textContent =
-    `${label} · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'} 합계 · ${dispSym()} 기준 · 증감은 최근 30일(${CD.fmtShort(dw.start)}~${CD.fmtShort(dw.end)}) vs 직전 30일`;
+    `${label} · ${rangeText()} 합계 · ${dispSym()} 기준 · 증감은 최근 30일(${CD.fmtShort(dw.start)}~${CD.fmtShort(dw.end)}) vs 직전 30일`;
   document.getElementById("aCostKpis").innerHTML = COST_KEYS.map(t=>{
     const total = typeTotals[t.key];
     const share = grandTotal>0 ? total/grandTotal*100 : 0;
@@ -2724,7 +2809,9 @@ function refresh(){
 
   // 기간별 상세 — 국가별로 표를 나누고, 각 구간에 직전 구간 대비 증감을 붙인다
   const granLabel = gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별';
-  document.getElementById("aTableHint").textContent = `최근 ${rows.length}개 구간 · ${granLabel} · ${dispSym()} 기준`;
+  document.getElementById("aTableHint").textContent =
+    `${rangeText()} · ${granLabel} ${rows.length}개 구간 · ${dispSym()} 기준` +
+    (rows.length > 60 ? " · 구간이 많습니다. 월별/연도별로 보시면 읽기 편합니다." : "");
 
   /** 직전 구간 대비 증감 칩 (비용은 낮을수록 좋으므로 내려가면 초록) */
   function chg(now, before, goodUp){
