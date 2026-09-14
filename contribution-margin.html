@@ -710,7 +710,7 @@ async function saveUploadRows(){
         p_revenue_krw: r.revenue_krw, p_contribution_krw: r.contribution_krw, p_contribution_rate: r.contribution_rate,
         p_cost_krw: r.cost_krw, p_order_count: r.order_count, p_fee_krw: r.fee_krw,
         p_seller_account: r.seller_account||null, p_sub_channel: r.sub_channel||null,
-        p_domestic_ship_krw: r.domestic_ship_krw ?? null, p_intl_ship_krw ?? null,
+        p_domestic_ship_krw: r.domestic_ship_krw ?? null, p_intl_ship_krw: r.intl_ship_krw ?? null,
         p_shipping_combined_krw: r.shipping_combined_krw ?? null, p_packaging_krw: r.packaging_krw ?? null,
         p_ad_fee_krw: r.ad_fee_krw ?? null, p_settlement_krw: r.settlement_krw ?? null,
         p_source: "settlement_file_upload"
