@@ -325,7 +325,7 @@ svg.chart .gridline{stroke:var(--line);}
 
   <div class="tabs" id="tabNav" role="tablist">
     <button class="tab-btn active" data-tab="dashboard" role="tab">대시보드</button>
-    <button class="tab-btn" data-tab="report" role="tab">월간 리포트</button>
+    <button class="tab-btn" data-tab="report" role="tab">리포트 · 인사이트</button>
     <button class="tab-btn" data-tab="holidays" role="tab">휴무일</button>
     <button class="tab-btn" data-tab="flights" role="tab">항공스케줄 &amp; 컷오프</button>
     <button class="tab-btn" data-tab="accounting" role="tab">회계 &amp; 분석</button>
@@ -1212,21 +1212,29 @@ function offReason(iso){
 }
 let editingId = null;
 let dQ = "", dPage = 0;
-const D_PER = 20;
+const D_PER = 15;
+/* 기록 목록 전용 필터 — 위쪽 기간 선택(filt)과 분리해서 과거 기록을 따로 찾아볼 수 있게 한다 */
+const lfilt = { year:"ALL", month:"ALL", date:"", country:"ALL" };
+let yearSig = "";
+const overlay = document.getElementById("modalOverlay");
+const modalBody = document.getElementById("modalBody");
 
 function packFieldId(key){ return "f"+key[0].toUpperCase()+key.slice(1); } // pack1 -> fPack1
 function packGridHtml(){
   return CD.PACK_KEYS.map((k,i)=> `<div class="pack-col"><label>${i+1}</label><input type="number" id="${packFieldId(k)}" min="0" value="0"></div>`).join("");
 }
 function readPackFields(){
-  const out = {}; CD.PACK_KEYS.forEach(k=>{ out[k] = Number(document.getElementById(packFieldId(k)).value)||0; }); return out;
+  const out = {};
+  CD.PACK_KEYS.forEach(k=>{ const el = document.getElementById(packFieldId(k)); out[k] = el ? (Number(el.value)||0) : 0; });
+  return out;
 }
 function updatePackHint(){
+  const el = document.getElementById("fPackHint");
+  if(!el) return;
   const vals = readPackFields();
   const boxes = CD.PACK_KEYS.reduce((s,k)=>s+vals[k], 0);
   const items = CD.PACK_KEYS.reduce((s,k,i)=>s+vals[k]*(i+1), 0);
-  const el = document.getElementById("fPackHint");
-  if(el) el.textContent = `합계 ${CD.fmtNum(boxes)}박스 · 제품 ${CD.fmtNum(items)}개`;
+  el.textContent = `합계 ${CD.fmtNum(boxes)}박스 · 제품 ${CD.fmtNum(items)}개`;
 }
 
 function shell(){
@@ -1292,41 +1300,32 @@ function shell(){
       </div>
     </div>
 
-    <div class="section grid two">
-      <div class="card">
-        <div class="section-head"><h2 id="dFormTitle">일일 데이터 입력</h2></div>
-        <form id="dForm">
-          <div class="grid form" style="grid-template-columns:1fr 1fr; gap:10px;">
-            <div class="field"><label>국가</label>
-              <select id="fCountry"><option value="KR">한국</option><option value="JP">일본</option></select>
-            </div>
-            <div class="field"><label>날짜</label><input type="date" id="fDate" required></div>
-            <div class="field"><label>픽킹 수량</label><input type="number" id="fPicked" min="0" required></div>
-            <div class="field"><label>팩킹 수량</label><input type="number" id="fPacked" min="0" required></div>
-            <div class="field" style="grid-column:1/-1;"><label>출고 수량</label><input type="number" id="fShipped" min="0" required></div>
-            <div class="field" style="grid-column:1/-1;">
-              <label>합포장 박스 수</label>
-              <div class="pack-grid">${packGridHtml()}</div>
-              <div class="help" id="fPackHint"></div>
-            </div>
-          </div>
-          <div class="row" style="margin-top:14px;">
-            <button type="submit" class="btn primary">저장</button>
-            <button type="button" class="btn ghost" id="fCancelEdit" hidden>편집 취소</button>
-            <span class="help" id="fHelp"></span>
-          </div>
-        </form>
+    <div class="section">
+      <div class="section-head">
+        <h2>일일 출고 기록</h2>
+        <div class="row">
+          <span class="hint" id="dListMsg"></span>
+          <button type="button" class="btn primary small" id="dOpenForm">일일 데이터 입력</button>
+          <button type="button" class="btn small danger ghost" id="dClearSample">샘플 데이터 삭제</button>
+        </div>
       </div>
       <div class="card">
-        <div class="section-head"><h2>최근 기록</h2>
-          <button class="btn small danger ghost" id="dClearSample">샘플 데이터 삭제</button>
-        </div>
         <div class="list-tools">
           <div class="search"><input type="text" id="dSearch" placeholder="날짜 검색 (예: 2026-09)"></div>
+          <select id="dLYear" style="min-width:104px"></select>
+          <select id="dLMonth" style="min-width:96px"></select>
+          <input type="date" id="dLDate" class="mono" title="특정 날짜만 보기">
+          <div class="seg" id="dLCountrySeg">
+            <button data-v="ALL" class="active">전체</button>
+            <button data-v="KR">한국</button>
+            <button data-v="JP">일본</button>
+          </div>
+          <button type="button" class="btn small ghost" id="dLReset">초기화</button>
+          <span class="spacer"></span>
         </div>
-        <div class="table-wrap" style="max-height:360px; overflow-y:auto;">
+        <div class="table-wrap">
           <table>
-            <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>합포장</th><th></th></tr></thead>
+            <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>출고 전일 대비</th><th>합포장</th><th></th></tr></thead>
             <tbody id="dTableBody"></tbody>
           </table>
         </div>
@@ -1366,9 +1365,7 @@ function shell(){
     const v = Number(e.target.value)||1000;
     CD.Store.saveSettings({ thresholds: { ...(CD.Cache.settings.thresholds||{}), high:v } });
   });
-  document.getElementById("dForm").addEventListener("submit", onSubmitForm);
-  document.getElementById("fCancelEdit").addEventListener("click", resetForm);
-  document.querySelector("#dForm .pack-grid").addEventListener("input", updatePackHint);
+  document.getElementById("dOpenForm").addEventListener("click", ()=> openDailyForm(null));
   const offBtn = document.getElementById("dOffToggle");
   function syncOffBtn(){ offBtn.classList.toggle("on", filt.excludeOff); }
   offBtn.addEventListener("click", ()=>{
@@ -1381,9 +1378,27 @@ function shell(){
   document.getElementById("dClearSample").addEventListener("click", async ()=>{
     if(confirm("샘플로 등록된 일일 데이터를 모두 삭제할까요?")) await CD.Store.bulkDeleteSample("daily");
   });
-  document.getElementById("fDate").value = CD.todayISO();
+
+  /* ---- 기록 목록 전용 필터 (위쪽 기간 선택과 독립적으로 동작) ---- */
+  document.getElementById("dLYear").addEventListener("change", e=>{ lfilt.year = e.target.value; dPage = 0; refresh(); });
+  document.getElementById("dLMonth").addEventListener("change", e=>{ lfilt.month = e.target.value; dPage = 0; refresh(); });
+  document.getElementById("dLDate").addEventListener("change", e=>{ lfilt.date = e.target.value; dPage = 0; refresh(); });
+  document.getElementById("dLCountrySeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    lfilt.country = b.dataset.v;
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    dPage = 0; refresh();
+  });
+  document.getElementById("dLReset").addEventListener("click", ()=>{
+    lfilt.year="ALL"; lfilt.month="ALL"; lfilt.date=""; lfilt.country="ALL"; dQ=""; dPage=0;
+    document.getElementById("dSearch").value = "";
+    document.getElementById("dLDate").value = "";
+    document.querySelectorAll("#dLCountrySeg button").forEach(b=> b.classList.toggle("active", b.dataset.v==="ALL"));
+    yearSig = "";
+    refresh();
+  });
+
   syncRangeInputs();
-  updatePackHint();
   built = true;
 }
 
@@ -1392,27 +1407,84 @@ function syncRangeInputs(){
   document.getElementById("dEnd").value = filt.end;
 }
 
-function resetForm(){
+/* ---------- 일일 데이터 입력 · 수정 모달 ---------- */
+function closeDailyModal(){
+  overlay.hidden = true;
+  modalBody.innerHTML = "";
   editingId = null;
-  document.getElementById("dFormTitle").textContent = "일일 데이터 입력";
-  document.getElementById("fHelp").textContent = "";
-  document.getElementById("fCancelEdit").hidden = true;
-  document.getElementById("dForm").reset();
-  document.getElementById("fDate").value = CD.todayISO();
+}
+function flashList(msg){
+  const el = document.getElementById("dListMsg");
+  if(!el) return;
+  el.textContent = msg;
+  setTimeout(()=>{ if(el.textContent===msg) el.textContent = ""; }, 2400);
+}
+
+function openDailyForm(rec){
+  editingId = rec ? rec.id : null;
+  const r = rec || { country: (lfilt.country==="JP" ? "JP" : "KR"), date: CD.todayISO(), picked:0, packed:0, shipped:0 };
+  modalBody.innerHTML = `
+    <div class="modal-head">
+      <h3>${rec ? "일일 데이터 수정" : "일일 데이터 입력"}</h3>
+      <button class="close-x" id="fClose" type="button">&times;</button>
+    </div>
+    <form id="dForm">
+      <div class="grid form">
+        <div class="field"><label>국가</label>
+          <select id="fCountry"><option value="KR">한국</option><option value="JP">일본</option></select>
+        </div>
+        <div class="field"><label>날짜</label><input type="date" id="fDate" required></div>
+        <div class="field"><label>픽킹 수량</label><input type="number" id="fPicked" min="0" required></div>
+        <div class="field"><label>팩킹 수량</label><input type="number" id="fPacked" min="0" required></div>
+        <div class="field full"><label>출고 수량</label><input type="number" id="fShipped" min="0" required></div>
+        <div class="field full">
+          <label>합포장 박스 수</label>
+          <div class="pack-grid">${packGridHtml()}</div>
+          <div class="help" id="fPackHint"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        ${rec ? `<button type="button" class="btn danger ghost" id="fDelete" style="margin-right:auto;">삭제</button>` : ``}
+        <button type="button" class="btn ghost" id="fCancel">취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </div>
+    </form>
+  `;
+  overlay.hidden = false;
+  document.getElementById("fCountry").value = r.country;
+  document.getElementById("fDate").value = r.date;
+  // 신규 입력은 0을 지우고 쓰는 번거로움이 없게 빈칸으로 둔다
+  document.getElementById("fPicked").value  = rec ? (r.picked||0)  : "";
+  document.getElementById("fPacked").value  = rec ? (r.packed||0)  : "";
+  document.getElementById("fShipped").value = rec ? (r.shipped||0) : "";
+  CD.PACK_KEYS.forEach(k=>{ const el = document.getElementById(packFieldId(k)); if(el) el.value = r[k]||0; });
   updatePackHint();
+
+  document.getElementById("dForm").addEventListener("submit", onSubmitForm);
+  document.querySelector("#dForm .pack-grid").addEventListener("input", updatePackHint);
+  document.getElementById("fClose").addEventListener("click", closeDailyModal);
+  document.getElementById("fCancel").addEventListener("click", closeDailyModal);
+  const del = document.getElementById("fDelete");
+  if(del) del.addEventListener("click", async ()=>{
+    if(!confirm("이 기록을 삭제할까요?")) return;
+    const id = editingId;
+    closeDailyModal();
+    await CD.Store.deleteDaily(id);
+    flashList("삭제되었습니다.");
+  });
+  setTimeout(()=>{ const f = document.getElementById("fPicked"); if(f) f.focus(); }, 30);
 }
 
 async function onSubmitForm(e){
   e.preventDefault();
   const country = document.getElementById("fCountry").value;
   const date = document.getElementById("fDate").value;
-  if(!date){ return; }
+  if(!date) return;
   const newId = `${country}_${date}`;
   // 수정 중에 날짜·국가를 바꾸면 키가 달라진다. 기존 건을 지워야 중복이 안 생긴다.
   const keyChanged = editingId && editingId !== newId;
-  if(keyChanged && CD.Cache.daily.some(d=>d.id===newId)){
-    if(!confirm(`${CD.COUNTRY_LABEL[country]} ${date} 데이터가 이미 있습니다. 덮어쓸까요?`)) return;
-  }
+  const collides = (!editingId || keyChanged) && CD.Cache.daily.some(d=>d.id===newId);
+  if(collides && !confirm(`${CD.COUNTRY_LABEL[country]} ${date} 데이터가 이미 있습니다. 덮어쓸까요?`)) return;
   const rec = {
     id: newId, country, date,
     picked: Number(document.getElementById("fPicked").value)||0,
@@ -1420,36 +1492,66 @@ async function onSubmitForm(e){
     shipped: Number(document.getElementById("fShipped").value)||0,
     ...readPackFields(),
   };
+  const oldId = editingId, wasEdit = !!editingId;
   await CD.Store.upsertDaily(rec);
-  if(keyChanged) await CD.Store.deleteDaily(editingId);
-  const wasEdit = !!editingId;
-  resetForm();
-  const h = document.getElementById("fHelp");
-  h.textContent = wasEdit ? "수정되었습니다." : "저장되었습니다.";
-  setTimeout(()=>{ if(h) h.textContent=""; }, 2000);
+  if(keyChanged) await CD.Store.deleteDaily(oldId);
+  closeDailyModal();
+  flashList(wasEdit ? "수정되었습니다." : "저장되었습니다.");
 }
 
-function loadIntoForm(rec){
-  editingId = rec.id;
-  const form = document.getElementById("dForm");
-  if(form){                                   // 폼이 화면 밖에 있으면 눌러도 반응이 없어 보인다
-    form.scrollIntoView({behavior:"smooth", block:"center"});
-    const card = form.closest(".card");
-    if(card){
-      card.style.transition = "box-shadow .25s";
-      card.style.boxShadow = "0 0 0 2px var(--accent)";
-      setTimeout(()=>{ card.style.boxShadow = ""; }, 900);
-    }
+/* ---------- 기록 목록 ---------- */
+function listRows(){
+  return CD.Cache.daily.filter(d=>{
+    if(!d.date) return false;
+    if(lfilt.country!=="ALL" && d.country!==lfilt.country) return false;
+    if(lfilt.date) return d.date === lfilt.date;               // 특정 날짜를 고르면 연·월 선택은 무시한다
+    if(lfilt.year!=="ALL"  && d.date.slice(0,4)!==lfilt.year)  return false;
+    if(lfilt.month!=="ALL" && d.date.slice(5,7)!==lfilt.month) return false;
+    return true;
+  })
+  .filter(r=> CD.matchQuery(dQ, r.date, CD.COUNTRY_LABEL[r.country], r.country))
+  .sort((a,b)=> a.date<b.date ? 1 : a.date>b.date ? -1 : (a.country<b.country?-1:1));
+}
+
+/** 같은 국가의 바로 앞 기록일을 id로 찾아둔다 (필터와 무관하게 전체 데이터 기준) */
+function prevRecordMap(){
+  const m = {};
+  CD.COUNTRIES.forEach(c=>{
+    const arr = CD.Cache.daily.filter(d=>d.country===c && d.date).sort((a,b)=> a.date<b.date?-1:1);
+    arr.forEach((r,i)=>{ m[r.id] = i>0 ? arr[i-1] : null; });
+  });
+  return m;
+}
+
+function deltaCell(r, prev){
+  if(!prev) return `<span style="color:var(--muted)">첫 기록</span>`;
+  const now = r.shipped||0, before = prev.shipped||0;
+  const diff = now - before;
+  const p = before>0 ? (diff/before*100) : null;
+  const col = diff>0 ? "var(--good-ink)" : diff<0 ? "var(--critical-ink)" : "var(--ink-2)";
+  const sign = diff>0 ? "+" : "";
+  const pctTxt = p===null ? "" : ` (${sign}${p.toFixed(1)}%)`;
+  return `<span style="color:${col}" title="직전 기록일 ${CD.fmtFull(prev.date)} · ${CD.fmtNum(before)}개">${sign}${CD.fmtNum(diff)}${pctTxt}</span>`;
+}
+
+function syncListSelects(){
+  const ys = [...new Set(CD.Cache.daily.map(d=> d.date && d.date.slice(0,4)).filter(Boolean))].sort().reverse();
+  const sig = ys.join(",");
+  const ySel = document.getElementById("dLYear");
+  if(ySel && sig !== yearSig){                     // 연도 목록이 바뀔 때만 다시 그린다 (선택 중 포커스 유지)
+    yearSig = sig;
+    ySel.innerHTML = `<option value="ALL">연도 전체</option>` + ys.map(y=>`<option value="${y}">${y}년</option>`).join("");
   }
-  document.getElementById("dFormTitle").textContent = "일일 데이터 수정";
-  document.getElementById("fCancelEdit").hidden = false;
-  document.getElementById("fCountry").value = rec.country;
-  document.getElementById("fDate").value = rec.date;
-  document.getElementById("fPicked").value = rec.picked||0;
-  document.getElementById("fPacked").value = rec.packed||0;
-  document.getElementById("fShipped").value = rec.shipped||0;
-  CD.PACK_KEYS.forEach(k=> document.getElementById(packFieldId(k)).value = rec[k]||0);
-  updatePackHint();
+  if(ySel) ySel.value = lfilt.year;
+  const mSel = document.getElementById("dLMonth");
+  if(mSel && !mSel.options.length){
+    mSel.innerHTML = `<option value="ALL">월 전체</option>` +
+      Array.from({length:12},(_,i)=>CD.pad2(i+1)).map(m=>`<option value="${m}">${Number(m)}월</option>`).join("");
+  }
+  if(mSel) mSel.value = lfilt.month;
+  const dSel = document.getElementById("dLYear");
+  if(dSel) dSel.disabled = !!lfilt.date;
+  if(mSel) mSel.disabled = !!lfilt.date;
 }
 
 function filteredDaily(){
@@ -1530,11 +1632,13 @@ function refresh(){
     });
   });
 
+  syncListSelects();
   const tbody = document.getElementById("dTableBody");
-  const sorted = [...rows].sort((a,b)=> a.date<b.date?1:-1)
-    .filter(r=> CD.matchQuery(dQ, r.date, CD.COUNTRY_LABEL[r.country], r.country));
+  const sorted = listRows();
+  const prevMap = prevRecordMap();
   const dPages = Math.max(1, Math.ceil(sorted.length/D_PER));
   if(dPage >= dPages) dPage = dPages-1;
+  if(dPage < 0) dPage = 0;
   CD.renderPager(document.getElementById("dPager"), {
     total: sorted.length, page: dPage, perPage: D_PER, onGo: n=>{ dPage = n; refresh(); }
   });
@@ -1546,13 +1650,14 @@ function refresh(){
       <td>${CD.fmtNum(r.picked||0)}</td>
       <td>${CD.fmtNum(r.packed||0)}</td>
       <td>${CD.fmtNum(r.shipped||0)}</td>
+      <td>${deltaCell(r, prevMap[r.id])}</td>
       <td>${CD.fmtNum(boxes)}박스${r.isSample?' <span class="badge sample">예시</span>':''}</td>
       <td class="text"><button class="btn small ghost" data-edit="${r.id}">수정</button> <button class="btn small danger ghost" data-del="${r.id}">삭제</button></td>
     </tr>`;
-  }).join("") || `<tr><td colspan="7" class="text empty-note">해당 기간의 데이터가 없습니다.</td></tr>`;
+  }).join("") || `<tr><td colspan="8" class="text empty-note">조건에 맞는 기록이 없습니다.</td></tr>`;
 
   tbody.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=>{
-    const rec = CD.Cache.daily.find(x=>x.id===b.dataset.edit); if(rec) loadIntoForm(rec);
+    const rec = CD.Cache.daily.find(x=>x.id===b.dataset.edit); if(rec) openDailyForm(rec);
   }));
   tbody.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", async ()=>{
     if(confirm("이 기록을 삭제할까요?")) await CD.Store.deleteDaily(b.dataset.del);
@@ -2444,27 +2549,60 @@ function bucketTotal(row){
 }
 function bucketCost(b){ return b.packingCost+b.lastMileCost+b.airCost; }
 
+/* ---------------------------------------------------------------------
+   증감 비교는 화면의 집계 단위(일/주/월/연)와 상관없이 항상 "최근 30일 vs
+   직전 30일"로 본다. 월 단위로 비교하면 진행 중인 달이 항상 손해로 보인다.
+   --------------------------------------------------------------------- */
+const DELTA_DAYS = 30;
+function deltaWindows(){
+  const end = CD.todayISO();
+  const start = CD.addDays(end, -(DELTA_DAYS-1));
+  const pEnd = CD.addDays(start, -1);
+  const pStart = CD.addDays(pEnd, -(DELTA_DAYS-1));
+  return { start, end, pStart, pEnd };
+}
+/** 한 구간(시작~종료, 양 끝 포함)의 국가별 수량·비용 합계 (각 국가 현지통화 기준) */
+function rangeAgg(start, end, countries){
+  const by = {};
+  countries.forEach(c=> by[c] = {shipped:0, packingCost:0, lastMileCost:0, airCost:0});
+  CD.Cache.daily.forEach(r=>{
+    if(!by[r.country] || !r.date || r.date < start || r.date > end) return;
+    const b = by[r.country];
+    b.shipped += r.shipped||0;
+    b.packingCost += packingCostUsd(r) * fxRate(r.country);
+    b.lastMileCost += (r.shipped||0) * (rateFor(r.country).lastMile||0);
+  });
+  CD.Cache.shipments.forEach(sh=>{
+    if(!by[sh.country] || !sh.cutoffDate || sh.cutoffDate < start || sh.cutoffDate > end) return;
+    const aw = sh.actualWeight||0;
+    by[sh.country].airCost += aw * airRateUsdFor(aw) * fxRate(sh.country);
+  });
+  return by;
+}
+
 function refresh(){
   if(!built) return;
   renderRateForms();
   const countries = countryFilter==="ALL" ? CD.COUNTRIES : [countryFilter];
   const rows = aggregate(countries);
+  const dw = deltaWindows();
 
   // KPIs — money totals are kept per-country (KRW and JPY are not summed together)
   let sumShipped=0;
   rows.forEach(r=>{ const t = bucketTotal(r); sumShipped+=t.shipped; });
 
+  const cur30 = rangeAgg(dw.start, dw.end, countries);
+  const prev30 = rangeAgg(dw.pStart, dw.pEnd, countries);
   function countryStats(c){
     let shipped=0, cost=0;
     rows.forEach(r=>{ const b=r.byCountry[c]; if(b){ shipped+=b.shipped; cost+=bucketCost(b); } });
     const perOrder = shipped>0 ? cost/shipped : 0;
+    // 증감은 최근 30일 건당비용 vs 직전 30일 건당비용
     let deltaPct = null;
-    if(rows.length>=2){
-      const lastB = rows[rows.length-1].byCountry[c], prevB = rows[rows.length-2].byCountry[c];
-      const lastPO = lastB && lastB.shipped>0 ? bucketCost(lastB)/lastB.shipped : null;
-      const prevPO = prevB && prevB.shipped>0 ? bucketCost(prevB)/prevB.shipped : null;
-      if(lastPO!=null && prevPO){ deltaPct = ((lastPO-prevPO)/prevPO)*100; }
-    }
+    const nb = cur30[c], pb = prev30[c];
+    const nowPO  = nb && nb.shipped>0 ? bucketCost(nb)/nb.shipped : null;
+    const prevPO = pb && pb.shipped>0 ? bucketCost(pb)/pb.shipped : null;
+    if(nowPO!=null && prevPO) deltaPct = ((nowPO-prevPO)/prevPO)*100;
     return {shipped, cost, perOrder, deltaPct};
   }
 
@@ -2484,7 +2622,7 @@ function refresh(){
     const dot = `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>`;
     const wide = oneCountry ? " wide" : "";     // 국가 하나면 아랫줄도 2칸씩 채운다
     cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp(costDisp)}</div><div class="sub">출고비+통관·택배+항공</div></div>`);
-    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${dCol}">${st.deltaPct==null?'직전 구간 비교 불가':'직전 구간 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
+    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${dCol}">${st.deltaPct==null?'최근 30일 비교 불가':'직전 30일 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
   });
   const aK = document.getElementById("aKpis");
   aK.className = "section grid kpis24";
@@ -2508,19 +2646,24 @@ function refresh(){
   COST_KEYS.forEach(t=>{ typeTotals[t.key] = rows.reduce((sum,r)=> sum + bucketTypeSum(r, t.key), 0); });
   const grandTotal = COST_KEYS.reduce((sum,t)=> sum + typeTotals[t.key], 0);
 
+  /** 30일 창 하나의 특정 비용 항목을 표시 통화로 합산 */
+  function winTypeSum(win, key){
+    return kpiCountries.reduce((sum,c)=>{
+      const b = win[c];
+      return b ? sum + toDisp(b[key]||0, c) : sum;
+    }, 0);
+  }
   document.getElementById("aCostHint").textContent =
-    `${label} · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'} 합계 · ${dispSym()} 기준`;
+    `${label} · ${gran==='day'?'일별':gran==='week'?'주별':gran==='month'?'월별':'연도별'} 합계 · ${dispSym()} 기준 · 증감은 최근 30일(${CD.fmtShort(dw.start)}~${CD.fmtShort(dw.end)}) vs 직전 30일`;
   document.getElementById("aCostKpis").innerHTML = COST_KEYS.map(t=>{
     const total = typeTotals[t.key];
     const share = grandTotal>0 ? total/grandTotal*100 : 0;
-    let d = null;                                   // 직전 구간 대비 (마지막 구간 vs 그 앞 구간)
-    if(rows.length>=2){
-      const now = bucketTypeSum(rows[rows.length-1], t.key);
-      const before = bucketTypeSum(rows[rows.length-2], t.key);
-      if(before>0) d = (now-before)/before*100;
-    }
+    let d = null;                                   // 최근 30일 vs 직전 30일
+    const now = winTypeSum(cur30, t.key);
+    const before = winTypeSum(prev30, t.key);
+    if(before>0) d = (now-before)/before*100;
     const dCol = d==null ? "var(--muted)" : (d<=0 ? "var(--good-ink)" : "var(--critical-ink)");
-    const dTxt = d==null ? "직전 구간 비교 불가" : `직전 구간 대비 ${d>0?"+":""}${d.toFixed(1)}%`;
+    const dTxt = d==null ? "최근 30일 비교 불가" : `직전 30일 대비 ${d>0?"+":""}${d.toFixed(1)}%`;
     return `<div class="kpi">
       <div class="label"><span class="dot" style="background:var(${t.color})"></span>${t.label}</div>
       <div class="value">${fmtDisp(total)}</div>
@@ -2654,7 +2797,8 @@ CD.on("ready", ()=>{ shell(); refresh(); });
 const CD = window.CD, Charts = window.CDCharts;
 const root = document.getElementById("view-report");
 let built = false;
-let month = null;                 // "YYYY-MM"
+/* 월 단위로 보면 이번 달이 진행 중일 때 비교가 왜곡된다. 그래서 오늘 기준 롤링 구간으로 본다. */
+let days = 30;                    // 최근 N일
 let countryFilter = "ALL";
 let cur = "KRW";
 try{ cur = localStorage.getItem("cargodesk_dispCurrency") || "KRW"; }catch(e){}
@@ -2674,15 +2818,16 @@ function tierUsd(k){ const p=packRates(); return p.baseUsd + p.stepUsd*(k-1); }
 function airTiers(){ return S().air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
 function lastMileOf(c){ return (S()[c]||{}).lastMile || 0; }
 
-/* ---------- 한 달치 집계 ---------- */
-function aggregate(m, countries){
+/* ---------- 구간 집계 (시작일~종료일, 양 끝 포함) ---------- */
+function aggregate(start, end, countries){
   const a = { days:0, picked:0, packed:0, shipped:0, boxes:0, skuUnits:0,
               packCost:0, lastMileCost:0, airCost:0, peak:{date:null, v:0}, byCountry:{} };
   countries.forEach(c=> a.byCountry[c] = {picked:0,packed:0,shipped:0,boxes:0,skuUnits:0,cost:0,days:0});
+  const dayset = new Set();
   CD.Cache.daily.forEach(r=>{
-    if(!r.date || r.date.slice(0,7)!==m || !countries.includes(r.country)) return;
+    if(!r.date || r.date < start || r.date > end || !countries.includes(r.country)) return;
     const b = a.byCountry[r.country];
-    a.days++; b.days++;
+    dayset.add(r.date); b.days++;
     a.picked += r.picked||0; a.packed += r.packed||0; a.shipped += r.shipped||0;
     b.picked += r.picked||0; b.packed += r.packed||0; b.shipped += r.shipped||0;
     let pkUsd = 0;
@@ -2699,8 +2844,9 @@ function aggregate(m, countries){
     b.cost += pc + lm;
     if((r.shipped||0) > a.peak.v) a.peak = {date:r.date, v:r.shipped||0};
   });
+  a.days = dayset.size;                       // 국가가 둘이어도 같은 날은 하루로 센다
   CD.Cache.shipments.forEach(s=>{
-    if(!s.cutoffDate || s.cutoffDate.slice(0,7)!==m || !countries.includes(s.country)) return;
+    if(!s.cutoffDate || s.cutoffDate < start || s.cutoffDate > end || !countries.includes(s.country)) return;
     const aw = s.actualWeight||0;
     const t = airTiers();
     const usd = aw * (aw >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd);
@@ -2722,11 +2868,21 @@ function months(){
   CD.Cache.daily.forEach(r=>{ if(r.date) set.add(r.date.slice(0,7)); });
   return [...set].sort();
 }
-function prevMonth(m){
-  const [y,mm] = m.split("-").map(Number);
-  const d = new Date(y, mm-2, 1);
-  return d.getFullYear()+"-"+CD.pad2(d.getMonth()+1);
+/** 월별 추이 차트용 — "YYYY-MM" 한 달치를 구간 집계로 돌린다 */
+function aggMonth(m, countries){
+  const start = m + "-01";
+  const end = m + "-" + CD.pad2(CD.daysInMonth(Number(m.slice(0,4)), Number(m.slice(5,7))-1));
+  return aggregate(start, end, countries);
 }
+/** 현재 선택 구간과 그 직전 동일 길이 구간 */
+function windows(){
+  const end = CD.todayISO();
+  const start = CD.addDays(end, -(days-1));
+  const pEnd = CD.addDays(start, -1);
+  const pStart = CD.addDays(pEnd, -(days-1));
+  return { start, end, pStart, pEnd };
+}
+function rangeLabel(a, b){ return `${CD.fmtShort(a)}~${CD.fmtShort(b)}`; }
 function pct(now, before){
   if(before===null || before===undefined || before===0) return null;
   return ((now-before)/before)*100;
@@ -2734,19 +2890,20 @@ function pct(now, before){
 /** delta chip — 증가가 좋은 지표(good=true)면 초록, 비용처럼 낮을수록 좋은 지표면 반대 */
 function delta(now, before, goodUp){
   const p = pct(now, before);
-  if(p===null) return `<span class="sub" style="color:var(--muted)">전월 데이터 없음</span>`;
+  if(p===null) return `<span class="sub" style="color:var(--muted)">직전 ${days}일 데이터 없음</span>`;
   const up = p>0;
   let col = "var(--ink-2)";
   if(goodUp!==null && Math.abs(p)>=0.05) col = (goodUp?up:!up) ? "var(--good-ink)" : "var(--critical-ink)";
-  return `<span style="color:${col}">전월 대비 ${up?"+":""}${p.toFixed(1)}%</span>`;
+  return `<span style="color:${col}">직전 ${days}일 대비 ${up?"+":""}${p.toFixed(1)}%</span>`;
 }
 
 /* ---------- 자동 인사이트 ---------- */
-function insights(m, a, b){
+function insights(a, b){
   const out = [];
+  const VS = `직전 ${days}일 대비`;
   const pShip = pct(a.shipped, b.shipped);
   if(pShip!==null && Math.abs(pShip)>=3){
-    out.push(`출고량이 전월 대비 <b>${pShip>0?"+":""}${pShip.toFixed(1)}%</b> (${CD.fmtNum(b.shipped)} → ${CD.fmtNum(a.shipped)}개) ${pShip>0?"증가":"감소"}했습니다.`);
+    out.push(`출고량이 ${VS} <b>${pShip>0?"+":""}${pShip.toFixed(1)}%</b> (${CD.fmtNum(b.shipped)} → ${CD.fmtNum(a.shipped)}개) ${pShip>0?"증가":"감소"}했습니다.`);
   }
   const pDay = pct(a.avgDaily, b.avgDaily);
   if(pShip!==null && pDay!==null && Math.abs(pShip-pDay)>=4){
@@ -2768,9 +2925,9 @@ function insights(m, a, b){
   }
   if(a.shipRate!==null && a.shipRate < 0.95){
     const carry = a.packed - a.shipped;
-    out.push(`팩킹 대비 출고율이 <b>${(a.shipRate*100).toFixed(1)}%</b>로, ${CD.fmtNum(carry)}건이 이번 달 안에 출고되지 않았습니다. 항공 스케줄 또는 컷오프 일정을 확인해보세요.`);
+    out.push(`팩킹 대비 출고율이 <b>${(a.shipRate*100).toFixed(1)}%</b>로, ${CD.fmtNum(carry)}건이 이 구간 안에 출고되지 않았습니다. 항공 스케줄 또는 컷오프 일정을 확인해보세요.`);
   } else if(a.shipRate!==null && a.shipRate > 1.05){
-    out.push(`팩킹보다 출고가 <b>${(a.shipRate*100).toFixed(1)}%</b>로 많습니다. 전월 이월 물량이 이번 달에 나간 것으로 보입니다.`);
+    out.push(`팩킹보다 출고가 <b>${(a.shipRate*100).toFixed(1)}%</b>로 많습니다. 이전 구간 이월 물량이 이 구간에 나간 것으로 보입니다.`);
   }
   if(a.packRate!==null && a.packRate < 0.95){
     out.push(`픽킹 대비 팩킹률이 <b>${(a.packRate*100).toFixed(1)}%</b>입니다. 픽킹 후 포장까지 넘어가지 못한 물량이 있는지 확인이 필요합니다.`);
@@ -2791,7 +2948,7 @@ function insights(m, a, b){
       }
     });
   }
-  if(!out.length) out.push("전월과 비교해 특별히 눈에 띄는 변화는 없습니다.");
+  if(!out.length) out.push(`직전 ${days}일과 비교해 특별히 눈에 띄는 변화는 없습니다.`);
   return out;
 }
 
@@ -2800,7 +2957,11 @@ function shell(){
   root.innerHTML = `
     <div class="section row between">
       <div class="row">
-        <select id="rpMonth" style="min-width:130px;"></select>
+        <div class="seg" id="rpRangeSeg">
+          <button data-v="7">최근 7일</button>
+          <button data-v="30" class="active">최근 30일</button>
+          <button data-v="90">최근 90일</button>
+        </div>
         <div class="seg" id="rpCountrySeg">
           <button data-v="ALL" class="active">전체</button>
           <button data-v="KR">한국</button>
@@ -2818,7 +2979,7 @@ function shell(){
 
     <div class="section grid two">
       <div class="card">
-        <div class="section-head"><h2>이번 달 요약</h2><span class="hint" id="rpVs"></span></div>
+        <div class="section-head"><h2 id="rpSummaryTitle">최근 30일 요약</h2><span class="hint" id="rpVs"></span></div>
         <ul id="rpInsights" style="margin:0; padding-left:18px; font-size:12.5px; line-height:1.85;"></ul>
       </div>
       <div class="card">
@@ -2831,7 +2992,7 @@ function shell(){
       <div class="section-head"><h2>국가별 비교</h2></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>박스</th><th>박스당 SKU</th><th>물류비</th><th>건당비용</th><th>전월 대비 출고</th></tr></thead>
+          <thead><tr><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>박스</th><th>박스당 SKU</th><th>물류비</th><th>건당비용</th><th id="rpThDelta">직전 구간 대비 출고</th></tr></thead>
           <tbody id="rpTableBody"></tbody>
         </table>
       </div>
@@ -2847,7 +3008,12 @@ function shell(){
       <div class="card"><div id="rpCostChart"></div><div class="chart-legend" id="rpCostLegend"></div></div>
     </div>
   `;
-  document.getElementById("rpMonth").addEventListener("change", e=>{ month = e.target.value; refresh(); });
+  document.getElementById("rpRangeSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    days = Number(b.dataset.v);
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    refresh();
+  });
   document.getElementById("rpCountrySeg").addEventListener("click", e=>{
     const b=e.target.closest("button"); if(!b) return;
     countryFilter=b.dataset.v; [...b.parentElement.children].forEach(c=>c.classList.toggle("active",c===b)); refresh();
@@ -2881,28 +3047,28 @@ function refresh(){
   if(!built) return;
   const ms = months();
   if(!ms.length){ document.getElementById("rpKpis").innerHTML = `<div class="empty-note">데이터가 없습니다.</div>`; return; }
-  if(!month || !ms.includes(month)) month = ms[ms.length-1];
-  const sel = document.getElementById("rpMonth");
-  sel.innerHTML = [...ms].reverse().map(m=>`<option value="${m}" ${m===month?"selected":""}>${CD.monthLabel(m)}</option>`).join("");
 
   const countries = countryFilter==="ALL" ? CD.COUNTRIES : [countryFilter];
-  const pm = prevMonth(month);
-  const a = aggregate(month, countries);
-  const b = aggregate(pm, countries);
-  document.getElementById("rpVs").textContent = `${CD.monthLabel(month)} vs ${CD.monthLabel(pm)}`;
+  const w = windows();
+  const a = aggregate(w.start, w.end, countries);
+  const b = aggregate(w.pStart, w.pEnd, countries);
+  document.getElementById("rpSummaryTitle").textContent = `최근 ${days}일 요약`;
+  document.getElementById("rpThDelta").textContent = `직전 ${days}일 대비 출고`;
+  document.getElementById("rpVs").textContent =
+    `최근 ${days}일 (${rangeLabel(w.start, w.end)}) vs 직전 ${days}일 (${rangeLabel(w.pStart, w.pEnd)})`;
 
   document.getElementById("rpKpis").innerHTML = [
     kpi("출고 수량", CD.fmtNum(a.shipped), delta(a.shipped, b.shipped, true)),
     kpi("팩킹 수량", CD.fmtNum(a.packed), delta(a.packed, b.packed, true)),
-    kpi("일평균 출고", CD.fmtNum(a.avgDaily), `가동 ${a.days}일 (전월 ${b.days}일)`),
+    kpi("일평균 출고", CD.fmtNum(a.avgDaily), `가동 ${a.days}일 (직전 ${b.days}일)`),
     kpi("총 물류비", fmtMoney(a.total), delta(a.total, b.total, false)),
     kpi("건당 물류비", fmtMoney(a.perOrder), delta(a.perOrder, b.perOrder, false)),
-    kpi("박스당 SKU", a.skuPerBox.toFixed(2), b.skuPerBox ? delta(a.skuPerBox, b.skuPerBox, null) : "전월 데이터 없음"),
+    kpi("박스당 SKU", a.skuPerBox.toFixed(2), b.skuPerBox ? delta(a.skuPerBox, b.skuPerBox, null) : `직전 ${days}일 데이터 없음`),
   ].join("");
 
   CD.fitKpi(document.getElementById("rpKpis"));
 
-  document.getElementById("rpInsights").innerHTML = insights(month, a, b).map(t=>`<li>${t}</li>`).join("");
+  document.getElementById("rpInsights").innerHTML = insights(a, b).map(t=>`<li>${t}</li>`).join("");
 
   document.getElementById("rpFunnel").innerHTML =
       bar("픽킹", a.picked, a.picked, "var(--kr)")
@@ -2929,7 +3095,7 @@ function refresh(){
   // 최근 12개월 추이
   const recent = ms.slice(-12);
   const trendData = recent.map(m=>{
-    const g = aggregate(m, countries);
+    const g = aggMonth(m, countries);
     const row = {date:m};
     countries.forEach(c=> row[c] = g.byCountry[c].shipped);
     return row;
@@ -2947,7 +3113,7 @@ function refresh(){
     key:c, label: CD.COUNTRY_LABEL[c], color: CD.cssVar("--"+c.toLowerCase()),
     fmt: v=> fmtMoney(v),
     values: recent.map(m=>{
-      const g = aggregate(m, [c]);
+      const g = aggMonth(m, [c]);
       return g.shipped>0 ? g.total/g.shipped : NaN;
     })
   }));
