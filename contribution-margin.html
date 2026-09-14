@@ -4,10 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OPLE 공헌이익 시스템</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --paper:#f5f7f9;
@@ -65,16 +64,21 @@
   *{box-sizing:border-box}
   body{
     margin:0; background:var(--paper); color:var(--ink);
-    font-family:"IBM Plex Sans KR","IBM Plex Sans",-apple-system,sans-serif;
-    font-size:14.5px; line-height:1.5;
+    font-family:'Pretendard',-apple-system,sans-serif;
+    font-weight:300;
+    font-size:14.5px; line-height:1.55;
   }
-  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
-  .wrap{max-width:1080px; margin:0 auto; padding:20px 20px 64px;}
+  /* ---- typography tiers: 제목 ExtraBold / 부제목 SemiBold / 그외 Light ---- */
+  h1, h3, .bignum, .kpi .num, .pivot-rev { font-weight:800; }
+  .sub, .sectiontitle, .field label, table th, .badge, .kpi .lbl, .lastsync,
+  .resultHead .meta, .upload-title, .pivot-rate, .delta { font-weight:600; }
+  .tabular{font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1180px; margin:0 auto; padding:20px 20px 64px;}
   header.top{
     display:flex; align-items:baseline; justify-content:space-between; gap:12px;
     padding:18px 4px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap;
   }
-  header.top h1{font-size:19px; margin:0; font-weight:700; letter-spacing:-.01em;}
+  header.top h1{font-size:20px; margin:0; letter-spacing:-.01em;}
   header.top .sub{color:var(--ink-dim); font-size:12.5px;}
   nav.tabs{
     display:flex; gap:4px; margin:18px 0 22px; padding:4px;
@@ -94,124 +98,74 @@
     background:var(--paper-raised); border:1px solid var(--line); border-radius:12px;
     padding:20px; box-shadow:var(--shadow);
   }
+  .card + .card{margin-top:16px;}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   @media (max-width:640px){.grid2{grid-template-columns:1fr;}}
   .field{display:flex; flex-direction:column; gap:6px; margin-bottom:14px;}
-  .field label{font-size:12px; font-weight:600; color:var(--ink-dim); letter-spacing:.02em;}
+  .field label{font-size:12px; color:var(--ink-dim); letter-spacing:.02em;}
   .field input, .field select{
-    font:inherit; font-size:14px; padding:10px 12px; border-radius:8px;
+    font:inherit; font-weight:300; font-size:14px; padding:10px 12px; border-radius:8px;
     border:1px solid var(--line); background:var(--paper); color:var(--ink);
   }
   .field input:focus, .field select:focus{outline:2px solid var(--accent); outline-offset:-1px;}
-  .row{display:flex; gap:12px; flex-wrap:wrap;}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;}
   .row > *{flex:1; min-width:140px;}
   button.primary{
     appearance:none; border:none; background:var(--accent); color:var(--accent-ink);
-    font:inherit; font-weight:700; font-size:14px; padding:11px 20px; border-radius:8px;
+    font:inherit; font-weight:600; font-size:14px; padding:11px 20px; border-radius:8px;
     cursor:pointer; margin-top:4px;
   }
   button.primary:hover{filter:brightness(1.06);}
-  button.primary:disabled{opacity:.55; cursor:default;}
+  button.primary:disabled{opacity:.5; cursor:default;}
   button.ghost{
     appearance:none; border:1px solid var(--line); background:transparent; color:var(--ink);
     font:inherit; font-weight:600; font-size:13px; padding:8px 14px; border-radius:8px; cursor:pointer;
   }
+  button.ghost:hover{background:var(--accent-soft);}
   .result{margin-top:20px; display:none;}
   .result.show{display:block;}
   .resultHead{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:14px;}
   .resultHead h3{margin:0; font-size:16px;}
   .resultHead .meta{color:var(--ink-dim); font-size:12.5px; margin-top:3px;}
   .badge{
-    display:inline-block; font-size:11px; font-weight:700; padding:3px 8px; border-radius:99px;
+    display:inline-block; font-size:11px; padding:3px 8px; border-radius:99px;
     background:var(--accent-soft); color:var(--accent); letter-spacing:.02em;
   }
-  .bignum{font-size:30px; font-weight:700; font-family:"IBM Plex Mono",monospace;}
+  .bignum{font-size:30px;}
   .bignum.good{color:var(--good);}
   .bignum.bad{color:var(--bad);}
   .rate{font-size:14px; font-weight:600; margin-left:8px;}
   .breakdown{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-top:16px;}
   .bd-item{background:var(--paper); border:1px solid var(--line); border-radius:9px; padding:10px 12px;}
-  .bd-item .k{font-size:11px; color:var(--ink-dim); margin-bottom:4px;}
-  .bd-item .v{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:14px;}
-  .notice{padding:12px 14px; border-radius:9px; font-size:13px; margin-top:14px;}
+  .bd-item .k{font-size:11px; color:var(--ink-dim); font-weight:600; margin-bottom:4px;}
+  .bd-item .v{font-weight:600; font-size:14px;}
+  .notice{padding:12px 14px; border-radius:9px; font-size:13px; margin-top:14px; font-weight:300;}
   .notice.warn{background:var(--warn-soft); color:var(--warn); border:1px solid color-mix(in srgb, var(--warn) 35%, transparent);}
   .notice.bad{background:var(--bad-soft); color:var(--bad); border:1px solid color-mix(in srgb, var(--bad) 35%, transparent);}
   .notice.info{background:var(--accent-soft); color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);}
   table{width:100%; border-collapse:collapse; font-size:13px;}
-  table th{text-align:right; font-size:11px; color:var(--ink-dim); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  table th{text-align:right; font-size:11px; color:var(--ink-dim); padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap;}
   table th:first-child, table td:first-child{text-align:left;}
-  table td{text-align:right; padding:9px 10px; border-bottom:1px solid var(--line); font-family:"IBM Plex Mono",monospace; white-space:nowrap;}
+  table td{text-align:right; padding:9px 10px; border-bottom:1px solid var(--line); font-weight:300; white-space:nowrap;}
   .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
   .cards3{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:16px;}
   .kpi{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
-  .kpi .lbl{font-size:11.5px; color:var(--ink-dim); font-weight:600; margin-bottom:6px;}
-  .kpi .num{font-family:"IBM Plex Mono",monospace; font-size:20px; font-weight:700;}
-  .sectiontitle{font-size:13px; font-weight:700; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; margin:26px 0 10px;}
+  .kpi .lbl{font-size:11.5px; color:var(--ink-dim); margin-bottom:6px;}
+  .kpi .num{font-size:20px;}
+  .kpi .delta{font-size:11.5px; margin-left:6px;}
+  .delta.up{color:var(--good);}
+  .delta.down{color:var(--bad);}
+  .sectiontitle{font-size:13px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; margin:26px 0 10px;}
   .spin{display:inline-block; width:13px; height:13px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:sp .7s linear infinite; margin-right:6px; vertical-align:-2px;}
   @keyframes sp{to{transform:rotate(360deg);}}
   .chartrow{display:flex; gap:18px; flex-wrap:wrap; margin-top:16px;}
   .chartbox{flex:1; min-width:230px; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px;}
-  .chartbox h4{margin:0 0 10px; font-size:13px;}
-  .chartbox svg{width:100%; height:auto; display:block;}
-  .muted{color:var(--ink-dim);}
-  .foot{margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-dim); font-size:12px;}
-  .refreshbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
-  .lastsync{font-size:12px; color:var(--ink-dim);}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header class="top">
-    <div>
-      <h1>OPLE 공헌이익 시스템</h1>
-      <div class="sub">실시간 Supabase 연동 · 한국 물류비 기준 (일본 제외)</div>
-    </div>
-    <div class="sub" id="fxLine">환율 불러오는 중…</div>
-  </header>
-
-  <nav class="tabs">
-    <button class="active" data-tab="calc">빠른 계산기</button>
-    <button data-tab="price">권장 판매가</button>
-    <button data-tab="trend">월별 정산 트렌드</button>
-    <button data-tab="logi">물류비 동기화</button>
-  </nav>
-
-  <!-- TAB 1: QUICK CALCULATOR -->
-  <section class="panel active" id="panel-calc">
-    <div class="card">
-      <div class="field"><label>코드 (마스터 SKU / UPC / 자사 SKU / 채널 판매자코드)</label>
-        <input id="calc_code" placeholder="예: DOC-P012166, 8801234567890, 1511982479 ..." autocomplete="off">
-      </div>
-      <div class="row">
-        <div class="field"><label>판매가 (KRW)</label><input id="calc_price" type="number" inputmode="numeric" placeholder="예: 40000"></div>
-        <div class="field"><label>채널 (선택)</label>
-          <select id="calc_channel"><option value="">전체 / 자동</option><option value="coupang">쿠팡</option><option value="11st">11번가</option><option value="ebay">이베이 (지마켓/옥션)</option><option value="naver">네이버</option><option value="owned">오플닷컴</option></select>
-        </div>
-        <div class="field" id="calc_acct_field" style="display:none"><label>계정</label><select id="calc_acct"></select></div>
-        <div class="field" id="calc_sub_field" style="display:none"><label>마켓</label>
-          <select id="calc_sub"><option value="">선택</option><option value="gmarket">지마켓</option><option value="auction">옥션</option></select>
-        </div>
-      </div>
-      <button class="primary" id="calc_btn" onclick="runQuickCalc()">공헌이익 계산</button>
-      <div class="notice bad" id="calc_err" style="display:none"></div>
-
-      <div class="result" id="calc_result">
-        <div class="resultHead">
-          <div>
-            <h3 id="calc_name">-</h3>
-            <div class="meta"><span id="calc_sku" class="mono"></span> · <span id="calc_brand"></span> · <span class="badge" id="calc_via"></span></div>
-          </div>
-          <div style="text-align:right">
-            <div class="bignum" id="calc_cm">-</div>
-            <div class="rate" id="calc_rate"></div>
-          </div>
-        </div>
-        <div class="breakdown">
-          <div class="bd-item"><div class="k">판매가</div><div class="v" id="bd_price">-</div></div>
-          <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v" id="bd_cost">-</div></div>
-          <div class="bd-item"><div class="k">부자재비</div><div class="v" id="bd_pack">-</div></div>
-          <div class="bd-item"><div class="k">수수료 (<span id="bd_feerate"></span>)</div><div class="v" id="bd_fee">-</div></div>
-          <div class="bd-item"><div class="k">물류비 (당월 평균)</div><div class="v" id="bd_logi">-</div></div>
+  .chartbox h4{margin:0 0 10px; font-size:13px; font-weight:600;}
+  .chartbox svg{width:100%;     <div class="bd-item"><div class="k">판매가</div><div class="v tabular" id="bd_price">-</div></div>
+          <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v tabular" id="bd_cost">-</div></div>
+          <div class="bd-item"><div class="k">부자재비</div><div class="v tabular" id="bd_pack">-</div></div>
+          <div class="bd-item"><div class="k">수수료 (<span id="bd_feerate"></span>)</div><div class="v tabular" id="bd_fee">-</div></div>
+          <div class="bd-item"><div class="k">물류비 (당월 평균)</div><div class="v tabular" id="bd_logi">-</div></div>
         </div>
       </div>
     </div>
@@ -241,45 +195,76 @@
         <div class="resultHead">
           <div>
             <h3 id="price_name">-</h3>
-            <div class="meta"><span id="price_sku" class="mono"></span> · <span id="price_brand"></span> · <span class="badge" id="price_via"></span></div>
+            <div class="meta"><span id="price_sku" class="tabular"></span> · <span id="price_brand"></span> · <span class="badge" id="price_via"></span></div>
           </div>
           <div style="text-align:right">
-            <div class="bignum good" id="price_rec">-</div>
+            <div class="bignum good tabular" id="price_rec">-</div>
             <div class="rate muted" id="price_target"></div>
           </div>
         </div>
         <div class="notice warn" id="price_infeasible" style="display:none">이 목표 공헌이익율은 현재 비용 구조로 달성이 불가능합니다 (수수료율+목표율이 100%를 초과). 목표율을 낮추거나 원가/물류비 절감이 필요합니다.</div>
         <div class="breakdown">
-          <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v" id="pbd_cost">-</div></div>
-          <div class="bd-item"><div class="k">부자재비</div><div class="v" id="pbd_pack">-</div></div>
-          <div class="bd-item"><div class="k">수수료율</div><div class="v" id="pbd_feerate">-</div></div>
-          <div class="bd-item"><div class="k">물류비 (30일 평균)</div><div class="v" id="pbd_logi">-</div></div>
+          <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v tabular" id="pbd_cost">-</div></div>
+          <div class="bd-item"><div class="k">부자재비</div><div class="v tabular" id="pbd_pack">-</div></div>
+          <div class="bd-item"><div class="k">수수료율</div><div class="v tabular" id="pbd_feerate">-</div></div>
+          <div class="bd-item"><div class="k">물류비 (30일 평균)</div><div class="v tabular" id="pbd_logi">-</div></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- TAB 3: MONTHLY TREND -->
+  <!-- TAB 3: MONTHLY TREND (redesigned) -->
   <section class="panel" id="panel-trend">
+    <div class="card">
+      <h3 class="upload-title">정산 파일 업로드</h3>
+      <div class="upload-desc">각 채널 판매자센터에서 다운로드한 정산 엑셀 파일(요약 시트 포함)을 그대로 올리면 자동으로 파싱해서 반영합니다. 매월 새 파일을 올릴 때마다 해당 월 데이터가 갱신됩니다.</div>
+      <div class="row">
+        <div class="field"><label>채널</label>
+          <select id="up_channel">
+            <option value="coupang">쿠팡</option>
+            <option value="11st">11번가</option>
+            <option value="ebay">이베이 (ESM, 지마켓+옥션)</option>
+            <option value="naver">네이버 (스마트스토어)</option>
+          </select>
+        </div>
+        <div class="field"><label>연도</label><input id="up_year" type="number" inputmode="numeric"></div>
+        <div class="field" style="flex:2"><label>정산 엑셀 파일 (.xlsx)</label>
+          <input id="up_file" type="file" accept=".xlsx" class="upload-file-input">
+        </div>
+      </div>
+      <button class="primary" id="up_parse_btn" onclick="parseUploadFile()">파일 분석</button>
+      <div class="notice bad" id="up_err" style="display:none"></div>
+      <div class="notice good" id="up_ok" style="display:none"></div>
+
+      <div class="preview-wrap" id="up_preview_wrap">
+        <div class="sectiontitle">분석 결과 미리보기</div>
+        <div class="tablewrap"><table id="up_preview_table"><thead><tr>
+          <th style="text-align:left">채널</th><th style="text-align:left">계정/마켓</th><th style="text-align:left">월</th>
+          <th>매출</th><th>공헌이익</th><th>공헌이익율</th><th>주문건수</th>
+        </tr></thead><tbody></tbody></table></div>
+        <div class="preview-actions">
+          <button class="primary" id="up_save_btn" onclick="saveUploadRows()">Supabase에 저장</button>
+          <span class="muted" id="up_save_status" style="font-size:12.5px;"></span>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="refreshbar">
         <div>
-          <h3 style="margin:0 0 4px;font-size:15px;">채널별 월별 정산 트렌드</h3>
-          <div class="lastsync muted">정산 파일 기준 실적 데이터 (매월 회계 마감 후 갱신)</div>
+          <h3 style="margin:0 0 4px;font-size:15px;">채널별 · 월별 정산 트렌드</h3>
+          <div class="lastsync muted">채널을 행으로, 월을 열로 한번에 비교합니다</div>
         </div>
         <button class="ghost" onclick="loadTrends()">↻ 새로고침</button>
       </div>
       <div id="trend_loading" class="notice info">불러오는 중…</div>
-      <div id="trend_empty" class="notice warn" style="display:none">아직 로드된 월별 정산 데이터가 없습니다. 정산 파일을 업로드하면 이 화면에 트렌드가 표시됩니다.</div>
+      <div id="trend_empty" class="notice warn" style="display:none">아직 로드된 월별 정산 데이터가 없습니다. 위에서 정산 파일을 업로드해주세요.</div>
       <div id="trend_body" style="display:none">
         <div class="cards3" id="trend_kpis"></div>
-        <div class="sectiontitle">채널별 매출 &amp; 공헌이익율 추이</div>
+        <div class="sectiontitle">채널 × 월 정산 매트릭스</div>
+        <div class="tablewrap"><table id="trend_pivot"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+        <div class="sectiontitle">채널별 매출 추이</div>
         <div class="chartrow" id="trend_charts"></div>
-        <div class="sectiontitle">상세 내역</div>
-        <div class="tablewrap"><table id="trend_table"><thead><tr>
-          <th style="text-align:left">채널</th><th style="text-align:left">계정/마켓</th><th style="text-align:left">월</th>
-          <th>매출</th><th>공헌이익</th><th>공헌이익율</th><th>주문건수</th>
-        </tr></thead><tbody></tbody></table></div>
       </div>
     </div>
   </section>
@@ -333,7 +318,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
   });
 });
 
-// ---- account/sub-channel dependent dropdowns ----
+// ---- account/sub-channel dependent dropdowns (calc/price tabs) ----
 function wireChannelDeps(prefix){
   const chSel = document.getElementById(prefix+"_channel");
   const acctField = document.getElementById(prefix+"_acct_field");
@@ -354,6 +339,7 @@ function wireChannelDeps(prefix){
 }
 wireChannelDeps("calc");
 wireChannelDeps("price");
+document.getElementById("up_year").value = new Date().getFullYear();
 
 // ---- RPC helper ----
 async function rpc(name, body){
@@ -405,7 +391,7 @@ async function runQuickCalc(){
     document.getElementById("calc_via").textContent = {master_sku:"마스터SKU 매칭",upc:"UPC 매칭",child_sku:"자사SKU 매칭",seller_code:"판매자코드 매칭"}[r.resolved_via] || r.resolved_via || "";
     const cmEl = document.getElementById("calc_cm");
     cmEl.textContent = fmtKRW(r.contribution_krw);
-    cmEl.className = "bignum " + (r.contribution_krw >= 0 ? "good" : "bad");
+    cmEl.className = "bignum tabular " + (r.contribution_krw >= 0 ? "good" : "bad");
     document.getElementById("calc_rate").textContent = fmtPct(r.contribution_rate);
     document.getElementById("bd_price").textContent = fmtKRW(price);
     document.getElementById("bd_cost").textContent = fmtKRW(r.cost_krw);
@@ -467,9 +453,208 @@ async function runPriceCalc(){
   }
 }
 
-// ---- TAB 3: monthly trends ----
+// =====================================================================
+// TAB 3: monthly trend — upload & parse + pivot matrix
+// =====================================================================
 let trendsLoaded = false;
 const CHANNEL_LABEL = {coupang:"쿠팡", "11st":"11번가", ebay:"이베이", naver:"네이버", owned:"오플닷컴"};
+const ACCT_LABEL = {allthatmal:"올댓몰", fastople:"패스트오플", atm:"올댓몰", vita:"비타코어"};
+const SUB_LABEL = {gmarket:"지마켓", auction:"옥션"};
+const CHANNEL_ORDER = {coupang:0, "11st":1, ebay:2, naver:3, owned:4};
+
+function num(v){ if(v===null||v===undefined||v==="") return null; const n = Number(v); return isNaN(n) ? null : n; }
+function monthNumToDate(y, m){ return y+"-"+String(m).padStart(2,"0")+"-01"; }
+
+function sheetToRows(workbook, sheetName){
+  const ws = workbook.Sheets[sheetName];
+  if(!ws) throw new Error('"'+sheetName+'" 시트를 파일에서 찾을 수 없습니다. 원본 다운로드 파일 그대로 올려주세요.');
+  return XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+}
+
+function parseCoupang(rows, year){
+  const hIdx = rows.findIndex(r => r && r[1] === "정산월");
+  if(hIdx===-1) throw new Error("쿠팡 요약 시트 형식을 인식할 수 없습니다 (정산월 헤더를 찾지 못함).");
+  const out=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || r[1]==null) continue;
+    const label = String(r[1]);
+    if(label.includes("합계")) continue;
+    const m = label.match(/(\d+)/);
+    if(!m) continue;
+    out.push({
+      channel:"coupang", seller_account:null, sub_channel:null, year_month: monthNumToDate(year, parseInt(m[1],10)),
+      revenue_krw:num(r[2]), contribution_krw:num(r[3]), contribution_rate:num(r[4]), cost_krw:num(r[5]),
+      domestic_ship_krw:num(r[6]), intl_ship_krw:num(r[7]), packaging_krw:num(r[8]),
+      order_count:num(r[9]), settlement_krw:num(r[10]), fee_krw:num(r[11])
+    });
+  }
+  if(!out.length) throw new Error("쿠팡 요약 시트에서 월별 데이터를 찾지 못했습니다.");
+  return out;
+}
+
+function parse11st(rows, year){
+  const hIdx = rows.findIndex(r => r && r[1] === "정산월");
+  if(hIdx===-1) throw new Error("11번가 요약 시트 형식을 인식할 수 없습니다 (정산월 헤더를 찾지 못함).");
+  const out=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || r[1]==null) continue;
+    const label = String(r[1]);
+    if(label.includes("계")) continue;
+    const m = label.match(/(\d+)/);
+    if(!m) continue;
+    const adFee = (num(r[12])||0) + (num(r[13])||0) + (num(r[14])||0);
+    out.push({
+      channel:"11st", seller_account:null, sub_channel:null, year_month: monthNumToDate(year, parseInt(m[1],10)),
+      revenue_krw:num(r[2]), contribution_krw:num(r[3]), contribution_rate:num(r[4]), cost_krw:num(r[5]),
+      domestic_ship_krw:num(r[6]), intl_ship_krw:num(r[7]), packaging_krw:num(r[8]),
+      order_count:num(r[9]), settlement_krw:num(r[10]), fee_krw:num(r[11]), ad_fee_krw: adFee || null
+    });
+  }
+  if(!out.length) throw new Error("11번가 요약 시트에서 월별 데이터를 찾지 못했습니다.");
+  return out;
+}
+
+function esmRow(r, base, month, year, subChannel, sellerAccount){
+  return {
+    channel:"ebay", seller_account:sellerAccount, sub_channel:subChannel, year_month: monthNumToDate(year, month),
+    revenue_krw:num(r[base+1]), contribution_krw:num(r[base+2]), contribution_rate:num(r[base+3]), cost_krw:num(r[base+4]),
+    domestic_ship_krw:num(r[base+5]), intl_ship_krw:num(r[base+6]), packaging_krw:num(r[base+7]),
+    order_count:num(r[base+8]), settlement_krw:num(r[base+9]), fee_krw:num(r[base+10])
+  };
+}
+function parseEsm(rows, year){
+  const hIdx = rows.findIndex(r => r && r[1] === "정산월" && r[13] === "정산월");
+  if(hIdx===-1) throw new Error("이베이(ESM) 요약 시트 형식을 인식할 수 없습니다 (지마켓/옥션 두 블록의 정산월 헤더를 찾지 못함).");
+  const out=[];
+  let curMonth=null;
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r) continue;
+    const c1 = r[1], c13 = r[13];
+    if(c1==="총합계" || c13==="총합계") break;
+    if(typeof c1==="string" && /^\d+월$/.test(c1)) curMonth = parseInt(c1,10);
+    if(typeof c13==="string" && /^\d+월$/.test(c13)) curMonth = parseInt(c13,10);
+    if(curMonth==null) continue;
+    if(c1==="gmarket_atm") out.push(esmRow(r,1,curMonth,year,"gmarket","allthatmal"));
+    if(c1==="gmarket_fo")  out.push(esmRow(r,1,curMonth,year,"gmarket","fastople"));
+    if(c13==="auction_atm") out.push(esmRow(r,13,curMonth,year,"auction","allthatmal"));
+    if(c13==="auction_fo")  out.push(esmRow(r,13,curMonth,year,"auction","fastople"));
+  }
+  if(!out.length) throw new Error("이베이(ESM) 요약 시트에서 gmarket_atm/gmarket_fo/auction_atm/auction_fo 세부 행을 찾지 못했습니다.");
+  return out;
+}
+
+function parseNss(rows, year){
+  const hIdx = rows.findIndex(r => r && r[1] === "정산월");
+  if(hIdx===-1) throw new Error("네이버(NSS) 요약 시트 형식을 인식할 수 없습니다 (정산월 헤더를 찾지 못함).");
+  const out=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || r[1]==null) continue;
+    const raw = String(r[1]).trim();
+    if(!/^\d{1,2}$/.test(raw)) continue; // NSS_atm / NSS_vita / 총합계 등은 건너뜀 (월별 계정분리 없음)
+    out.push({
+      channel:"naver", seller_account:null, sub_channel:null, year_month: monthNumToDate(year, parseInt(raw,10)),
+      revenue_krw:num(r[2]), contribution_krw:num(r[3]), contribution_rate:num(r[4]), cost_krw:num(r[5]),
+      shipping_combined_krw:num(r[6]), packaging_krw:num(r[7]),
+      order_count:num(r[8]), settlement_krw:num(r[9]), fee_krw:num(r[10])
+    });
+  }
+  if(!out.length) throw new Error("네이버(NSS) 요약 시트에서 월별 데이터를 찾지 못했습니다.");
+  return out;
+}
+
+let pendingUploadRows = null;
+
+async function parseUploadFile(){
+  const channel = document.getElementById("up_channel").value;
+  const year = parseInt(document.getElementById("up_year").value, 10);
+  const fileInput = document.getElementById("up_file");
+  const errBox = document.getElementById("up_err");
+  const okBox = document.getElementById("up_ok");
+  errBox.style.display = "none"; okBox.style.display = "none";
+  document.getElementById("up_preview_wrap").classList.remove("show");
+  pendingUploadRows = null;
+
+  if(!fileInput.files || !fileInput.files[0]){ errBox.textContent = "정산 엑셀 파일을 선택해주세요."; errBox.style.display="block"; return; }
+  if(!year){ errBox.textContent = "연도를 입력해주세요."; errBox.style.display="block"; return; }
+
+  const btn = document.getElementById("up_parse_btn");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>분석 중…';
+  try{
+    const buf = await fileInput.files[0].arrayBuffer();
+    const wb = XLSX.read(buf, {type:"array"});
+    const rows = sheetToRows(wb, "요약");
+    let parsed;
+    if(channel==="coupang") parsed = parseCoupang(rows, year);
+    else if(channel==="11st") parsed = parse11st(rows, year);
+    else if(channel==="ebay") parsed = parseEsm(rows, year);
+    else if(channel==="naver") parsed = parseNss(rows, year);
+    else throw new Error("지원하지 않는 채널입니다.");
+
+    pendingUploadRows = parsed;
+    const tbody = document.querySelector("#up_preview_table tbody");
+    tbody.innerHTML = "";
+    parsed.forEach(r=>{
+      const acct = [r.seller_account && (ACCT_LABEL[r.seller_account]||r.seller_account), r.sub_channel && (SUB_LABEL[r.sub_channel]||r.sub_channel)].filter(Boolean).join(" / ") || "-";
+      const tr = document.createElement("tr");
+      tr.innerHTML = '<td style="text-align:left">'+(CHANNEL_LABEL[r.channel]||r.channel)+'</td>'+
+        '<td style="text-align:left">'+acct+'</td>'+
+        '<td style="text-align:left">'+r.year_month.slice(0,7)+'</td>'+
+        '<td class="tabular">'+fmtKRW(r.revenue_krw)+'</td>'+
+        '<td class="tabular">'+fmtKRW(r.contribution_krw)+'</td>'+
+        '<td class="tabular">'+fmtPct(r.contribution_rate)+'</td>'+
+        '<td class="tabular">'+fmtNum(r.order_count)+'</td>';
+      tbody.appendChild(tr);
+    });
+    document.getElementById("up_preview_wrap").classList.add("show");
+    okBox.textContent = parsed.length + "개월(행)이 인식되었습니다. 내용을 확인한 뒤 저장해주세요.";
+    okBox.style.display = "block";
+  }catch(e){
+    errBox.textContent = "파일 분석 중 오류: " + (e.message || e);
+    errBox.style.display = "block";
+  }finally{
+    btn.disabled = false; btn.textContent = "파일 분석";
+  }
+}
+
+async function saveUploadRows(){
+  if(!pendingUploadRows || !pendingUploadRows.length) return;
+  const btn = document.getElementById("up_save_btn");
+  const status = document.getElementById("up_save_status");
+  btn.disabled = true;
+  try{
+    for(let i=0;i<pendingUploadRows.length;i++){
+      const r = pendingUploadRows[i];
+      status.textContent = (i+1) + " / " + pendingUploadRows.length + " 저장 중…";
+      await rpc("upsert_monthly_settlement", {
+        p_channel: r.channel, p_year_month: r.year_month,
+        p_revenue_krw: r.revenue_krw, p_contribution_krw: r.contribution_krw, p_contribution_rate: r.contribution_rate,
+        p_cost_krw: r.cost_krw, p_order_count: r.order_count, p_fee_krw: r.fee_krw,
+        p_seller_account: r.seller_account||null, p_sub_channel: r.sub_channel||null,
+        p_domestic_ship_krw: r.domestic_ship_krw ?? null, p_intl_ship_krw ?? null,
+        p_shipping_combined_krw: r.shipping_combined_krw ?? null, p_packaging_krw: r.packaging_krw ?? null,
+        p_ad_fee_krw: r.ad_fee_krw ?? null, p_settlement_krw: r.settlement_krw ?? null,
+        p_source: "settlement_file_upload"
+      });
+    }
+    status.textContent = "저장 완료 (" + pendingUploadRows.length + "건)";
+    pendingUploadRows = null;
+    document.getElementById("up_preview_wrap").classList.remove("show");
+    document.getElementById("up_file").value = "";
+    await loadTrends();
+  }catch(e){
+    status.textContent = "";
+    const errBox = document.getElementById("up_err");
+    errBox.textContent = "저장 중 오류: " + (e.message || e);
+    errBox.style.display = "block";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
 async function loadTrends(){
   trendsLoaded = true;
   document.getElementById("trend_loading").style.display = "block";
@@ -487,71 +672,147 @@ async function loadTrends(){
     document.getElementById("trend_empty").textContent = "월별 정산 데이터를 불러오지 못했습니다: " + (e.message || e);
   }
 }
+
+function rateClass(rate){
+  if(rate==null || isNaN(rate)) return "";
+  if(rate >= 0.15) return "rate-good";
+  if(rate >= 0.05) return "rate-warn";
+  return "rate-bad";
+}
+function rowLabel(row){
+  const parts = [CHANNEL_LABEL[row.channel]||row.channel];
+  if(row.sub_channel) parts.push(SUB_LABEL[row.sub_channel]||row.sub_channel);
+  if(row.seller_account) parts.push(ACCT_LABEL[row.seller_account]||row.seller_account);
+  return parts.join(" · ");
+}
+
 function renderTrends(rows){
-  // KPI: latest month totals across all channels
   const months = [...new Set(rows.map(r=>r.year_month))].sort();
   const latest = months[months.length-1];
-  const latestRows = rows.filter(r=>r.year_month===latest);
-  const totalRev = latestRows.reduce((s,r)=>s+Number(r.revenue_krw),0);
-  const totalCm = latestRows.reduce((s,r)=>s+Number(r.contribution_krw),0);
-  const totalOrders = latestRows.reduce((s,r)=>s+Number(r.order_count||0),0);
-  const kpis = document.getElementById("trend_kpis");
-  kpis.innerHTML = `
-    <div class="kpi"><div class="lbl">${latest.slice(0,7)} 전체 매출</div><div class="num">${fmtKRW(totalRev)}</div></div>
-    <div class="kpi"><div class="lbl">${latest.slice(0,7)} 전체 공헌이익</div><div class="num">${fmtKRW(totalCm)}</div></div>
-    <div class="kpi"><div class="lbl">공헌이익율</div><div class="num">${fmtPct(totalCm/totalRev)}</div></div>
-    <div class="kpi"><div class="lbl">총 주문건수</div><div class="num">${fmtNum(totalOrders)}</div></div>`;
+  const prev = months.length>1 ? months[months.length-2] : null;
 
-  // group by channel across months
-  const byChannel = {};
+  function totalsFor(month){
+    const rs = rows.filter(r=>r.year_month===month);
+    const revenue = rs.reduce((s,r)=>s+Number(r.revenue_krw),0);
+    const contribution = rs.reduce((s,r)=>s+Number(r.contribution_krw),0);
+    const orders = rs.reduce((s,r)=>s+Number(r.order_count||0),0);
+    return {revenue, contribution, orders, rate: revenue? contribution/revenue : 0};
+  }
+  const cur = totalsFor(latest);
+  const prv = prev ? totalsFor(prev) : null;
+
+  function deltaHtml(curVal, prevVal, isRatePoint){
+    if(prv==null || prevVal==null || prevVal===0) return "";
+    const diff = curVal - prevVal;
+    const pct = isRatePoint ? (diff*100) : (diff/Math.abs(prevVal)*100);
+    const up = diff >= 0;
+    const arrow = up ? "▲" : "▼";
+    const txt = isRatePoint ? (Math.abs(pct).toFixed(1)+"%p") : (Math.abs(pct).toFixed(1)+"%");
+    return '<span class="delta '+(up?"up":"down")+'">'+arrow+' '+txt+' 전월대비</span>';
+  }
+
+  const kpis = document.getElementById("trend_kpis");
+  kpis.innerHTML =
+    '<div class="kpi"><div class="lbl">'+latest.slice(0,7)+' 전체 매출</div><div class="num tabular">'+fmtKRW(cur.revenue)+'</div>'+deltaHtml(cur.revenue, prv&&prv.revenue, false)+'</div>'+
+    '<div class="kpi"><div class="lbl">'+latest.slice(0,7)+' 전체 공헌이익</div><div class="num tabular">'+fmtKRW(cur.contribution)+'</div>'+deltaHtml(cur.contribution, prv&&prv.contribution, false)+'</div>'+
+    '<div class="kpi"><div class="lbl">공헌이익율</div><div class="num tabular">'+fmtPct(cur.rate)+'</div>'+deltaHtml(cur.rate, prv&&prv.rate, true)+'</div>'+
+    '<div class="kpi"><div class="lbl">총 주문건수</div><div class="num tabular">'+fmtNum(cur.orders)+'</div>'+deltaHtml(cur.orders, prv&&prv.orders, false)+'</div>';
+
+  // ---- pivot matrix: rows = channel(+account+sub) groups, cols = months + 합계 ----
+  const groupMap = new Map();
   rows.forEach(r=>{
-    const ch = r.channel;
-    byChannel[ch] = byChannel[ch] || {};
-    byChannel[ch][r.year_month] = byChannel[ch][r.year_month] || {revenue:0, contribution:0, orders:0};
-    byChannel[ch][r.year_month].revenue += Number(r.revenue_krw);
-    byChannel[ch][r.year_month].contribution += Number(r.contribution_krw);
-    byChannel[ch][r.year_month].orders += Number(r.order_count||0);
+    const key = [r.channel, r.seller_account||"", r.sub_channel||""].join("|");
+    if(!groupMap.has(key)) groupMap.set(key, {channel:r.channel, seller_account:r.seller_account, sub_channel:r.sub_channel, byMonth:{}});
+    groupMap.get(key).byMonth[r.year_month] = r;
   });
+  const groups = [...groupMap.values()].sort((a,b)=>{
+    const co = (CHANNEL_ORDER[a.channel]??9) - (CHANNEL_ORDER[b.channel]??9);
+    if(co!==0) return co;
+    const sc = (a.sub_channel||"").localeCompare(b.sub_channel||"");
+    if(sc!==0) return sc;
+    return (a.seller_account||"").localeCompare(b.seller_account||"");
+  });
+  // group by top-level channel to decide whether we need a subtotal row
+  const byChannel = {};
+  groups.forEach(g=>{ (byChannel[g.channel] = byChannel[g.channel]||[]).push(g); });
+
+  const thead = document.querySelector("#trend_pivot thead");
+  const tbody = document.querySelector("#trend_pivot tbody");
+  const tfoot = document.querySelector("#trend_pivot tfoot");
+  thead.innerHTML = '<tr><th style="text-align:left">채널</th>'+months.map(m=>'<th>'+m.slice(0,7)+'</th>').join("")+'<th>합계</th></tr>';
+
+  function cellHtml(rowData){
+    if(!rowData) return '<td class="pivot-cell tabular muted">-</td>';
+    return '<td class="pivot-cell tabular"><span class="pivot-rev">'+fmtKRW(rowData.revenue_krw)+'</span><span class="pivot-rate '+rateClass(rowData.contribution_rate)+'">'+fmtPct(rowData.contribution_rate)+'</span></td>';
+  }
+  function summaryCell(group){
+    const vals = months.map(m=>group.byMonth[m]).filter(Boolean);
+    if(!vals.length) return '<td class="pivot-cell tabular muted">-</td>';
+    const rev = vals.reduce((s,v)=>s+Number(v.revenue_krw),0);
+    const cm = vals.reduce((s,v)=>s+Number(v.contribution_krw),0);
+    return '<td class="pivot-cell tabular"><span class="pivot-rev">'+fmtKRW(rev)+'</span><span class="pivot-rate '+rateClass(rev?cm/rev:null)+'">'+fmtPct(rev?cm/rev:null)+'</span></td>';
+  }
+
+  let bodyHtml = "";
+  Object.keys(byChannel).sort((a,b)=>(CHANNEL_ORDER[a]??9)-(CHANNEL_ORDER[b]??9)).forEach(ch=>{
+    const chGroups = byChannel[ch];
+    const multi = chGroups.length > 1;
+    chGroups.forEach(g=>{
+      const label = multi ? (SUB_LABEL[g.sub_channel]||"") + (g.sub_channel&&g.seller_account? " · ":"") + (ACCT_LABEL[g.seller_account]||"") : CHANNEL_LABEL[ch]||ch;
+      bodyHtml += '<tr class="'+(multi?"subrow":"")+'"><td class="rowlabel">'+(label||CHANNEL_LABEL[ch]||ch)+'</td>'+
+        months.map(m=>cellHtml(g.byMonth[m])).join("")+ summaryCell(g) +'</tr>';
+    });
+    if(multi){
+      const merged = {byMonth:{}};
+      months.forEach(m=>{
+        const vals = chGroups.map(g=>g.byMonth[m]).filter(Boolean);
+        if(!vals.length) return;
+        const rev = vals.reduce((s,v)=>s+Number(v.revenue_krw),0);
+        const cm = vals.reduce((s,v)=>s+Number(v.contribution_krw),0);
+        merged.byMonth[m] = {revenue_krw:rev, contribution_rate: rev?cm/rev:null};
+      });
+      bodyHtml += '<tr class="subtotal"><td class="rowlabel">'+(CHANNEL_LABEL[ch]||ch)+' 합계</td>'+
+        months.map(m=>cellHtml(merged.byMonth[m])).join("") + summaryCell(merged) + '</tr>';
+    }
+  });
+  tbody.innerHTML = bodyHtml;
+
+  const grand = {byMonth:{}};
+  months.forEach(m=>{
+    const vals = rows.filter(r=>r.year_month===m);
+    const rev = vals.reduce((s,v)=>s+Number(v.revenue_krw),0);
+    const cm = vals.reduce((s,v)=>s+Number(v.contribution_krw),0);
+    grand.byMonth[m] = {revenue_krw:rev, contribution_rate: rev?cm/rev:null};
+  });
+  tfoot.innerHTML = '<tr class="grandtotal"><td class="rowlabel">전체 합계</td>'+
+    months.map(m=>cellHtml(grand.byMonth[m])).join("") + summaryCell(grand) + '</tr>';
+
+  // ---- per-channel trend charts ----
   const chartsEl = document.getElementById("trend_charts");
   chartsEl.innerHTML = "";
-  Object.keys(byChannel).sort().forEach(ch=>{
-    const series = months.map(m => byChannel[ch][m] ? byChannel[ch][m].revenue : 0);
-    const rates = months.map(m => byChannel[ch][m] ? byChannel[ch][m].contribution/byChannel[ch][m].revenue : 0);
+  Object.keys(byChannel).sort((a,b)=>(CHANNEL_ORDER[a]??9)-(CHANNEL_ORDER[b]??9)).forEach(ch=>{
+    const series = months.map(m => rows.filter(r=>r.channel===ch && r.year_month===m).reduce((s,r)=>s+Number(r.revenue_krw),0));
+    const cms = months.map(m => rows.filter(r=>r.channel===ch && r.year_month===m).reduce((s,r)=>s+Number(r.contribution_krw),0));
+    const rates = series.map((rev,i)=> rev? cms[i]/rev : 0);
     chartsEl.appendChild(makeChartBox(CHANNEL_LABEL[ch]||ch, months, series, rates));
   });
-
-  // detail table
-  const tbody = document.querySelector("#trend_table tbody");
-  tbody.innerHTML = "";
-  rows.sort((a,b)=> a.channel.localeCompare(b.channel) || (a.seller_account||"").localeCompare(b.seller_account||"") || a.year_month.localeCompare(b.year_month))
-    .forEach(r=>{
-      const acct = [r.seller_account, r.sub_channel].filter(Boolean).map(x=>({allthatmal:"올댓몰",fastople:"패스트오플",gmarket:"지마켓",auction:"옥션"}[x]||x)).join(" / ") || "-";
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td style="text-align:left">${CHANNEL_LABEL[r.channel]||r.channel}</td>
-        <td style="text-align:left">${acct}</td>
-        <td style="text-align:left">${r.year_month.slice(0,7)}</td>
-        <td>${fmtKRW(r.revenue_krw)}</td>
-        <td>${fmtKRW(r.contribution_krw)}</td>
-        <td>${fmtPct(r.contribution_rate)}</td>
-        <td>${fmtNum(r.order_count)}</td>`;
-      tbody.appendChild(tr);
-    });
 }
+
 function makeChartBox(title, months, series, rates){
   const w=260,h=120,pad=8;
   const max = Math.max(...series, 1);
   const pts = series.map((v,i)=> [pad + i*((w-2*pad)/(Math.max(series.length-1,1))), h-pad-(v/max)*(h-2*pad)]);
   const path = pts.map((p,i)=> (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
-  const dots = pts.map((p,i)=> `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="var(--accent)"></circle>`).join("");
-  const labels = months.map((m,i)=> `<text x="${pts[i][0].toFixed(1)}" y="${h-1}" font-size="9" text-anchor="middle" fill="var(--ink-dim)">${m.slice(5,7)}월</text>`).join("");
+  const dots = pts.map((p)=> '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="var(--accent)"></circle>').join("");
+  const labels = months.map((m,i)=> '<text x="'+pts[i][0].toFixed(1)+'" y="'+(h-1)+'" font-size="9" text-anchor="middle" fill="var(--ink-dim)">'+m.slice(5,7)+'월</text>').join("");
   const div = document.createElement("div");
   div.className = "chartbox";
-  div.innerHTML = `<h4>${title}</h4>
-    <svg viewBox="0 0 ${w} ${h+10}">
-      <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"></path>
-      ${dots}${labels}
-    </svg>
-    <div class="muted" style="font-size:11.5px;margin-top:4px">최근 공헌이익율: <b class="mono">${fmtPct(rates[rates.length-1])}</b></div>`;
+  div.innerHTML = '<h4>'+title+'</h4>'+
+    '<svg viewBox="0 0 '+w+' '+(h+10)+'">'+
+      '<path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2"></path>'+
+      dots+labels+
+    '</svg>'+
+    '<div class="muted" style="font-size:11.5px;margin-top:4px">최근 공헌이익율: <b class="tabular" style="font-weight:600">'+fmtPct(rates[rates.length-1])+'</b></div>';
   return div;
 }
 
@@ -575,19 +836,19 @@ function renderLogistics(rows){
   document.getElementById("logi_synctime").textContent = latest ? "마지막 동기화: " + new Date(latest.computed_at).toLocaleString("ko-KR") : "";
   const kpis = document.getElementById("logi_kpis");
   kpis.innerHTML = "";
-  if(mtd) kpis.innerHTML += `<div class="kpi"><div class="lbl">이번달 (MTD) 건당 평균 물류비</div><div class="num">${fmtKRW(mtd.avg_cost_per_order_krw)}</div></div>`;
-  if(d30) kpis.innerHTML += `<div class="kpi"><div class="lbl">최근 30일 건당 평균 물류비</div><div class="num">${fmtKRW(d30.avg_cost_per_order_krw)}</div></div>`;
+  if(mtd) kpis.innerHTML += '<div class="kpi"><div class="lbl">이번달 (MTD) 건당 평균 물류비</div><div class="num tabular">'+fmtKRW(mtd.avg_cost_per_order_krw)+'</div></div>';
+  if(d30) kpis.innerHTML += '<div class="kpi"><div class="lbl">최근 30일 건당 평균 물류비</div><div class="num tabular">'+fmtKRW(d30.avg_cost_per_order_krw)+'</div></div>';
   const tbody = document.querySelector("#logi_table tbody");
   tbody.innerHTML = "";
   [mtd,d30].filter(Boolean).forEach(r=>{
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td style="text-align:left">${r.window_type==="mtd"?"이번달(MTD)":"최근 30일"}</td>
-      <td>${fmtNum(r.total_orders)}</td>
-      <td>${fmtKRW(r.dispatch_cost_krw)}</td>
-      <td>${fmtKRW(r.customs_parcel_cost_krw)}</td>
-      <td>${fmtKRW(r.air_freight_cost_krw)}</td>
-      <td>${fmtKRW(r.total_cost_krw)}</td>
-      <td>${fmtKRW(r.avg_cost_per_order_krw)}</td>`;
+    tr.innerHTML = '<td style="text-align:left">'+(r.window_type==="mtd"?"이번달(MTD)":"최근 30일")+'</td>'+
+      '<td class="tabular">'+fmtNum(r.total_orders)+'</td>'+
+      '<td class="tabular">'+fmtKRW(r.dispatch_cost_krw)+'</td>'+
+      '<td class="tabular">'+fmtKRW(r.customs_parcel_cost_krw)+'</td>'+
+      '<td class="tabular">'+fmtKRW(r.air_freight_cost_krw)+'</td>'+
+      '<td class="tabular">'+fmtKRW(r.total_cost_krw)+'</td>'+
+      '<td class="tabular">'+fmtKRW(r.avg_cost_per_order_krw)+'</td>';
     tbody.appendChild(tr);
   });
 }
@@ -595,9 +856,8 @@ function renderLogistics(rows){
 const CARGO_URL = "https://afdospdphlkcjyvdlukg.supabase.co";
 const CARGO_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmZG9zcGRwaGxrY2p5dmRsdWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MDAyNTEsImV4cCI6MjA5ODM3NjI1MX0.o9IRhp5dsUark4xD3QnOieLdjA52JAcZMPXx-VmZNfU";
 const cargo = window.supabase.createClient(CARGO_URL, CARGO_KEY);
-// Pinned rate card (see note in earlier code review — CARGODESK's own settings JSON field
-// names for these rates were never confirmed live, so we use the literal values shown in
-// its UI rather than guessing field paths).
+// Pinned rate card (CARGODESK's own settings JSON field names for these rates were never
+// confirmed live, so we use the literal values shown in its UI rather than guessing field paths).
 const RATE_CARD = { dispatchBase: 1.29, dispatchExtra: 0.6, airThresholdKg: 700, airUnder: 1.3, airOver: 1.15, lastMileKrw: 2950 };
 
 function computeWindow(data, startStr, endStr){
