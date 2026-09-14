@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPLE 공헌이익 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --paper:#f5f7f9;
+    --paper-raised:#ffffff;
+    --ink:#1b2129;
+    --ink-dim:#5b6472;
+    --line:#dde2e8;
+    --accent:#2f5d8a;
+    --accent-ink:#ffffff;
+    --accent-soft:#e7eef6;
+    --good:#1f7a5c;
+    --good-soft:#e5f3ee;
+    --warn:#a8721f;
+    --warn-soft:#faf1e0;
+    --bad:#b23b3b;
+    --bad-soft:#fbe9e9;
+    --shadow: 0 1px 2px rgba(20,30,45,.06), 0 6px 20px -8px rgba(20,30,45,.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#12161c;
+      --paper-raised:#1a2029;
+      --ink:#e7ebf0;
+      --ink-dim:#93a0b0;
+      --line:#2a323e;
+      --accent:#6fa3d8;
+      --accent-ink:#0d1420;
+      --accent-soft:#1e2c3c;
+      --good:#5fc2a0;
+      --good-soft:#16281f;
+      --warn:#e0ab54;
+      --warn-soft:#2d2412;
+      --bad:#e08080;
+      --bad-soft:#2f1a1a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 24px -8px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#12161c;
+    --paper-raised:#1a2029;
+    --ink:#e7ebf0;
+    --ink-dim:#93a0b0;
+    --line:#2a323e;
+    --accent:#6fa3d8;
+    --accent-ink:#0d1420;
+    --accent-soft:#1e2c3c;
+    --good:#5fc2a0;
+    --good-soft:#16281f;
+    --warn:#e0ab54;
+    --warn-soft:#2d2412;
+    --bad:#e08080;
+    --bad-soft:#2f1a1a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 24px -8px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans KR","IBM Plex Sans",-apple-system,sans-serif;
+    font-size:14.5px; line-height:1.5;
+  }
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1080px; margin:0 auto; padding:20px 20px 64px;}
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    padding:18px 4px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap;
+  }
+  header.top h1{font-size:19px; margin:0; font-weight:700; letter-spacing:-.01em;}
+  header.top .sub{color:var(--ink-dim); font-size:12.5px;}
+  nav.tabs{
+    display:flex; gap:4px; margin:18px 0 22px; padding:4px;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    appearance:none; border:none; background:transparent; color:var(--ink-dim);
+    font:inherit; font-weight:600; font-size:13px; padding:9px 14px; border-radius:7px;
+    cursor:pointer; white-space:nowrap; transition:background .12s,color .12s;
+  }
+  nav.tabs button.active{background:var(--accent); color:var(--accent-ink);}
+  nav.tabs button:not(.active):hover{background:var(--accent-soft); color:var(--ink);}
+  section.panel{display:none;}
+  section.panel.active{display:block;}
+  .card{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:12px;
+    padding:20px; box-shadow:var(--shadow);
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:640px){.grid2{grid-template-columns:1fr;}}
+  .field{display:flex; flex-direction:column; gap:6px; margin-bottom:14px;}
+  .field label{font-size:12px; font-weight:600; color:var(--ink-dim); letter-spacing:.02em;}
+  .field input, .field select{
+    font:inherit; font-size:14px; padding:10px 12px; border-radius:8px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink);
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--accent); outline-offset:-1px;}
+  .row{display:flex; gap:12px; flex-wrap:wrap;}
+  .row > *{flex:1; min-width:140px;}
+  button.primary{
+    appearance:none; border:none; background:var(--accent); color:var(--accent-ink);
+    font:inherit; font-weight:700; font-size:14px; padding:11px 20px; border-radius:8px;
+    cursor:pointer; margin-top:4px;
+  }
+  button.primary:hover{filter:brightness(1.06);}
+  button.primary:disabled{opacity:.55; cursor:default;}
+  button.ghost{
+    appearance:none; border:1px solid var(--line); background:transparent; color:var(--ink);
+    font:inherit; font-weight:600; font-size:13px; padding:8px 14px; border-radius:8px; cursor:pointer;
+  }
+  .result{margin-top:20px; display:none;}
+  .result.show{display:block;}
+  .resultHead{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:14px;}
+  .resultHead h3{margin:0; font-size:16px;}
+  .resultHead .meta{color:var(--ink-dim); font-size:12.5px; margin-top:3px;}
+  .badge{
+    display:inline-block; font-size:11px; font-weight:700; padding:3px 8px; border-radius:99px;
+    background:var(--accent-soft); color:var(--accent); letter-spacing:.02em;
+  }
+  .bignum{font-size:30px; font-weight:700; font-family:"IBM Plex Mono",monospace;}
+  .bignum.good{color:var(--good);}
+  .bignum.bad{color:var(--bad);}
+  .rate{font-size:14px; font-weight:600; margin-left:8px;}
+  .breakdown{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-top:16px;}
+  .bd-item{background:var(--paper); border:1px solid var(--line); border-radius:9px; padding:10px 12px;}
+  .bd-item .k{font-size:11px; color:var(--ink-dim); margin-bottom:4px;}
+  .bd-item .v{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:14px;}
+  .notice{padding:12px 14px; border-radius:9px; font-size:13px; margin-top:14px;}
+  .notice.warn{background:var(--warn-soft); color:var(--warn); border:1px solid color-mix(in srgb, var(--warn) 35%, transparent);}
+  .notice.bad{background:var(--bad-soft); color:var(--bad); border:1px solid color-mix(in srgb, var(--bad) 35%, transparent);}
+  .notice.info{background:var(--accent-soft); color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  table th{text-align:right; font-size:11px; color:var(--ink-dim); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  table th:first-child, table td:first-child{text-align:left;}
+  table td{text-align:right; padding:9px 10px; border-bottom:1px solid var(--line); font-family:"IBM Plex Mono",monospace; white-space:nowrap;}
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
+  .cards3{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:16px;}
+  .kpi{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+  .kpi .lbl{font-size:11.5px; color:var(--ink-dim); font-weight:600; margin-bottom:6px;}
+  .kpi .num{font-family:"IBM Plex Mono",monospace; font-size:20px; font-weight:700;}
+  .sectiontitle{font-size:13px; font-weight:700; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; margin:26px 0 10px;}
+  .spin{display:inline-block; width:13px; height:13px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:sp .7s linear infinite; margin-right:6px; vertical-align:-2px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .chartrow{display:flex; gap:18px; flex-wrap:wrap; margin-top:16px;}
+  .chartbox{flex:1; min-width:230px; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px;}
+  .chartbox h4{margin:0 0 10px; font-size:13px;}
+  .chartbox svg{width:100%; height:auto; display:block;}
+  .muted{color:var(--ink-dim);}
+  .foot{margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-dim); font-size:12px;}
+  .refreshbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .lastsync{font-size:12px; color:var(--ink-dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>OPLE 공헌이익 시스템</h1>
+      <div class="sub">실시간 Supabase 연동 · 한국 물류비 기준 (일본 제외)</div>
+    </div>
+    <div class="sub" id="fxLine">환율 불러오는 중…</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="calc">빠른 계산기</button>
+    <button data-tab="price">권장 판매가</button>
+    <button data-tab="trend">월별 정산 트렌드</button>
+    <button data-tab="logi">물류비 동기화</button>
+  </nav>
+
+  <!-- TAB 1: QUICK CALCULATOR -->
+  <section class="panel active" id="panel-calc">
+    <div class="card">
+      <div class="field"><label>코드 (마스터 SKU / UPC / 자사 SKU / 채널 판매자코드)</label>
+        <input id="calc_code" placeholder="예: DOC-P012166, 8801234567890, 1511982479 ..." autocomplete="off">
+      </div>
+      <div class="row">
+        <div class="field"><label>판매가 (KRW)</label><input id="calc_price" type="number" inputmode="numeric" placeholder="예: 40000"></div>
+        <div class="field"><label>채널 (선택)</label>
+          <select id="calc_channel"><option value="">전체 / 자동</option><option value="coupang">쿠팡</option><option value="11st">11번가</option><option value="ebay">이베이 (지마켓/옥션)</option><option value="naver">네이버</option><option value="owned">오플닷컴</option></select>
+        </div>
+        <div class="field" id="calc_acct_field" style="display:none"><label>계정</label><select id="calc_acct"></select></div>
+        <div class="field" id="calc_sub_field" style="display:none"><label>마켓</label>
+          <select id="calc_sub"><option value="">선택</option><option value="gmarket">지마켓</option><option value="auction">옥션</option></select>
+        </div>
+      </div>
+      <button class="primary" id="calc_btn" onclick="runQuickCalc()">공헌이익 계산</button>
+      <div class="notice bad" id="calc_err" style="display:none"></div>
+
+      <div class="result" id="calc_result">
+        <div class="resultHead">
+          <div>
+            <h3 id="calc_name">-</h3>
+            <div class="meta"><span id="calc_sku" class="mono"></span> · <span id="calc_brand"></span> · <span class="badge" id="calc_via"></span></div>
+          </div>
+          <div style="text-align:right">
+            <div class="bignum" id="calc_cm">-</div>
+            <div class="rate" id="calc_rate"></div>
+          </div>
+        </div>
+        <div class="breakdown">
+          <div class="bd-item"><div class="k">판매가</div><div class="v" id="bd_price">-</div></div>
+          <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v" id="bd_cost">-</div></div>
+          <div class="bd-item"><div class="k">부자재비</div><div class="v" id="bd_pack">-</div></div>
+          <div class="bd-item"><div class="k">수수료 (<span id="bd_feerate"></span>)</div><div class="v" id="bd_fee">-</div></div>
+          <div class="bd-item"><div class="k">물류비 (당월 평균)</div><div class="v" id="bd_logi">-</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: RECOMMENDED PRICE -->
+  <section class="panel" id="panel-price">
+    <div class="card">
+      <div class="field"><label>코드 (마스터 SKU / UPC / 자사 SKU / 채널 판매자코드)</label>
+        <input id="price_code" placeholder="예: DOC-P012166" autocomplete="off">
+      </div>
+      <div class="row">
+        <div class="field"><label>목표 공헌이익율 (%)</label><input id="price_margin" type="number" inputmode="decimal" placeholder="예: 15" step="0.5"></div>
+        <div class="field"><label>채널 (선택)</label>
+          <select id="price_channel"><option value="">전체 / 자동</option><option value="coupang">쿠팡</option><option value="11st">11번가</option><option value="ebay">이베이 (지마켓/옥션)</option><option value="naver">네이버</option><option value="owned">오플닷컴</option></select>
+        </div>
+        <div class="field" id="price_acct_field" style="display:none"><label>계정</label><select id="price_acct"></select></div>
+        <div class="field" id="price_sub_field" style="display:none"><label>마켓</label>
+          <select id="price_sub"><option value="">선택</option><option value="gmarket">지마켓</option><option value="auction">옥션</option></select>
+        </div>
+      </div>
+      <div class="notice info">물류비는 <b>최근 30일 평균</b> 기준으로 계산됩니다 (한국 물류만, 일본 제외).</div>
+      <button class="primary" id="price_btn" onclick="runPriceCalc()">권장 판매가 계산</button>
+      <div class="notice bad" id="price_err" style="display:none"></div>
+
+      <div class="result" id="price_result">
+        <div class="resultHead">
+          <div>
+            <h3 id="price_name">-</h3>
+            <div class="meta"><span id="price_sku" class="mono"></span> · <span id="price_brand"></span> · <span class="badge" id="price_via"></span></div>
+          </div>
+          <div style="text-align:right">
+            <div class="bignum good" id="price_rec">-</div>
+            <div class="rate muted" id="price_target"></div>
+          </div>
+        </div>
+        <div class="notice warn" id="price_infeasible" style="display:none">이 목표 공헌이익율은 현재 비용 구조로 달성이 불가능합니다 (수수료율+목표율이 100%를 초과). 목표율을 낮추거나 원가/물류비 절감이 필요합니다.</div>
+        <div class="breakdown">
+          <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v" id="pbd_cost">-</div></div>
+          <div class="bd-item"><div class="k">부자재비</div><div class="v" id="pbd_pack">-</div></div>
+          <div class="bd-item"><div class="k">수수료율</div><div class="v" id="pbd_feerate">-</div></div>
+          <div class="bd-item"><div class="k">물류비 (30일 평균)</div><div class="v" id="pbd_logi">-</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: MONTHLY TREND -->
+  <section class="panel" id="panel-trend">
+    <div class="card">
+      <div class="refreshbar">
+        <div>
+          <h3 style="margin:0 0 4px;font-size:15px;">채널별 월별 정산 트렌드</h3>
+          <div class="lastsync muted">정산 파일 기준 실적 데이터 (매월 회계 마감 후 갱신)</div>
+        </div>
+        <button class="ghost" onclick="loadTrends()">↻ 새로고침</button>
+      </div>
+      <div id="trend_loading" class="notice info">불러오는 중…</div>
+      <div id="trend_empty" class="notice warn" style="display:none">아직 로드된 월별 정산 데이터가 없습니다. 정산 파일을 업로드하면 이 화면에 트렌드가 표시됩니다.</div>
+      <div id="trend_body" style="display:none">
+        <div class="cards3" id="trend_kpis"></div>
+        <div class="sectiontitle">채널별 매출 &amp; 공헌이익율 추이</div>
+        <div class="chartrow" id="trend_charts"></div>
+        <div class="sectiontitle">상세 내역</div>
+        <div class="tablewrap"><table id="trend_table"><thead><tr>
+          <th style="text-align:left">채널</th><th style="text-align:left">계정/마켓</th><th style="text-align:left">월</th>
+          <th>매출</th><th>공헌이익</th><th>공헌이익율</th><th>주문건수</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: LOGISTICS SYNC -->
+  <section class="panel" id="panel-logi">
+    <div class="card">
+      <div class="refreshbar">
+        <div>
+          <h3 style="margin:0 0 4px;font-size:15px;">한국 물류비 동기화</h3>
+          <div class="lastsync" id="logi_synctime">동기화 정보 불러오는 중…</div>
+        </div>
+        <button class="primary" id="logi_btn" onclick="doLogisticsRefresh()">↻ CARGODESK에서 동기화</button>
+      </div>
+      <div class="notice bad" id="logi_err" style="display:none"></div>
+      <div class="cards3" id="logi_kpis" style="margin-top:18px"></div>
+      <div class="sectiontitle">비용 구성 (당월)</div>
+      <div class="tablewrap"><table id="logi_table"><thead><tr>
+        <th style="text-align:left">구간</th><th>주문건수</th><th>출고비</th><th>통관·라스트마일</th><th>항공비</th><th>합계</th><th>건당 평균</th>
+      </tr></thead><tbody></tbody></table></div>
+      <details style="margin-top:16px">
+        <summary style="cursor:pointer;font-size:12.5px;color:var(--ink-dim)">레이트 카드 (참고용, 고정값)</summary>
+        <div class="notice info" style="margin-top:10px">
+          라스트마일·통관: 주문 1건당 2,950원 고정 · 출고비: 박스당 1개차 $1.29, 2개차부터 +$0.60/개 · 항공비: kg당 700kg 미만 $1.30 / 700kg 이상 $1.15 (모두 당시 환율 적용)
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="foot">OPLE 내부 시스템 · Supabase 실시간 연동 · 이 페이지는 로컬 파일로 열거나 사내 서버/GitHub Pages에 올려 사용할 수 있습니다.</div>
+</div>
+
+<script>
+const OUR_URL = "https://mkouslfyowbojhpeotxi.supabase.co";
+const OUR_KEY = "sb_publishable_9-sfdoahvkws7IPzwHbl2g_g8eYmZec";
+const sb = window.supabase.createClient(OUR_URL, OUR_KEY);
+
+const fmtKRW = n => n === null || n === undefined || isNaN(n) ? "-" : "₩" + Math.round(n).toLocaleString("ko-KR");
+const fmtPct = n => n === null || n === undefined || isNaN(n) ? "-" : (n*100).toFixed(1) + "%";
+const fmtNum = n => n === null || n === undefined || isNaN(n) ? "-" : Math.round(n).toLocaleString("ko-KR");
+
+// ---- tabs ----
+document.querySelectorAll("nav.tabs button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll("section.panel").forEach(p=>p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
+    if(btn.dataset.tab==="trend" && !trendsLoaded) loadTrends();
+    if(btn.dataset.tab==="logi" && !logiLoaded) loadLogisticsSnapshot();
+  });
+});
+
+// ---- account/sub-channel dependent dropdowns ----
+function wireChannelDeps(prefix){
+  const chSel = document.getElementById(prefix+"_channel");
+  const acctField = document.getElementById(prefix+"_acct_field");
+  const acctSel = document.getElementById(prefix+"_acct");
+  const subField = document.getElementById(prefix+"_sub_field");
+  chSel.addEventListener("change", ()=>{
+    const v = chSel.value;
+    acctField.style.display = "none"; subField.style.display = "none";
+    acctSel.innerHTML = "";
+    if(v === "ebay"){
+      acctField.style.display = "flex"; subField.style.display = "flex";
+      acctSel.innerHTML = '<option value="">선택</option><option value="allthatmal">올댓몰</option><option value="fastople">패스트오플</option>';
+    } else if(v === "naver"){
+      acctField.style.display = "flex";
+      acctSel.innerHTML = '<option value="">선택</option><option value="atm">올댓몰</option><option value="vita">비타코어</option>';
+    }
+  });
+}
+wireChannelDeps("calc");
+wireChannelDeps("price");
+
+// ---- RPC helper ----
+async function rpc(name, body){
+  const {data, error} = await sb.rpc(name, body);
+  if(error) throw error;
+  return data;
+}
+
+// ---- fx line (best-effort, non-blocking) ----
+(async ()=>{
+  try{
+    const rows = await rpc("get_kr_logistics_snapshot", {});
+    if(rows && rows.length){
+      document.getElementById("fxLine").textContent = "물류 스냅샷 기준일 " + (rows[0].computed_at||"").slice(0,10);
+    } else {
+      document.getElementById("fxLine").textContent = "";
+    }
+  }catch(e){ document.getElementById("fxLine").textContent = ""; }
+})();
+
+// ---- TAB 1: quick calc ----
+async function runQuickCalc(){
+  const code = document.getElementById("calc_code").value.trim();
+  const price = parseFloat(document.getElementById("calc_price").value);
+  const errBox = document.getElementById("calc_err");
+  errBox.style.display = "none";
+  document.getElementById("calc_result").classList.remove("show");
+  if(!code || !price){ errBox.textContent = "코드와 판매가를 입력해주세요."; errBox.style.display="block"; return; }
+  const btn = document.getElementById("calc_btn");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>계산 중…';
+  try{
+    const args = {p_code: code, p_price: price};
+    const ch = document.getElementById("calc_channel").value;
+    if(ch) args.p_channel = ch;
+    const acct = document.getElementById("calc_acct").value;
+    if(acct) args.p_seller_account = acct;
+    const sub = document.getElementById("calc_sub").value;
+    if(sub) args.p_sub_channel = sub;
+    const data = await rpc("quick_margin_calc", args);
+    const r = Array.isArray(data) ? data[0] : data;
+    if(!r || !r.found){
+      errBox.textContent = "코드를 찾을 수 없습니다: " + code + " (마스터SKU/UPC/자사SKU/판매자코드 모두 확인해주세요)";
+      errBox.style.display = "block";
+      return;
+    }
+    document.getElementById("calc_name").textContent = r.product_name || "(상품명 없음)";
+    document.getElementById("calc_sku").textContent = r.master_sku || "";
+    document.getElementById("calc_brand").textContent = r.brand || "";
+    document.getElementById("calc_via").textContent = {master_sku:"마스터SKU 매칭",upc:"UPC 매칭",child_sku:"자사SKU 매칭",seller_code:"판매자코드 매칭"}[r.resolved_via] || r.resolved_via || "";
+    const cmEl = document.getElementById("calc_cm");
+    cmEl.textContent = fmtKRW(r.contribution_krw);
+    cmEl.className = "bignum " + (r.contribution_krw >= 0 ? "good" : "bad");
+    document.getElementById("calc_rate").textContent = fmtPct(r.contribution_rate);
+    document.getElementById("bd_price").textContent = fmtKRW(price);
+    document.getElementById("bd_cost").textContent = fmtKRW(r.cost_krw);
+    document.getElementById("bd_pack").textContent = fmtKRW(r.packaging_cost_krw);
+    document.getElementById("bd_feerate").textContent = fmtPct(r.fee_rate);
+    document.getElementById("bd_fee").textContent = fmtKRW(r.fee_krw);
+    document.getElementById("bd_logi").textContent = fmtKRW(r.logistics_krw);
+    document.getElementById("calc_result").classList.add("show");
+  }catch(e){
+    errBox.textContent = "계산 중 오류가 발생했습니다: " + (e.message || e);
+    errBox.style.display = "block";
+  }finally{
+    btn.disabled = false; btn.textContent = "공헌이익 계산";
+  }
+}
+
+// ---- TAB 2: recommended price ----
+async function runPriceCalc(){
+  const code = document.getElementById("price_code").value.trim();
+  const marginPct = parseFloat(document.getElementById("price_margin").value);
+  const errBox = document.getElementById("price_err");
+  errBox.style.display = "none";
+  document.getElementById("price_result").classList.remove("show");
+  if(!code || isNaN(marginPct)){ errBox.textContent = "코드와 목표 공헌이익율을 입력해주세요."; errBox.style.display="block"; return; }
+  const btn = document.getElementById("price_btn");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>계산 중…';
+  try{
+    const args = {p_code: code, p_target_margin_rate: marginPct/100};
+    const ch = document.getElementById("price_channel").value;
+    if(ch) args.p_channel = ch;
+    const acct = document.getElementById("price_acct").value;
+    if(acct) args.p_seller_account = acct;
+    const sub = document.getElementById("price_sub").value;
+    if(sub) args.p_sub_channel = sub;
+    const data = await rpc("recommended_price_calc", args);
+    const r = Array.isArray(data) ? data[0] : data;
+    if(!r || !r.found){
+      errBox.textContent = "코드를 찾을 수 없습니다: " + code;
+      errBox.style.display = "block";
+      return;
+    }
+    document.getElementById("price_name").textContent = r.product_name || "(상품명 없음)";
+    document.getElementById("price_sku").textContent = r.master_sku || "";
+    document.getElementById("price_brand").textContent = r.brand || "";
+    document.getElementById("price_via").textContent = {master_sku:"마스터SKU 매칭",upc:"UPC 매칭",child_sku:"자사SKU 매칭",seller_code:"판매자코드 매칭"}[r.resolved_via] || r.resolved_via || "";
+    document.getElementById("price_rec").textContent = r.feasible === false ? "달성 불가" : fmtKRW(r.recommended_price);
+    document.getElementById("price_target").textContent = "목표 공헌이익율 " + marginPct + "%";
+    document.getElementById("price_infeasible").style.display = r.feasible === false ? "block" : "none";
+    document.getElementById("pbd_cost").textContent = fmtKRW(r.cost_krw);
+    document.getElementById("pbd_pack").textContent = fmtKRW(r.packaging_cost_krw);
+    document.getElementById("pbd_feerate").textContent = fmtPct(r.fee_rate);
+    document.getElementById("pbd_logi").textContent = fmtKRW(r.logistics_krw);
+    document.getElementById("price_result").classList.add("show");
+  }catch(e){
+    errBox.textContent = "계산 중 오류가 발생했습니다: " + (e.message || e);
+    errBox.style.display = "block";
+  }finally{
+    btn.disabled = false; btn.textContent = "권장 판매가 계산";
+  }
+}
+
+// ---- TAB 3: monthly trends ----
+let trendsLoaded = false;
+const CHANNEL_LABEL = {coupang:"쿠팡", "11st":"11번가", ebay:"이베이", naver:"네이버", owned:"오플닷컴"};
+async function loadTrends(){
+  trendsLoaded = true;
+  document.getElementById("trend_loading").style.display = "block";
+  document.getElementById("trend_empty").style.display = "none";
+  document.getElementById("trend_body").style.display = "none";
+  try{
+    const data = await rpc("get_monthly_trends", {});
+    document.getElementById("trend_loading").style.display = "none";
+    if(!data || !data.length){ document.getElementById("trend_empty").style.display = "block"; return; }
+    renderTrends(data);
+    document.getElementById("trend_body").style.display = "block";
+  }catch(e){
+    document.getElementById("trend_loading").style.display = "none";
+    document.getElementById("trend_empty").style.display = "block";
+    document.getElementById("trend_empty").textContent = "월별 정산 데이터를 불러오지 못했습니다: " + (e.message || e);
+  }
+}
+function renderTrends(rows){
+  // KPI: latest month totals across all channels
+  const months = [...new Set(rows.map(r=>r.year_month))].sort();
+  const latest = months[months.length-1];
+  const latestRows = rows.filter(r=>r.year_month===latest);
+  const totalRev = latestRows.reduce((s,r)=>s+Number(r.revenue_krw),0);
+  const totalCm = latestRows.reduce((s,r)=>s+Number(r.contribution_krw),0);
+  const totalOrders = latestRows.reduce((s,r)=>s+Number(r.order_count||0),0);
+  const kpis = document.getElementById("trend_kpis");
+  kpis.innerHTML = `
+    <div class="kpi"><div class="lbl">${latest.slice(0,7)} 전체 매출</div><div class="num">${fmtKRW(totalRev)}</div></div>
+    <div class="kpi"><div class="lbl">${latest.slice(0,7)} 전체 공헌이익</div><div class="num">${fmtKRW(totalCm)}</div></div>
+    <div class="kpi"><div class="lbl">공헌이익율</div><div class="num">${fmtPct(totalCm/totalRev)}</div></div>
+    <div class="kpi"><div class="lbl">총 주문건수</div><div class="num">${fmtNum(totalOrders)}</div></div>`;
+
+  // group by channel across months
+  const byChannel = {};
+  rows.forEach(r=>{
+    const ch = r.channel;
+    byChannel[ch] = byChannel[ch] || {};
+    byChannel[ch][r.year_month] = byChannel[ch][r.year_month] || {revenue:0, contribution:0, orders:0};
+    byChannel[ch][r.year_month].revenue += Number(r.revenue_krw);
+    byChannel[ch][r.year_month].contribution += Number(r.contribution_krw);
+    byChannel[ch][r.year_month].orders += Number(r.order_count||0);
+  });
+  const chartsEl = document.getElementById("trend_charts");
+  chartsEl.innerHTML = "";
+  Object.keys(byChannel).sort().forEach(ch=>{
+    const series = months.map(m => byChannel[ch][m] ? byChannel[ch][m].revenue : 0);
+    const rates = months.map(m => byChannel[ch][m] ? byChannel[ch][m].contribution/byChannel[ch][m].revenue : 0);
+    chartsEl.appendChild(makeChartBox(CHANNEL_LABEL[ch]||ch, months, series, rates));
+  });
+
+  // detail table
+  const tbody = document.querySelector("#trend_table tbody");
+  tbody.innerHTML = "";
+  rows.sort((a,b)=> a.channel.localeCompare(b.channel) || (a.seller_account||"").localeCompare(b.seller_account||"") || a.year_month.localeCompare(b.year_month))
+    .forEach(r=>{
+      const acct = [r.seller_account, r.sub_channel].filter(Boolean).map(x=>({allthatmal:"올댓몰",fastople:"패스트오플",gmarket:"지마켓",auction:"옥션"}[x]||x)).join(" / ") || "-";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td style="text-align:left">${CHANNEL_LABEL[r.channel]||r.channel}</td>
+        <td style="text-align:left">${acct}</td>
+        <td style="text-align:left">${r.year_month.slice(0,7)}</td>
+        <td>${fmtKRW(r.revenue_krw)}</td>
+        <td>${fmtKRW(r.contribution_krw)}</td>
+        <td>${fmtPct(r.contribution_rate)}</td>
+        <td>${fmtNum(r.order_count)}</td>`;
+      tbody.appendChild(tr);
+    });
+}
+function makeChartBox(title, months, series, rates){
+  const w=260,h=120,pad=8;
+  const max = Math.max(...series, 1);
+  const pts = series.map((v,i)=> [pad + i*((w-2*pad)/(Math.max(series.length-1,1))), h-pad-(v/max)*(h-2*pad)]);
+  const path = pts.map((p,i)=> (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+  const dots = pts.map((p,i)=> `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="var(--accent)"></circle>`).join("");
+  const labels = months.map((m,i)=> `<text x="${pts[i][0].toFixed(1)}" y="${h-1}" font-size="9" text-anchor="middle" fill="var(--ink-dim)">${m.slice(5,7)}월</text>`).join("");
+  const div = document.createElement("div");
+  div.className = "chartbox";
+  div.innerHTML = `<h4>${title}</h4>
+    <svg viewBox="0 0 ${w} ${h+10}">
+      <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"></path>
+      ${dots}${labels}
+    </svg>
+    <div class="muted" style="font-size:11.5px;margin-top:4px">최근 공헌이익율: <b class="mono">${fmtPct(rates[rates.length-1])}</b></div>`;
+  return div;
+}
+
+// ---- TAB 4: logistics sync ----
+let logiLoaded = false;
+async function loadLogisticsSnapshot(){
+  logiLoaded = true;
+  try{
+    const rows = await rpc("get_kr_logistics_snapshot", {});
+    renderLogistics(rows);
+  }catch(e){
+    document.getElementById("logi_err").textContent = "스냅샷을 불러오지 못했습니다: " + (e.message||e);
+    document.getElementById("logi_err").style.display = "block";
+  }
+}
+function renderLogistics(rows){
+  if(!rows || !rows.length) return;
+  const mtd = rows.find(r=>r.window_type==="mtd");
+  const d30 = rows.find(r=>r.window_type==="30d");
+  const latest = [mtd,d30].filter(Boolean).sort((a,b)=> new Date(b.computed_at)-new Date(a.computed_at))[0];
+  document.getElementById("logi_synctime").textContent = latest ? "마지막 동기화: " + new Date(latest.computed_at).toLocaleString("ko-KR") : "";
+  const kpis = document.getElementById("logi_kpis");
+  kpis.innerHTML = "";
+  if(mtd) kpis.innerHTML += `<div class="kpi"><div class="lbl">이번달 (MTD) 건당 평균 물류비</div><div class="num">${fmtKRW(mtd.avg_cost_per_order_krw)}</div></div>`;
+  if(d30) kpis.innerHTML += `<div class="kpi"><div class="lbl">최근 30일 건당 평균 물류비</div><div class="num">${fmtKRW(d30.avg_cost_per_order_krw)}</div></div>`;
+  const tbody = document.querySelector("#logi_table tbody");
+  tbody.innerHTML = "";
+  [mtd,d30].filter(Boolean).forEach(r=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td style="text-align:left">${r.window_type==="mtd"?"이번달(MTD)":"최근 30일"}</td>
+      <td>${fmtNum(r.total_orders)}</td>
+      <td>${fmtKRW(r.dispatch_cost_krw)}</td>
+      <td>${fmtKRW(r.customs_parcel_cost_krw)}</td>
+      <td>${fmtKRW(r.air_freight_cost_krw)}</td>
+      <td>${fmtKRW(r.total_cost_krw)}</td>
+      <td>${fmtKRW(r.avg_cost_per_order_krw)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+const CARGO_URL = "https://afdospdphlkcjyvdlukg.supabase.co";
+const CARGO_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmZG9zcGRwaGxrY2p5dmRsdWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MDAyNTEsImV4cCI6MjA5ODM3NjI1MX0.o9IRhp5dsUark4xD3QnOieLdjA52JAcZMPXx-VmZNfU";
+const cargo = window.supabase.createClient(CARGO_URL, CARGO_KEY);
+// Pinned rate card (see note in earlier code review — CARGODESK's own settings JSON field
+// names for these rates were never confirmed live, so we use the literal values shown in
+// its UI rather than guessing field paths).
+const RATE_CARD = { dispatchBase: 1.29, dispatchExtra: 0.6, airThresholdKg: 700, airUnder: 1.3, airOver: 1.15, lastMileKrw: 2950 };
+
+function computeWindow(data, startStr, endStr){
+  const start = new Date(startStr), end = new Date(endStr);
+  const daily = data.daily || {};
+  let orders = 0, dispatchUsd = 0;
+  Object.keys(daily).forEach(k=>{
+    if(!k.startsWith("KR_")) return;
+    const rec = daily[k];
+    const d = new Date(rec.date);
+    if(d < start || d > end) return;
+    orders += Number(rec.packed || 0);
+    for(let n=1;n<=20;n++){
+      const cnt = Number(rec["pack"+n] || 0);
+      if(cnt) dispatchUsd += cnt * (RATE_CARD.dispatchBase + RATE_CARD.dispatchExtra*(n-1));
+    }
+  });
+  const customsKrw = orders * RATE_CARD.lastMileKrw;
+  const fx = (data.settings && data.settings.fx && data.settings.fx.usdKrw) || 0;
+  let airUsd = 0;
+  Object.values(data.shipments || {}).forEach(s=>{
+    if(s.country !== "KR" || !s.cutoffDate) return;
+    const d = new Date(s.cutoffDate);
+    if(d < start || d > end) return;
+    const w = Number(s.actualWeight||0);
+    airUsd += w * (w >= RATE_CARD.airThresholdKg ? RATE_CARD.airOver : RATE_CARD.airUnder);
+  });
+  const dispatchKrw = dispatchUsd * fx;
+  const airKrw = airUsd * fx;
+  const totalKrw = dispatchKrw + customsKrw + airKrw;
+  return {
+    window_type: null, period_start: startStr, period_end: endStr,
+    total_orders: orders, total_cost_krw: totalKrw, avg_cost_per_order_krw: orders? totalKrw/orders : 0,
+    dispatch_cost_krw: dispatchKrw, customs_parcel_cost_krw: customsKrw, air_freight_cost_krw: airKrw,
+  };
+}
+function pad2(n){ return String(n).padStart(2,"0"); }
+function toDateStr(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+
+async function doLogisticsRefresh(){
+  const btn = document.getElementById("logi_btn");
+  const errBox = document.getElementById("logi_err");
+  errBox.style.display = "none";
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>동기화 중…';
+  try{
+    const {data, error} = await cargo.from("app_data").select("data").eq("id","cargodesk").single();
+    if(error) throw error;
+    const raw = data.data;
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const d30start = new Date(today); d30start.setDate(d30start.getDate()-29);
+
+    const mtdCalc = computeWindow(raw, toDateStr(monthStart), toDateStr(today));
+    const d30Calc = computeWindow(raw, toDateStr(d30start), toDateStr(today));
+
+    await rpc("refresh_kr_logistics_snapshot", {
+      p_window_type: "mtd", p_period_start: mtdCalc.period_start, p_period_end: mtdCalc.period_end,
+      p_total_orders: Math.round(mtdCalc.total_orders), p_total_cost_krw: mtdCalc.total_cost_krw,
+      p_avg_cost_per_order_krw: mtdCalc.avg_cost_per_order_krw, p_dispatch_cost_krw: mtdCalc.dispatch_cost_krw,
+      p_customs_parcel_cost_krw: mtdCalc.customs_parcel_cost_krw, p_air_freight_cost_krw: mtdCalc.air_freight_cost_krw
+    });
+    await rpc("refresh_kr_logistics_snapshot", {
+      p_window_type: "30d", p_period_start: d30Calc.period_start, p_period_end: d30Calc.period_end,
+      p_total_orders: Math.round(d30Calc.total_orders), p_total_cost_krw: d30Calc.total_cost_krw,
+      p_avg_cost_per_order_krw: d30Calc.avg_cost_per_order_krw, p_dispatch_cost_krw: d30Calc.dispatch_cost_krw,
+      p_customs_parcel_cost_krw: d30Calc.customs_parcel_cost_krw, p_air_freight_cost_krw: d30Calc.air_freight_cost_krw
+    });
+    await loadLogisticsSnapshot();
+  }catch(e){
+    errBox.textContent = "동기화 중 오류가 발생했습니다: " + (e.message || e);
+    errBox.style.display = "block";
+  }finally{
+    btn.disabled = false; btn.innerHTML = "↻ CARGODESK에서 동기화";
+  }
+}
+
+loadLogisticsSnapshot();
+</script>
+</body>
+</html>
