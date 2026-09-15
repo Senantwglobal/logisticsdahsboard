@@ -293,7 +293,7 @@
   <section class="panel" id="panel-trend">
     <div class="card">
       <h3 class="upload-title">정산 파일 업로드</h3>
-      <div class="upload-desc">각 채널 판매자센터에서 다운로드한 정산 엑셀 파일(요약 시트 포함)을 그대로 올리면 자동으로 파싱해서 반영합니다. 매월 새 파일을 올릴 때마다 해당 월 데이터가 갱신됩니다.</div>
+      <div class="upload-desc" id="up_desc">쿠팡은 WING에서 다운로드한 정산 상세내역 원본 파일(Order Detail Report, 가공 없이 그대로)을, 다른 채널은 요약 시트가 포함된 정산 엑셀 파일을 그대로 올리면 자동으로 파싱해서 반영합니다. 매월 새 파일을 올릴 때마다 해당 월 데이터가 갱신됩니다.</div>
       <div class="row">
         <div class="field"><label>채널</label>
           <select id="up_channel">
@@ -303,7 +303,7 @@
             <option value="naver">네이버 (스마트스토어)</option>
           </select>
         </div>
-        <div class="field"><label>연도</label><input id="up_year" type="number" inputmode="numeric"></div>
+        <div class="field" id="up_year_field"><label>연도</label><input id="up_year" type="number" inputmode="numeric"></div>
         <div class="field" style="flex:2"><label>정산 엑셀 파일 (.xlsx)</label>
           <input id="up_file" type="file" accept=".xlsx" class="upload-file-input">
         </div>
@@ -311,6 +311,7 @@
       <button class="primary" id="up_parse_btn" onclick="parseUploadFile()">파일 분석</button>
       <div class="notice bad" id="up_err" style="display:none"></div>
       <div class="notice good" id="up_ok" style="display:none"></div>
+      <div class="notice warn" id="up_warn" style="display:none"></div>
 
       <div class="preview-wrap" id="up_preview_wrap">
         <div class="sectiontitle">분석 결과 미리보기</div>
@@ -416,6 +417,13 @@ function wireChannelDeps(prefix){
 wireChannelDeps("calc");
 wireChannelDeps("price");
 document.getElementById("up_year").value = new Date().getFullYear();
+(function(){
+  const sel = document.getElementById("up_channel");
+  const yearField = document.getElementById("up_year_field");
+  function syncYearField(){ yearField.style.display = (sel.value==="coupang") ? "none" : "flex"; }
+  sel.addEventListener("change", syncYearField);
+  syncYearField();
+})();
 
 // ---- RPC helper ----
 async function rpc(name, body){
@@ -547,25 +555,123 @@ function sheetToRows(workbook, sheetName){
   return XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
 }
 
-function parseCoupang(rows, year){
-  const hIdx = rows.findIndex(r => r && r[1] === "정산월");
-  if(hIdx===-1) throw new Error("쿠팡 요약 시트 형식을 인식할 수 없습니다 (정산월 헤더를 찾지 못함).");
-  const out=[];
+// ---- Coupang: real "Order Detail Report" raw export (per order-line), NOT a pre-aggregated summary ----
+// Ground-truth formula (reverse-engineered from the seller's own working settlement sheet):
+//   공헌이익 = 정산금액(이미 쿠팡 수수료 차감된 금액) − 입고가(원가) − 국내배송비(2950원/라인) − 해외배송비(3050원/라인) − 부자재(중량구간별, 주문 단위)
+// 정산월은 결제일이 아니라 "정산예정일" 기준. 배송비 placeholder 행(<기본배송료>/<추가배송료>)은 값이 항상 0이므로 제외.
+function parseCoupangRaw(rows){
+  const hIdx = rows.findIndex(r => r && r[0] === "주문번호");
+  if(hIdx===-1) throw new Error('쿠팡 정산 원본 파일 형식을 인식할 수 없습니다 ("주문번호" 헤더를 찾지 못함). WING > 정산 관리 > 정산내역 상세(Order Detail Report) 다운로드 파일을 가공하지 말고 그대로 올려주세요.');
+  const header = rows[hIdx];
+  const col = {};
+  header.forEach((h,i)=>{ if(h!=null && String(h).trim()!=="") col[String(h).trim()] = i; });
+  const need = ["주문번호","옵션 ID","판매수량","판매액","정산금액","정산예정일"];
+  const missing = need.filter(c=>!(c in col));
+  if(missing.length) throw new Error("쿠팡 정산 원본 파일에서 다음 열을 찾지 못했습니다: " + missing.join(", ") + " (원본 다운로드 파일 그대로 올려주세요).");
+
+  const out = [];
   for(let i=hIdx+1;i<rows.length;i++){
     const r = rows[i];
-    if(!r || r[1]==null) continue;
-    const label = String(r[1]);
-    if(label.includes("합계")) continue;
-    const m = label.match(/(\d+)/);
-    if(!m) continue;
+    const orderNo = r ? r[col["주문번호"]] : null;
+    if(!r || orderNo==null || orderNo==="") continue;
+    const optRaw = r[col["옵션 ID"]];
+    if(optRaw==null || optRaw==="") continue;
+    const optId = String(optRaw).trim();
+    if(/^<.*>$/.test(optId)) continue; // <기본배송료>/<추가배송료> 등 배송비 placeholder 행 (항상 0값) 제외
+    const settleRaw = r[col["정산예정일"]];
+    const dm = settleRaw!=null ? String(settleRaw).match(/^(\d{4})-(\d{2})/) : null;
+    if(!dm) continue; // 정산예정일이 비어있는 비정상 행은 건너뜀
     out.push({
-      channel:"coupang", seller_account:null, sub_channel:null, year_month: monthNumToDate(year, parseInt(m[1],10)),
-      revenue_krw:num(r[2]), contribution_krw:num(r[3]), contribution_rate:num(r[4]), cost_krw:num(r[5]),
-      domestic_ship_krw:num(r[6]), intl_ship_krw:num(r[7]), packaging_krw:num(r[8]),
-      order_count:num(r[9]), settlement_krw:num(r[10]), fee_krw:num(r[11])
+      order_no: String(orderNo).trim(),
+      option_id: optId,
+      product_name: col["상품명"]!=null ? r[col["상품명"]] : null,
+      qty: num(r[col["판매수량"]]) || 0,
+      revenue: num(r[col["판매액"]]) || 0,
+      settle_amt: num(r[col["정산금액"]]) || 0,
+      fee: col["판매수수료"]!=null ? (num(r[col["판매수수료"]])||0) : 0,
+      year_month: dm[1] + "-" + dm[2] + "-01"
     });
   }
-  if(!out.length) throw new Error("쿠팡 요약 시트에서 월별 데이터를 찾지 못했습니다.");
+  if(!out.length) throw new Error("쿠팡 정산 원본 파일에서 유효한 주문 라인을 찾지 못했습니다.");
+  return out;
+}
+
+// 원가/중량 조회(Supabase) + 물류비 상수를 적용해 월별 합계로 집계. cost/FX는 파일이 다루는 과거 정산월이 아니라
+// 현재 Supabase에 등록된 최신 값을 사용함 (과거 시점 원가/환율 스냅샷은 저장하지 않으므로 발생하는 의도된 한계).
+async function buildCoupangMonthlyRows(lines){
+  const distinctOptIds = [...new Set(lines.map(d=>d.option_id))];
+  const costMap = new Map();
+  for(let i=0;i<distinctOptIds.length;i+=300){
+    const chunk = distinctOptIds.slice(i, i+300);
+    const res = await rpc("resolve_coupang_costs", {p_option_ids: chunk});
+    (res||[]).forEach(r=> costMap.set(r.channel_option_id, r));
+  }
+  const tiersRaw = await rpc("get_packaging_tiers", {});
+  const tiers = (tiersRaw||[]).map(t=>({min:Number(t.min_weight_kg), usd:Number(t.cost_usd)})).sort((a,b)=>a.min-b.min);
+  const fxRate = Number(await rpc("get_usd_fx_rate", {})) || 0;
+  function packagingUsdFor(weightKg){
+    let usd = tiers.length ? tiers[0].usd : 0;
+    for(const t of tiers){ if(weightKg >= t.min) usd = t.usd; else break; }
+    return usd;
+  }
+
+  const byOrder = new Map();
+  lines.forEach(l=>{
+    if(!byOrder.has(l.order_no)) byOrder.set(l.order_no, []);
+    byOrder.get(l.order_no).push(l);
+  });
+
+  const unresolved = new Map(); // option_id -> {product_name, line_count}
+  const monthly = new Map();
+  function ensureMonth(ym){
+    if(!monthly.has(ym)) monthly.set(ym, {revenue_krw:0, settlement_krw:0, fee_krw:0, cost_krw:0, domestic_ship_krw:0, intl_ship_krw:0, packaging_krw:0, orderSet:new Set()});
+    return monthly.get(ym);
+  }
+
+  byOrder.forEach((orderLines, orderNo)=>{
+    // 한 주문의 라인들이 서로 다른 정산예정일(=정산월)을 가지는 것은 비정상적인 경우이므로, 안전하게 월별로 재분리해서 처리
+    const byYm = new Map();
+    orderLines.forEach(l=>{ if(!byYm.has(l.year_month)) byYm.set(l.year_month, []); byYm.get(l.year_month).push(l); });
+    byYm.forEach((ymLines, ym)=>{
+      const m = ensureMonth(ym);
+      let hasRealLine = false, realLineCount = 0, orderCostKrw = 0, orderWeightKg = 0;
+      ymLines.forEach(l=>{
+        m.revenue_krw += l.revenue;
+        m.settlement_krw += l.settle_amt;
+        m.fee_krw += l.fee;
+        if(l.qty > 0){
+          hasRealLine = true; realLineCount += 1;
+          const res = costMap.get(l.option_id);
+          if(res && res.found){
+            orderCostKrw += Number(res.cost_krw||0) * l.qty;
+            orderWeightKg += Number(res.weight_kg||0) * l.qty;
+          } else {
+            const u = unresolved.get(l.option_id) || {product_name: l.product_name, line_count: 0};
+            u.line_count += 1;
+            unresolved.set(l.option_id, u);
+          }
+        }
+      });
+      if(hasRealLine) m.orderSet.add(orderNo);
+      m.cost_krw += orderCostKrw;
+      m.domestic_ship_krw += realLineCount * 2950;
+      m.intl_ship_krw += realLineCount * 3050;
+      if(realLineCount > 0) m.packaging_krw += packagingUsdFor(orderWeightKg) * fxRate;
+    });
+  });
+
+  const out = [];
+  monthly.forEach((m, ym)=>{
+    const contribution_krw = m.settlement_krw - m.cost_krw - m.domestic_ship_krw - m.intl_ship_krw - m.packaging_krw;
+    out.push({
+      channel:"coupang", seller_account:null, sub_channel:null, year_month: ym,
+      revenue_krw: m.revenue_krw, contribution_krw, contribution_rate: m.revenue_krw ? contribution_krw/m.revenue_krw : null,
+      cost_krw: m.cost_krw, domestic_ship_krw: m.domestic_ship_krw, intl_ship_krw: m.intl_ship_krw,
+      packaging_krw: m.packaging_krw, order_count: m.orderSet.size, fee_krw: m.fee_krw, settlement_krw: m.settlement_krw
+    });
+  });
+  out.sort((a,b)=> a.year_month.localeCompare(b.year_month));
+  out._unresolved = [...unresolved.entries()].map(([option_id,v])=>({option_id, product_name:v.product_name, line_count:v.line_count}));
   return out;
 }
 
@@ -655,22 +761,34 @@ async function parseUploadFile(){
   pendingUploadRows = null;
 
   if(!fileInput.files || !fileInput.files[0]){ errBox.textContent = "정산 엑셀 파일을 선택해주세요."; errBox.style.display="block"; return; }
-  if(!year){ errBox.textContent = "연도를 입력해주세요."; errBox.style.display="block"; return; }
+  if(channel!=="coupang" && !year){ errBox.textContent = "연도를 입력해주세요."; errBox.style.display="block"; return; }
 
   const btn = document.getElementById("up_parse_btn");
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>분석 중…';
+  document.getElementById("up_warn").style.display = "none";
   try{
     const buf = await fileInput.files[0].arrayBuffer();
     const wb = XLSX.read(buf, {type:"array"});
-    const rows = sheetToRows(wb, "요약");
     let parsed;
-    if(channel==="coupang") parsed = parseCoupang(rows, year);
-    else if(channel==="11st") parsed = parse11st(rows, year);
-    else if(channel==="ebay") parsed = parseEsm(rows, year);
-    else if(channel==="naver") parsed = parseNss(rows, year);
+    if(channel==="coupang"){
+      const sheetName = wb.SheetNames.includes("Order Detail Report") ? "Order Detail Report" : wb.SheetNames[0];
+      const rows = sheetToRows(wb, sheetName);
+      parsed = await buildCoupangMonthlyRows(parseCoupangRaw(rows));
+    }
+    else if(channel==="11st") parsed = parse11st(sheetToRows(wb, "요약"), year);
+    else if(channel==="ebay") parsed = parseEsm(sheetToRows(wb, "요약"), year);
+    else if(channel==="naver") parsed = parseNss(sheetToRows(wb, "요약"), year);
     else throw new Error("지원하지 않는 채널입니다.");
 
     pendingUploadRows = parsed;
+    if(parsed._unresolved && parsed._unresolved.length){
+      const warnBox = document.getElementById("up_warn");
+      const totalLines = parsed._unresolved.reduce((s,u)=>s+u.line_count,0);
+      warnBox.innerHTML = "SKU 매핑을 찾지 못한 옵션이 " + parsed._unresolved.length + "종(" + totalLines + "개 라인) 있어 해당 라인은 원가 0원으로 계산되었습니다 (상품 매핑을 보완한 뒤 재업로드 권장):<br>" +
+        parsed._unresolved.slice(0,15).map(u=> "· " + u.option_id + (u.product_name? " ("+u.product_name+")" : "") + " — " + u.line_count + "라인").join("<br>") +
+        (parsed._unresolved.length>15 ? "<br>… 외 " + (parsed._unresolved.length-15) + "종" : "");
+      warnBox.style.display = "block";
+    }
     const tbody = document.querySelector("#up_preview_table tbody");
     tbody.innerHTML = "";
     parsed.forEach(r=>{
@@ -686,7 +804,8 @@ async function parseUploadFile(){
       tbody.appendChild(tr);
     });
     document.getElementById("up_preview_wrap").classList.add("show");
-    okBox.textContent = parsed.length + "개월(행)이 인식되었습니다. 내용을 확인한 뒤 저장해주세요.";
+    okBox.textContent = parsed.length + "개월(행)이 인식되었습니다. 내용을 확인한 뒤 저장해주세요." +
+      (channel==="coupang" ? " (원가·환율은 정산월 당시가 아닌 Supabase에 등록된 현재 값 기준입니다.)" : "");
     okBox.style.display = "block";
   }catch(e){
     errBox.textContent = "파일 분석 중 오류: " + (e.message || e);
