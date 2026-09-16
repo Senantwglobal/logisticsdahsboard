@@ -293,19 +293,22 @@
   <section class="panel" id="panel-trend">
     <div class="card">
       <h3 class="upload-title">정산 파일 업로드</h3>
-      <div class="upload-desc" id="up_desc">쿠팡은 WING에서 다운로드한 정산 상세내역 원본 파일(Order Detail Report, 가공 없이 그대로)을, 다른 채널은 요약 시트가 포함된 정산 엑셀 파일을 그대로 올리면 자동으로 파싱해서 반영합니다. 매월 새 파일을 올릴 때마다 해당 월 데이터가 갱신됩니다.</div>
+      <div class="upload-desc" id="up_desc">각 채널 판매자센터에서 다운로드한 정산 원본 파일을 가공 없이 그대로 올리면 자동으로 파싱해서 반영합니다 (쿠팡: Order Detail Report · 11번가: 정산 확정건 상세내역 · 이베이(ESM): 지마켓/옥션 정산 템플릿 각각 업로드 · 네이버: 정산내역+구매확정내역 두 파일 함께 업로드). 매월 새 파일을 올릴 때마다 해당 월 데이터가 갱신됩니다.</div>
       <div class="row">
         <div class="field"><label>채널</label>
           <select id="up_channel">
             <option value="coupang">쿠팡</option>
             <option value="11st">11번가</option>
-            <option value="ebay">이베이 (ESM, 지마켓+옥션)</option>
+            <option value="ebay">이베이 (ESM, 지마켓/옥션)</option>
             <option value="naver">네이버 (스마트스토어)</option>
           </select>
         </div>
-        <div class="field" id="up_year_field"><label>연도</label><input id="up_year" type="number" inputmode="numeric"></div>
-        <div class="field" style="flex:2"><label>정산 엑셀 파일 (.xlsx)</label>
-          <input id="up_file" type="file" accept=".xlsx" class="upload-file-input">
+        <div class="field" id="up_acct_field" style="display:none"><label>판매자 계정</label><select id="up_acct"></select></div>
+        <div class="field" style="flex:2"><label id="up_file_label">정산 엑셀 파일</label>
+          <input id="up_file" type="file" accept=".xlsx,.xls" class="upload-file-input">
+        </div>
+        <div class="field" id="up_file2_field" style="display:none"><label>구매확정내역 파일 (SKU 매핑용)</label>
+          <input id="up_file2" type="file" accept=".xlsx,.xls" class="upload-file-input">
         </div>
       </div>
       <button class="primary" id="up_parse_btn" onclick="parseUploadFile()">파일 분석</button>
@@ -371,7 +374,6 @@
     </div>
   </section>
 
-  <div class="foot">OPLE 내부 시스템 · Supabase 실시간 연동 · 이 페이지는 로컬 파일로 열거나 사내 서버/GitHub Pages에 올려 사용할 수 있습니다.</div>
 </div>
 
 <script>
@@ -416,13 +418,29 @@ function wireChannelDeps(prefix){
 }
 wireChannelDeps("calc");
 wireChannelDeps("price");
-document.getElementById("up_year").value = new Date().getFullYear();
 (function(){
   const sel = document.getElementById("up_channel");
-  const yearField = document.getElementById("up_year_field");
-  function syncYearField(){ yearField.style.display = (sel.value==="coupang") ? "none" : "flex"; }
-  sel.addEventListener("change", syncYearField);
-  syncYearField();
+  const acctField = document.getElementById("up_acct_field");
+  const acctSel = document.getElementById("up_acct");
+  const file2Field = document.getElementById("up_file2_field");
+  const fileLabel = document.getElementById("up_file_label");
+  function sync(){
+    const v = sel.value;
+    acctField.style.display = "none"; file2Field.style.display = "none"; acctSel.innerHTML = "";
+    fileLabel.textContent = "정산 엑셀 파일";
+    if(v === "ebay"){
+      acctField.style.display = "flex";
+      acctSel.innerHTML = '<option value="">선택</option><option value="allthatmal">올댓몰</option><option value="fastople">패스트오플</option>';
+      fileLabel.textContent = "정산 파일 (지마켓 또는 옥션 템플릿 1개, 마켓은 자동 인식)";
+    } else if(v === "naver"){
+      acctField.style.display = "flex";
+      acctSel.innerHTML = '<option value="">선택</option><option value="atm">올댓몰</option><option value="vita">비타코어</option>';
+      fileLabel.textContent = "정산내역 파일 (SettleCaseByCase)";
+      file2Field.style.display = "flex";
+    }
+  }
+  sel.addEventListener("change", sync);
+  sync();
 })();
 
 // ---- RPC helper ----
@@ -555,9 +573,29 @@ function sheetToRows(workbook, sheetName){
   return XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
 }
 
+// 주문 1건당 실시간 물류비(CARGODESK 동기화 값)를 국내/해외 구간으로 나눠 반환.
+// 빠른 계산기(quick_margin_calc)가 쓰는 것과 동일한 소스(kr_logistics_snapshot)를 사용해, 엑셀 업로드 집계도
+// 예전에 박아둔 고정값(국내 2,950원/해외 3,050원)이 아니라 "실제 현재 물류비 평균"을 반영하도록 함.
+// 국내 = 출고비+통관·라스트마일, 해외 = 항공비 로 매핑 (한도: 과거 정산월 시점이 아닌 조회 시점의 스냅샷 기준).
+let _logiSplitCache = null;
+async function getLogisticsPerOrderSplit(){
+  if(_logiSplitCache) return _logiSplitCache;
+  let domestic = 2950, intl = 3050; // 스냅샷을 못 가져올 경우의 최후 fallback
+  try{
+    const rows = await rpc("get_kr_logistics_snapshot", {});
+    const row = (rows||[]).find(r=>r.window_type==="30d") || (rows||[]).find(r=>r.window_type==="mtd");
+    if(row && Number(row.total_orders) > 0){
+      domestic = (Number(row.dispatch_cost_krw||0) + Number(row.customs_parcel_cost_krw||0)) / Number(row.total_orders);
+      intl = Number(row.air_freight_cost_krw||0) / Number(row.total_orders);
+    }
+  }catch(e){ /* 동기화 실패 시 fallback 값 사용 */ }
+  _logiSplitCache = {domestic, intl};
+  return _logiSplitCache;
+}
+
 // ---- Coupang: real "Order Detail Report" raw export (per order-line), NOT a pre-aggregated summary ----
 // Ground-truth formula (reverse-engineered from the seller's own working settlement sheet):
-//   공헌이익 = 정산금액(이미 쿠팡 수수료 차감된 금액) − 입고가(원가) − 국내배송비(2950원/라인) − 해외배송비(3050원/라인) − 부자재(중량구간별, 주문 단위)
+//   공헌이익 = 정산금액(이미 쿠팡 수수료 차감된 금액) − 입고가(원가) − 국내/해외 물류비(CARGODESK 실시간 평균, 주문 단위) − 부자재(중량구간별, 주문 단위)
 // 정산월은 결제일이 아니라 "정산예정일" 기준. 배송비 placeholder 행(<기본배송료>/<추가배송료>)은 값이 항상 0이므로 제외.
 function parseCoupangRaw(rows){
   const hIdx = rows.findIndex(r => r && r[0] === "주문번호");
@@ -609,6 +647,7 @@ async function buildCoupangMonthlyRows(lines){
   const tiersRaw = await rpc("get_packaging_tiers", {});
   const tiers = (tiersRaw||[]).map(t=>({min:Number(t.min_weight_kg), usd:Number(t.cost_usd)})).sort((a,b)=>a.min-b.min);
   const fxRate = Number(await rpc("get_usd_fx_rate", {})) || 0;
+  const logiSplit = await getLogisticsPerOrderSplit();
   function packagingUsdFor(weightKg){
     let usd = tiers.length ? tiers[0].usd : 0;
     for(const t of tiers){ if(weightKg >= t.min) usd = t.usd; else break; }
@@ -634,13 +673,13 @@ async function buildCoupangMonthlyRows(lines){
     orderLines.forEach(l=>{ if(!byYm.has(l.year_month)) byYm.set(l.year_month, []); byYm.get(l.year_month).push(l); });
     byYm.forEach((ymLines, ym)=>{
       const m = ensureMonth(ym);
-      let hasRealLine = false, realLineCount = 0, orderCostKrw = 0, orderWeightKg = 0;
+      let hasRealLine = false, orderCostKrw = 0, orderWeightKg = 0;
       ymLines.forEach(l=>{
         m.revenue_krw += l.revenue;
         m.settlement_krw += l.settle_amt;
         m.fee_krw += l.fee;
         if(l.qty > 0){
-          hasRealLine = true; realLineCount += 1;
+          hasRealLine = true;
           const res = costMap.get(l.option_id);
           if(res && res.found){
             orderCostKrw += Number(res.cost_krw||0) * l.qty;
@@ -652,11 +691,13 @@ async function buildCoupangMonthlyRows(lines){
           }
         }
       });
-      if(hasRealLine) m.orderSet.add(orderNo);
+      if(hasRealLine){
+        m.orderSet.add(orderNo);
+        m.domestic_ship_krw += logiSplit.domestic;
+        m.intl_ship_krw += logiSplit.intl;
+        m.packaging_krw += packagingUsdFor(orderWeightKg) * fxRate;
+      }
       m.cost_krw += orderCostKrw;
-      m.domestic_ship_krw += realLineCount * 2950;
-      m.intl_ship_krw += realLineCount * 3050;
-      if(realLineCount > 0) m.packaging_krw += packagingUsdFor(orderWeightKg) * fxRate;
     });
   });
 
@@ -675,76 +716,279 @@ async function buildCoupangMonthlyRows(lines){
   return out;
 }
 
-function parse11st(rows, year){
-  const hIdx = rows.findIndex(r => r && r[1] === "정산월");
-  if(hIdx===-1) throw new Error("11번가 요약 시트 형식을 인식할 수 없습니다 (정산월 헤더를 찾지 못함).");
-  const out=[];
-  for(let i=hIdx+1;i<rows.length;i++){
-    const r = rows[i];
-    if(!r || r[1]==null) continue;
-    const label = String(r[1]);
-    if(label.includes("계")) continue;
-    const m = label.match(/(\d+)/);
-    if(!m) continue;
-    const adFee = (num(r[12])||0) + (num(r[13])||0) + (num(r[14])||0);
-    out.push({
-      channel:"11st", seller_account:null, sub_channel:null, year_month: monthNumToDate(year, parseInt(m[1],10)),
-      revenue_krw:num(r[2]), contribution_krw:num(r[3]), contribution_rate:num(r[4]), cost_krw:num(r[5]),
-      domestic_ship_krw:num(r[6]), intl_ship_krw:num(r[7]), packaging_krw:num(r[8]),
-      order_count:num(r[9]), settlement_krw:num(r[10]), fee_krw:num(r[11]), ad_fee_krw: adFee || null
-    });
+// =====================================================================
+// Shared aggregation core for 11st/ebay/naver raw line items -> monthly rows.
+// Mirrors buildCoupangMonthlyRows' logic (per-order/month grouping, cost+shipping+
+// packaging resolution via Supabase, negative-qty reversal lines net out revenue/
+// settlement but don't add fake cost/logistics) so all channels share one fulfillment
+// cost model, since OPLE ships internationally the same way regardless of sales channel.
+// lines: [{order_no, product_id, product_name, qty, revenue, settle_amt, fee, year_month}]
+// costMap: Map(product_id -> {found, master_sku, product_name, cost_krw, weight_kg})
+// =====================================================================
+async function aggregateLinesToMonths(lines, costMap, meta){
+  const tiersRaw = await rpc("get_packaging_tiers", {});
+  const tiers = (tiersRaw||[]).map(t=>({min:Number(t.min_weight_kg), usd:Number(t.cost_usd)})).sort((a,b)=>a.min-b.min);
+  const fxRate = Number(await rpc("get_usd_fx_rate", {})) || 0;
+  const logiSplit = await getLogisticsPerOrderSplit();
+  function packagingUsdFor(weightKg){
+    let usd = tiers.length ? tiers[0].usd : 0;
+    for(const t of tiers){ if(weightKg >= t.min) usd = t.usd; else break; }
+    return usd;
   }
-  if(!out.length) throw new Error("11번가 요약 시트에서 월별 데이터를 찾지 못했습니다.");
+
+  const byOrder = new Map();
+  lines.forEach(l=>{
+    if(!byOrder.has(l.order_no)) byOrder.set(l.order_no, []);
+    byOrder.get(l.order_no).push(l);
+  });
+
+  const unresolved = new Map();
+  const monthly = new Map();
+  function ensureMonth(ym){
+    if(!monthly.has(ym)) monthly.set(ym, {revenue_krw:0, settlement_krw:0, fee_krw:0, cost_krw:0, domestic_ship_krw:0, intl_ship_krw:0, packaging_krw:0, orderSet:new Set()});
+    return monthly.get(ym);
+  }
+
+  byOrder.forEach((orderLines, orderNo)=>{
+    const byYm = new Map();
+    orderLines.forEach(l=>{ if(!byYm.has(l.year_month)) byYm.set(l.year_month, []); byYm.get(l.year_month).push(l); });
+    byYm.forEach((ymLines, ym)=>{
+      const m = ensureMonth(ym);
+      let hasRealLine=false, orderCostKrw=0, orderWeightKg=0;
+      ymLines.forEach(l=>{
+        m.revenue_krw += l.revenue;
+        m.settlement_krw += l.settle_amt;
+        m.fee_krw += l.fee;
+        if(l.product_id!=null && l.qty > 0){
+          hasRealLine = true;
+          const res = costMap.get(l.product_id);
+          if(res && res.found){
+            orderCostKrw += Number(res.cost_krw||0) * l.qty;
+            orderWeightKg += Number(res.weight_kg||0) * l.qty;
+          } else {
+            const u = unresolved.get(l.product_id) || {product_name: l.product_name, line_count:0};
+            u.line_count += 1;
+            unresolved.set(l.product_id, u);
+          }
+        }
+      });
+      if(hasRealLine){
+        m.orderSet.add(orderNo);
+        m.domestic_ship_krw += logiSplit.domestic;
+        m.intl_ship_krw += logiSplit.intl;
+        m.packaging_krw += packagingUsdFor(orderWeightKg) * fxRate;
+      }
+      m.cost_krw += orderCostKrw;
+    });
+  });
+
+  const out = [];
+  monthly.forEach((m, ym)=>{
+    const contribution_krw = m.settlement_krw - m.cost_krw - m.domestic_ship_krw - m.intl_ship_krw - m.packaging_krw;
+    out.push({
+      channel: meta.channel, seller_account: meta.seller_account||null, sub_channel: meta.sub_channel||null, year_month: ym,
+      revenue_krw: m.revenue_krw, contribution_krw, contribution_rate: m.revenue_krw ? contribution_krw/m.revenue_krw : null,
+      cost_krw: m.cost_krw, domestic_ship_krw: m.domestic_ship_krw, intl_ship_krw: m.intl_ship_krw,
+      packaging_krw: m.packaging_krw, order_count: m.orderSet.size, fee_krw: m.fee_krw, settlement_krw: m.settlement_krw
+    });
+  });
+  out.sort((a,b)=> a.year_month.localeCompare(b.year_month));
+  out._unresolved = [...unresolved.entries()].map(([product_id,v])=>({option_id: product_id, product_name:v.product_name, line_count:v.line_count}));
   return out;
 }
 
-function esmRow(r, base, month, year, subChannel, sellerAccount){
-  return {
-    channel:"ebay", seller_account:sellerAccount, sub_channel:subChannel, year_month: monthNumToDate(year, month),
-    revenue_krw:num(r[base+1]), contribution_krw:num(r[base+2]), contribution_rate:num(r[base+3]), cost_krw:num(r[base+4]),
-    domestic_ship_krw:num(r[base+5]), intl_ship_krw:num(r[base+6]), packaging_krw:num(r[base+7]),
-    order_count:num(r[base+8]), settlement_krw:num(r[base+9]), fee_krw:num(r[base+10])
-  };
-}
-function parseEsm(rows, year){
-  const hIdx = rows.findIndex(r => r && r[1] === "정산월" && r[13] === "정산월");
-  if(hIdx===-1) throw new Error("이베이(ESM) 요약 시트 형식을 인식할 수 없습니다 (지마켓/옥션 두 블록의 정산월 헤더를 찾지 못함).");
-  const out=[];
-  let curMonth=null;
+// ---- 11st: real "정산_확정건" 상세내역 원본 (요약 시트 아님) ----
+// Ground truth (검증: 실제 원본 파일 566행 전부 오차 0):
+//   정산금액 = 판매금액합계 + 추가정산금액합계 − 공제금액합계 − 빠른정산선지급금액
+// 정산월은 정산확정일 기준 (파일 전체가 특정 정산월 하나로 스코프되어 내려옴).
+function parse11stRaw(rows){
+  const hIdx = rows.findIndex(r => r && r.includes("정산확정일") && r.includes("상품번호") && r.includes("정산금액"));
+  if(hIdx===-1) throw new Error('11번가 정산 원본 파일 형식을 인식할 수 없습니다 ("정산확정일"/"상품번호"/"정산금액" 헤더를 찾지 못함). 11번가 판매자센터에서 다운로드한 정산 확정건 상세내역 원본 파일을 가공하지 말고 그대로 올려주세요.');
+  const header = rows[hIdx];
+  const col = {};
+  header.forEach((h,i)=>{ if(h!=null && String(h).trim()!=="") col[String(h).trim()] = i; });
+  const need = ["주문번호","상품번호","수량","정산금액","판매금액합계","추가정산금액합계","공제금액합계","빠른정산선지급금액","정산확정일"];
+  const missing = need.filter(c=>!(c in col));
+  if(missing.length) throw new Error("11번가 정산 원본 파일에서 다음 열을 찾지 못했습니다: " + missing.join(", ") + " (원본 다운로드 파일 그대로 올려주세요).");
+
+  const out = [];
   for(let i=hIdx+1;i<rows.length;i++){
     const r = rows[i];
-    if(!r) continue;
-    const c1 = r[1], c13 = r[13];
-    if(c1==="총합계" || c13==="총합계") break;
-    if(typeof c1==="string" && /^\d+월$/.test(c1)) curMonth = parseInt(c1,10);
-    if(typeof c13==="string" && /^\d+월$/.test(c13)) curMonth = parseInt(c13,10);
-    if(curMonth==null) continue;
-    if(c1==="gmarket_atm") out.push(esmRow(r,1,curMonth,year,"gmarket","allthatmal"));
-    if(c1==="gmarket_fo")  out.push(esmRow(r,1,curMonth,year,"gmarket","fastople"));
-    if(c13==="auction_atm") out.push(esmRow(r,13,curMonth,year,"auction","allthatmal"));
-    if(c13==="auction_fo")  out.push(esmRow(r,13,curMonth,year,"auction","fastople"));
+    const orderNo = r ? r[col["주문번호"]] : null;
+    if(!r || orderNo==null || orderNo==="") continue;
+    const pidRaw = r[col["상품번호"]];
+    if(pidRaw==null || pidRaw==="") continue;
+    const settleRaw = r[col["정산확정일"]];
+    const dm = settleRaw!=null ? String(settleRaw).match(/(\d{4})[\/\-.](\d{2})/) : null;
+    if(!dm) continue; // 정산확정일이 비어있으면(아직 미정산) 이번 집계에서 제외
+    const pidNum = Number(pidRaw);
+    out.push({
+      order_no: String(orderNo).trim(),
+      product_id: Number.isFinite(pidNum) ? String(Math.trunc(pidNum)) : String(pidRaw).trim(),
+      product_name: col["상품명"]!=null ? r[col["상품명"]] : null,
+      qty: num(r[col["수량"]]) || 0,
+      revenue: num(r[col["판매금액합계"]]) || 0,
+      settle_amt: num(r[col["정산금액"]]) || 0,
+      fee: (num(r[col["공제금액합계"]])||0) - (num(r[col["추가정산금액합계"]])||0) + (num(r[col["빠른정산선지급금액"]])||0),
+      year_month: dm[1] + "-" + dm[2] + "-01"
+    });
   }
-  if(!out.length) throw new Error("이베이(ESM) 요약 시트에서 gmarket_atm/gmarket_fo/auction_atm/auction_fo 세부 행을 찾지 못했습니다.");
+  if(!out.length) throw new Error("11번가 정산 원본 파일에서 유효한 주문 라인을 찾지 못했습니다.");
   return out;
 }
 
-function parseNss(rows, year){
-  const hIdx = rows.findIndex(r => r && r[1] === "정산월");
-  if(hIdx===-1) throw new Error("네이버(NSS) 요약 시트 형식을 인식할 수 없습니다 (정산월 헤더를 찾지 못함).");
-  const out=[];
-  for(let i=hIdx+1;i<rows.length;i++){
+async function build11stMonthlyRows(lines){
+  const distinctIds = [...new Set(lines.map(d=>d.product_id))];
+  const costMap = new Map();
+  for(let i=0;i<distinctIds.length;i+=300){
+    const chunk = distinctIds.slice(i, i+300);
+    const res = await rpc("resolve_11st_costs", {p_product_ids: chunk});
+    (res||[]).forEach(r=> costMap.set(r.channel_product_id, r));
+  }
+  return await aggregateLinesToMonths(lines, costMap, {channel:"11st"});
+}
+
+// ---- 이베이(ESM): 지마켓/옥션 각 정산 템플릿 원본 (요약 시트 아님, 한 번에 한 마켓씩 업로드) ----
+// Ground truth (검증: 실제 원본 파일 전부):
+//   지마켓: 판매자 최종정산금 = 판매자 정산요청가+필수선택정산요청가+추가구성정산요청가+공제/환급금+판매자 스마일캐시 (1531행 오차 0)
+//   옥션:   판매자 최종정산금은 플랫폼이 이미 계산한 최종 net 정산액 — 세부 수수료 컬럼 합으로 100% 재현되진 않으나
+//           (원 단위 반올림 수준의 잔차만 확인) 해당 컬럼 자체를 정산액으로 그대로 사용.
+//   두 마켓 모두 "상품번호"는 channel_listings.channel_option_id(channel='ebay')와 매칭됨 (channel_product_id 아님, 검증 96~98%).
+//   정산월은 정산완료일 기준 (정산예정일은 지마켓 미정산 건에서 "구매미결정" 같은 placeholder 문자열이 섞이고 옥션은 항상 공란).
+function detectEsmSubChannel(header){
+  const set = new Set(header.filter(h=>h!=null).map(h=>String(h).trim()));
+  if(set.has("G마켓 상품별 할인")) return "gmarket";
+  if(set.has("옥션 상품별 할인")) return "auction";
+  return null;
+}
+function parseEsmRaw(rows){
+  const header = rows[0];
+  if(!header) throw new Error("이베이(ESM) 정산 원본 파일 형식을 인식할 수 없습니다.");
+  const subChannel = detectEsmSubChannel(header);
+  if(!subChannel) throw new Error('이베이(ESM) 정산 원본 파일에서 지마켓/옥션 여부를 판별할 수 없습니다 ("G마켓 상품별 할인" 또는 "옥션 상품별 할인" 헤더를 찾지 못함). ESM 판매자센터에서 다운로드한 정산 템플릿 원본 파일을 가공하지 말고 그대로 올려주세요.');
+  const col = {};
+  header.forEach((h,i)=>{ if(h!=null && String(h).trim()!=="") col[String(h).trim()] = i; });
+
+  const revenueCols = subChannel==="gmarket" ? ["판매가격","필수선택상품금액","추가구성상품금액"] : ["상품 판매가","옵션상품 판매가"];
+  const need = ["주문번호","상품번호","주문수량","판매자 최종정산금","정산완료일", ...revenueCols];
+  const missing = need.filter(c=>!(c in col));
+  if(missing.length) throw new Error("이베이(ESM) 정산 원본 파일에서 다음 열을 찾지 못했습니다: " + missing.join(", ") + " (원본 다운로드 파일 그대로 올려주세요).");
+
+  const out = [];
+  for(let i=1;i<rows.length;i++){
     const r = rows[i];
-    if(!r || r[1]==null) continue;
-    const raw = String(r[1]).trim();
-    if(!/^\d{1,2}$/.test(raw)) continue; // NSS_atm / NSS_vita / 총합계 등은 건너뜀 (월별 계정분리 없음)
+    const orderNo = r ? r[col["주문번호"]] : null;
+    if(!r || orderNo==null || orderNo==="") continue;
+    const pidRaw = r[col["상품번호"]];
+    if(pidRaw==null || pidRaw==="") continue;
+    const settleRaw = r[col["정산완료일"]];
+    const dm = settleRaw!=null ? String(settleRaw).match(/(\d{4})[\/\-.](\d{2})/) : null;
+    if(!dm) continue; // 정산완료일이 비어있으면(아직 미정산/보류) 이번 집계에서 제외
+    const revenue = revenueCols.reduce((s,c)=> s + (num(r[col[c]])||0), 0);
+    const settleAmt = num(r[col["판매자 최종정산금"]]) || 0;
     out.push({
-      channel:"naver", seller_account:null, sub_channel:null, year_month: monthNumToDate(year, parseInt(raw,10)),
-      revenue_krw:num(r[2]), contribution_krw:num(r[3]), contribution_rate:num(r[4]), cost_krw:num(r[5]),
-      shipping_combined_krw:num(r[6]), packaging_krw:num(r[7]),
-      order_count:num(r[8]), settlement_krw:num(r[9]), fee_krw:num(r[10])
+      order_no: String(orderNo).trim(),
+      product_id: String(pidRaw).trim(),
+      product_name: col["상품명"]!=null ? r[col["상품명"]] : null,
+      qty: num(r[col["주문수량"]]) || 0,
+      revenue, settle_amt: settleAmt, fee: revenue - settleAmt,
+      year_month: dm[1] + "-" + dm[2] + "-01"
     });
   }
-  if(!out.length) throw new Error("네이버(NSS) 요약 시트에서 월별 데이터를 찾지 못했습니다.");
+  if(!out.length) throw new Error("이베이(ESM) 정산 원본 파일에서 유효한 주문 라인을 찾지 못했습니다.");
+  out._subChannel = subChannel;
+  return out;
+}
+
+async function buildEsmMonthlyRows(lines, sellerAccount){
+  const distinctIds = [...new Set(lines.map(d=>d.product_id))];
+  const costMap = new Map();
+  for(let i=0;i<distinctIds.length;i+=300){
+    const chunk = distinctIds.slice(i, i+300);
+    const res = await rpc("resolve_ebay_costs", {p_option_ids: chunk, p_seller_account: sellerAccount});
+    (res||[]).forEach(r=> costMap.set(r.channel_option_id, r));
+  }
+  const out = await aggregateLinesToMonths(lines, costMap, {channel:"ebay", seller_account:sellerAccount, sub_channel: lines._subChannel});
+  out._subChannel = lines._subChannel;
+  return out;
+}
+
+// ---- 네이버(NSS): 정산내역(SettleCaseByCase, 정산월 단위 원본) + 구매확정내역(SKU 매핑용) 두 파일 함께 ----
+// SettleCaseByCase는 정산예정일 기준으로 정확히 한 정산월에만 스코프된, 판매자상품코드 등 상품코드 컬럼이 전혀
+// 없는(상품명 텍스트만 있는) 정산 원본이며, 겹치는 라인에 한해 구매확정내역의 정산예정금액과 100% 일치가 확인됨.
+// 따라서 원가 매칭을 위해서는 구매확정내역(상품주문번호 -> 판매자상품코드+수량)을 조인해야 함.
+// Ground truth (검증, 오차 0):
+//   정산예정금액 = 정산기준금액 + Npay 수수료 + 매출 연동 수수료 합계 + 무이자할부 수수료 + 혜택금액
+// 구분='배송비' 행은 별도 배송비 정산 라인이라 상품 원가 매칭 대상에서 제외 (매출/정산액에는 그대로 반영).
+function parseNssRaw(settleRows, confirmRows){
+  const sHeader = settleRows.find(r => r && r.includes("정산예정금액") && r.includes("상품주문번호"));
+  if(!sHeader) throw new Error('네이버(NSS) 정산내역 원본 파일 형식을 인식할 수 없습니다 ("상품주문번호"/"정산예정금액" 헤더를 찾지 못함). 스마트스토어센터 정산관리 > 정산내역(SettleCaseByCase) 원본 파일을 가공하지 말고 그대로 올려주세요.');
+  const sCol = {};
+  sHeader.forEach((h,i)=>{ if(h!=null && String(h).trim()!=="") sCol[String(h).trim()] = i; });
+  const sNeed = ["주문번호","상품주문번호","구분","정산기준금액","정산예정금액","정산예정일"];
+  const sMissing = sNeed.filter(c=>!(c in sCol));
+  if(sMissing.length) throw new Error("네이버(NSS) 정산내역 원본 파일에서 다음 열을 찾지 못했습니다: " + sMissing.join(", "));
+
+  // 구매확정내역: 상품주문번호 -> {code(판매자 상품코드, 없으면 상품번호), qty}
+  const infoMap = new Map();
+  if(confirmRows && confirmRows.length){
+    const cHeader = confirmRows.find(r => r && r.includes("상품주문번호") && r.includes("판매자 상품코드"));
+    if(cHeader){
+      const cCol = {};
+      cHeader.forEach((h,i)=>{ if(h!=null && String(h).trim()!=="") cCol[String(h).trim()] = i; });
+      const hIdx2 = confirmRows.indexOf(cHeader);
+      for(let i=hIdx2+1;i<confirmRows.length;i++){
+        const r = confirmRows[i];
+        const oid = r ? r[cCol["상품주문번호"]] : null;
+        if(oid==null || oid==="") continue;
+        const code = (cCol["판매자 상품코드"]!=null ? r[cCol["판매자 상품코드"]] : null) || (cCol["상품번호"]!=null ? r[cCol["상품번호"]] : null);
+        infoMap.set(String(oid).trim(), { code: code!=null && code!=="" ? String(code).trim() : null, qty: (cCol["수량"]!=null ? num(r[cCol["수량"]]) : null) || 1 });
+      }
+    }
+  }
+
+  const hIdx = settleRows.indexOf(sHeader);
+  const out = [];
+  let unmatchedCount = 0;
+  for(let i=hIdx+1;i<settleRows.length;i++){
+    const r = settleRows[i];
+    const orderNo = r ? r[sCol["주문번호"]] : null;
+    if(!r || orderNo==null || orderNo==="") continue;
+    const lineId = r[sCol["상품주문번호"]];
+    const settleRaw = r[sCol["정산예정일"]];
+    const dm = settleRaw!=null ? String(settleRaw).match(/(\d{4})[.\-\/](\d{2})/) : null;
+    if(!dm) continue;
+    const gubun = r[sCol["구분"]];
+    const isShipping = gubun === "배송비";
+    const info = (!isShipping && lineId!=null) ? infoMap.get(String(lineId).trim()) : null;
+    if(!isShipping && lineId!=null && !info) unmatchedCount += 1;
+    const fee = (num(r[sCol["Npay 수수료"]])||0) + (num(r[sCol["매출 연동 수수료 합계"]])||0) + (num(r[sCol["무이자할부 수수료"]])||0) + (num(r[sCol["혜택금액"]])||0);
+    out.push({
+      order_no: String(orderNo).trim(),
+      product_id: info ? info.code : null,
+      product_name: sCol["상품명"]!=null ? r[sCol["상품명"]] : null,
+      qty: isShipping ? 0 : (info ? info.qty : 1),
+      revenue: num(r[sCol["정산기준금액"]]) || 0,
+      settle_amt: num(r[sCol["정산예정금액"]]) || 0,
+      fee,
+      year_month: dm[1] + "-" + dm[2] + "-01"
+    });
+  }
+  if(!out.length) throw new Error("네이버(NSS) 정산내역 원본 파일에서 유효한 정산 라인을 찾지 못했습니다.");
+  out._unmatchedCount = unmatchedCount;
+  return out;
+}
+
+async function buildNaverMonthlyRows(lines, sellerAccount){
+  const distinctIds = [...new Set(lines.map(d=>d.product_id).filter(x=>x!=null))];
+  const costMap = new Map();
+  for(let i=0;i<distinctIds.length;i+=300){
+    const chunk = distinctIds.slice(i, i+300);
+    const res = await rpc("resolve_naver_costs", {p_seller_codes: chunk, p_seller_account: sellerAccount});
+    (res||[]).forEach(r=> costMap.set(r.seller_code, r));
+  }
+  const out = await aggregateLinesToMonths(lines, costMap, {channel:"naver", seller_account:sellerAccount});
+  out._unmatchedCount = lines._unmatchedCount;
   return out;
 }
 
@@ -752,8 +996,9 @@ let pendingUploadRows = null;
 
 async function parseUploadFile(){
   const channel = document.getElementById("up_channel").value;
-  const year = parseInt(document.getElementById("up_year").value, 10);
+  const sellerAccount = document.getElementById("up_acct").value || null;
   const fileInput = document.getElementById("up_file");
+  const fileInput2 = document.getElementById("up_file2");
   const errBox = document.getElementById("up_err");
   const okBox = document.getElementById("up_ok");
   errBox.style.display = "none"; okBox.style.display = "none";
@@ -761,7 +1006,8 @@ async function parseUploadFile(){
   pendingUploadRows = null;
 
   if(!fileInput.files || !fileInput.files[0]){ errBox.textContent = "정산 엑셀 파일을 선택해주세요."; errBox.style.display="block"; return; }
-  if(channel!=="coupang" && !year){ errBox.textContent = "연도를 입력해주세요."; errBox.style.display="block"; return; }
+  if((channel==="ebay" || channel==="naver") && !sellerAccount){ errBox.textContent = "판매자 계정을 선택해주세요."; errBox.style.display="block"; return; }
+  if(channel==="naver" && (!fileInput2.files || !fileInput2.files[0])){ errBox.textContent = "구매확정내역 파일도 함께 선택해주세요 (SKU 원가 매핑에 필요합니다)."; errBox.style.display="block"; return; }
 
   const btn = document.getElementById("up_parse_btn");
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>분석 중…';
@@ -775,20 +1021,39 @@ async function parseUploadFile(){
       const rows = sheetToRows(wb, sheetName);
       parsed = await buildCoupangMonthlyRows(parseCoupangRaw(rows));
     }
-    else if(channel==="11st") parsed = parse11st(sheetToRows(wb, "요약"), year);
-    else if(channel==="ebay") parsed = parseEsm(sheetToRows(wb, "요약"), year);
-    else if(channel==="naver") parsed = parseNss(sheetToRows(wb, "요약"), year);
+    else if(channel==="11st"){
+      const rows = sheetToRows(wb, wb.SheetNames[0]);
+      parsed = await build11stMonthlyRows(parse11stRaw(rows));
+    }
+    else if(channel==="ebay"){
+      const rows = sheetToRows(wb, wb.SheetNames[0]);
+      parsed = await buildEsmMonthlyRows(parseEsmRaw(rows), sellerAccount);
+    }
+    else if(channel==="naver"){
+      const settleRows = sheetToRows(wb, wb.SheetNames.includes("SettleCaseByCase") ? "SettleCaseByCase" : wb.SheetNames[0]);
+      const buf2 = await fileInput2.files[0].arrayBuffer();
+      const wb2 = XLSX.read(buf2, {type:"array"});
+      const confirmRows = sheetToRows(wb2, wb2.SheetNames.includes("구매확정내역") ? "구매확정내역" : wb2.SheetNames[0]);
+      parsed = await buildNaverMonthlyRows(parseNssRaw(settleRows, confirmRows), sellerAccount);
+    }
     else throw new Error("지원하지 않는 채널입니다.");
 
     pendingUploadRows = parsed;
+    const warnBox = document.getElementById("up_warn");
+    let warnHtml = "";
+    if(channel==="ebay" && parsed._subChannel){
+      warnHtml += "감지된 마켓: <b>" + (SUB_LABEL[parsed._subChannel]||parsed._subChannel) + "</b><br>";
+    }
+    if(channel==="naver" && parsed._unmatchedCount){
+      warnHtml += "구매확정내역에서 상품코드를 찾지 못한 정산 라인이 " + parsed._unmatchedCount + "건 있어 해당 라인은 수량 1건·원가 매칭 불가로 처리되었습니다.<br>";
+    }
     if(parsed._unresolved && parsed._unresolved.length){
-      const warnBox = document.getElementById("up_warn");
       const totalLines = parsed._unresolved.reduce((s,u)=>s+u.line_count,0);
-      warnBox.innerHTML = "SKU 매핑을 찾지 못한 옵션이 " + parsed._unresolved.length + "종(" + totalLines + "개 라인) 있어 해당 라인은 원가 0원으로 계산되었습니다 (상품 매핑을 보완한 뒤 재업로드 권장):<br>" +
+      warnHtml += "SKU 매핑을 찾지 못한 상품이 " + parsed._unresolved.length + "종(" + totalLines + "개 라인) 있어 해당 라인은 원가 0원으로 계산되었습니다 (상품 매핑을 보완한 뒤 재업로드 권장):<br>" +
         parsed._unresolved.slice(0,15).map(u=> "· " + u.option_id + (u.product_name? " ("+u.product_name+")" : "") + " — " + u.line_count + "라인").join("<br>") +
         (parsed._unresolved.length>15 ? "<br>… 외 " + (parsed._unresolved.length-15) + "종" : "");
-      warnBox.style.display = "block";
     }
+    if(warnHtml){ warnBox.innerHTML = warnHtml; warnBox.style.display = "block"; }
     const tbody = document.querySelector("#up_preview_table tbody");
     tbody.innerHTML = "";
     parsed.forEach(r=>{
@@ -804,8 +1069,7 @@ async function parseUploadFile(){
       tbody.appendChild(tr);
     });
     document.getElementById("up_preview_wrap").classList.add("show");
-    okBox.textContent = parsed.length + "개월(행)이 인식되었습니다. 내용을 확인한 뒤 저장해주세요." +
-      (channel==="coupang" ? " (원가·환율은 정산월 당시가 아닌 Supabase에 등록된 현재 값 기준입니다.)" : "");
+    okBox.textContent = parsed.length + "개월(행)이 인식되었습니다. 내용을 확인한 뒤 저장해주세요. (원가·환율은 정산월 당시가 아닌 Supabase에 등록된 현재 값 기준입니다.)";
     okBox.style.display = "block";
   }catch(e){
     errBox.textContent = "파일 분석 중 오류: " + (e.message || e);
