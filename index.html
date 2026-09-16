@@ -260,7 +260,7 @@ tfoot td{padding:9px 12px; font-weight:300; border-top:1px solid var(--line-stro
 svg.chart text{font-family:var(--font-ui); fill:var(--muted);}
 svg.chart .axisline{stroke:var(--line-strong);}
 svg.chart .gridline{stroke:var(--line);}
-.tooltip{position:fixed; background:var(--ink); color:var(--page); font-size:11.5px; padding:8px 11px; border-radius:8px; pointer-events:none; z-index:80; opacity:0; transition:opacity .08s; line-height:1.55; box-shadow:var(--shadow); max-width:260px; min-width:170px;}
+.tooltip{position:fixed; background:var(--ink); color:var(--page); font-size:11.5px; padding:8px 11px; border-radius:8px; pointer-events:none; z-index:80; opacity:0; transition:opacity .08s; line-height:1.55; box-shadow:var(--shadow); max-width:300px; min-width:190px;}
 .tooltip.show{opacity:1;}
 .bar-rect{cursor:pointer;}
 .bar-rect:hover{filter:brightness(1.12);}
@@ -990,7 +990,7 @@ function tip(){ if(!tipEl) tipEl = document.getElementById("tooltip"); return ti
 function showTip(evt, html){
   const t = tip(); t.innerHTML = html; t.classList.add("show");
   const x = evt.clientX, y = evt.clientY;
-  const w = 250, pad = 14;
+  const w = 300, pad = 14;
   t.style.left = Math.min(x+pad, window.innerWidth-w) + "px";
   t.style.top = Math.max(y-38, 8) + "px";
 }
@@ -1093,10 +1093,15 @@ function bandBarChart(container, {data, thresholds, unitLabel, metricKey}){
 }
 
 /* ---------------- stacked bar chart (packing ratio composition) ---------------- */
-function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabelFn, tipTitleFn, valueFmt}){
+/**
+ * 누적 막대. `subKeys`를 주면 합쳐서 그린 세그먼트를 툴팁에서 세부 항목으로 풀어 보여준다.
+ *   subKeys = { packingTotal: [{key:"packingCost", label:"출고비"}, ...] }
+ */
+function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabelFn, tipTitleFn, valueFmt, subKeys}){
   xLabelFn = xLabelFn || CD.fmtShort;
   tipTitleFn = tipTitleFn || CD.fmtFull;
   valueFmt = valueFmt || (v=>CD.fmtNum(v));
+  subKeys = subKeys || {};
   clear(container);
   const w = container.clientWidth || 640, h = 220;
   const totals = data.map(d=> keys.reduce((s,k)=>s+(d[k]||0),0));
@@ -1116,15 +1121,39 @@ function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabe
     svg.appendChild(lbl);
   });
 
+  /** 막대 하나의 구성 전체를 보여주는 툴팁 (마우스가 올라간 항목은 굵게) */
+  function stackTip(d, hovered){
+    const line = (label, val, {sub=false, strong=false, color=null}={}) =>
+      `<div style="display:flex; justify-content:space-between; gap:14px;${sub?" padding-left:13px; opacity:.72;":""}">` +
+        `<span>${color?`<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${color};margin-right:5px;vertical-align:middle;"></span>`:""}${label}</span>` +
+        `<span style="white-space:nowrap;${strong?"font-weight:600;":""}">${valueFmt(val)}</span>` +
+      `</div>`;
+    let html = `<b>${tipTitleFn(d.date)}</b>`;
+    let total = 0;
+    keys.forEach(k=>{
+      const v = d[k]||0; total += v;
+      if(v<=0 && k!==hovered) return;
+      html += line(labelFn(k), v, {strong:k===hovered, color:colorFn(k)});
+      (subKeys[k]||[]).forEach(sk=>{
+        const sv = d[sk.key]||0;
+        if(sv>0) html += line(sk.label, sv, {sub:true});
+      });
+    });
+    html += `<div style="border-top:1px solid rgba(255,255,255,.28); margin-top:5px; padding-top:4px;">`
+          + line("합계", total, {strong:true}) + `</div>`;
+    return html;
+  }
+
   data.forEach((d,i)=>{
     const cx = padL + gapStep*i + gapStep/2;
     let acc = 0;
     keys.forEach(k=>{
       const v = d[k]||0; if(v<=0) return;
-      const segH = Math.max(0, plotH*(v/maxV) - 1.2);
+      // 금액이 작아도 최소 2px는 그린다 (안 그리면 보이지도, 롤오버 되지도 않는다)
+      const segH = Math.max(2, plotH*(v/maxV) - 1.2);
       const y = padT+plotH - plotH*((acc+v)/maxV);
       const rect = svgEl("rect",{class:"bar-rect", x:cx-bw/2, y, width:bw, height:Math.max(0,segH), rx:2.5, ry:2.5, fill:colorFn(k)});
-      rect.addEventListener("mousemove", e=>showTip(e, `<b>${tipTitleFn(d.date)}</b><br>${labelFn(k)}: <b>${valueFmt(v)}</b>`));
+      rect.addEventListener("mousemove", e=>showTip(e, stackTip(d, k)));
       rect.addEventListener("mouseleave", hideTip);
       svg.appendChild(rect);
       acc += v;
@@ -2678,7 +2707,7 @@ function shell(){
     </div>
 
     <div class="section">
-      <div class="section-head"><h2>비용 구성 (출고비 · 통관·택배 · 항공 · 트럭킹 · 취급주의)</h2></div>
+      <div class="section-head"><h2>비용 구성</h2><span class="hint">출고비 칸에 취급주의 포함 · 막대에 마우스를 올리면 항목별로 나뉩니다</span></div>
       <div class="card">
         <div id="aCompWrap" class="grid even"></div>
         <div class="chart-legend" id="aCompLegend"></div>
@@ -3662,18 +3691,26 @@ function refresh(){
     const box = document.createElement("div");
     box.innerHTML = `<div class="row" style="margin-bottom:6px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div><div class="chart-holder"></div>`;
     compWrap.appendChild(box);
-    const data = rows.map(r=>({
-      date: r.key,
-      packingCost: toDisp(r.byCountry[c]? r.byCountry[c].packingCost:0, c),
-      lastMileCost: toDisp(r.byCountry[c]? r.byCountry[c].lastMileCost:0, c),
-      airCost: toDisp(r.byCountry[c]? r.byCountry[c].airCost:0, c),
-      truckingCost: toDisp(r.byCountry[c]? (r.byCountry[c].truckingCost||0):0, c),
-      handlingCost: toDisp(r.byCountry[c]? (r.byCountry[c].handlingCost||0):0, c)
-    }));
-    const compColor = {packingCost:"--cost-pack", lastMileCost:"--cost-lastmile", airCost:"--cost-air", truckingCost:"--cost-truck", handlingCost:"--cost-handling"};
-    const compLabel = {packingCost:"출고비", lastMileCost:"통관 택배비용", airCost:"항공비용", truckingCost:"트럭킹비", handlingCost:"취급주의 출고비"};
+    // 출고비와 취급주의 출고비는 같은 창고 작업비라 한 칸으로 쌓고, 툴팁에서 나눠 보여준다
+    const data = rows.map(r=>{
+      const b = r.byCountry[c] || {};
+      const pack = toDisp(b.packingCost||0, c);
+      const hand = toDisp(b.handlingCost||0, c);
+      return {
+        date: r.key,
+        packingTotal: pack + hand,
+        packingCost: pack,
+        handlingCost: hand,
+        lastMileCost: toDisp(b.lastMileCost||0, c),
+        airCost: toDisp(b.airCost||0, c),
+        truckingCost: toDisp(b.truckingCost||0, c)
+      };
+    });
+    const compColor = {packingTotal:"--cost-pack", lastMileCost:"--cost-lastmile", airCost:"--cost-air", truckingCost:"--cost-truck"};
+    const compLabel = {packingTotal:"출고비 (취급주의 포함)", lastMileCost:"통관 택배비용", airCost:"항공비용", truckingCost:"트럭킹비"};
     Charts.stackedBarChart(box.querySelector(".chart-holder"), {
-      data, keys:["packingCost","lastMileCost","airCost","truckingCost","handlingCost"],
+      data, keys:["packingTotal","lastMileCost","airCost","truckingCost"],
+      subKeys:{ packingTotal:[{key:"packingCost", label:"출고비"}, {key:"handlingCost", label:"취급주의 출고비"}] },
       colorFn:k=> CD.cssVar(compColor[k]),
       labelFn:k=> compLabel[k],
       xLabelFn: keyLabel, tipTitleFn: keyLabel,
