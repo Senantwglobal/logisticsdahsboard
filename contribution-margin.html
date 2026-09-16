@@ -204,6 +204,7 @@
     <button data-tab="price">권장 판매가</button>
     <button data-tab="trend">월별 정산 트렌드</button>
     <button data-tab="logi">물류비 동기화</button>
+    <button data-tab="cost">입고가 업데이트</button>
   </nav>
 
   <!-- TAB 1: QUICK CALCULATOR -->
@@ -371,6 +372,38 @@
           라스트마일·통관: 주문 1건당 2,950원 고정 · 출고비: 박스당 1개차 $1.29, 2개차부터 +$0.60/개 · 항공비: kg당 700kg 미만 $1.30 / 700kg 이상 $1.15 (모두 당시 환율 적용)
         </div>
       </details>
+    </div>
+  </section>
+
+  <!-- TAB 5: COST UPDATE -->
+  <section class="panel" id="panel-cost">
+    <div class="card">
+      <h3 class="upload-title">입고가(원가) 일괄 업데이트</h3>
+      <div class="upload-desc">엑셀로 코드(마스터 SKU / UPC / 자사 SKU / 채널 판매자코드)와 원가를 업로드하면, 상품을 매칭해 기존 원가와 비교한 뒤 반영합니다. 헤더는 <b>코드</b> · <b>원가</b> · <b>통화</b>(선택, 비워두면 기존 통화 유지) 순서를 권장합니다.</div>
+      <div class="row">
+        <div class="field" style="flex:2"><label>입고가 엑셀 파일</label>
+          <input id="cost_file" type="file" accept=".xlsx,.xls" class="upload-file-input">
+        </div>
+      </div>
+      <div class="row" style="margin-top:-6px">
+        <button class="ghost" onclick="downloadCostTemplate()" type="button">↓ 템플릿 다운로드</button>
+        <button class="primary" id="cost_parse_btn" onclick="parseCostFile()">파일 분석</button>
+      </div>
+      <div class="notice bad" id="cost_err" style="display:none"></div>
+      <div class="notice good" id="cost_ok" style="display:none"></div>
+      <div class="notice warn" id="cost_warn" style="display:none"></div>
+
+      <div class="preview-wrap" id="cost_preview_wrap">
+        <div class="sectiontitle">매칭 결과 미리보기 (매칭 <span id="cost_matched_count">0</span>건 · 매칭 실패 <span id="cost_unmatched_count">0</span>건)</div>
+        <div class="tablewrap"><table id="cost_preview_table"><thead><tr>
+          <th style="text-align:left">입력 코드</th><th style="text-align:left">마스터SKU</th><th style="text-align:left">상품명</th>
+          <th style="text-align:left">매칭방식</th><th>기존 원가</th><th>신규 원가</th><th>증감</th><th>증감율</th>
+        </tr></thead><tbody></tbody></table></div>
+        <div class="preview-actions">
+          <button class="primary" id="cost_save_btn" onclick="applyCostUpdates()">매칭된 건만 Supabase에 반영</button>
+          <span class="muted" id="cost_save_status" style="font-size:12.5px;"></span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1394,6 +1427,142 @@ async function doLogisticsRefresh(){
 }
 
 loadLogisticsSnapshot();
+
+// ==============================================================================
+// TAB 5: 입고가(원가) 엑셀 업로드 — 코드 매칭(quick_margin_calc와 동일한 우선순위:
+// master_sku -> upc -> child_sku -> 채널 판매자코드) 후 미리보기, 확인 후 반영.
+// ==============================================================================
+let pendingCostPreview = null; // 매칭된 행만 보관 (반영 대상)
+
+function downloadCostTemplate(){
+  const wsData = [["코드","원가","통화"], ["예: DOC-P012166 (마스터SKU/UPC/자사SKU/판매자코드 모두 가능)","12.50","USD"]];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "입고가");
+  XLSX.writeFile(wb, "입고가_업데이트_템플릿.xlsx");
+}
+
+function parseCostUpdateFile(rows){
+  if(!rows || !rows.length) throw new Error("빈 파일입니다.");
+  const header = rows[0].map(h => String(h??"").trim().toLowerCase());
+  const findCol = (patterns) => header.findIndex(h => patterns.some(p => h.includes(p)));
+  const codeIdx = findCol(["코드","sku","upc"]);
+  const costIdx = findCol(["원가","cost","단가"]);
+  const curIdx  = findCol(["통화","currency"]);
+  if(codeIdx===-1 || costIdx===-1){
+    throw new Error('헤더에서 "코드"와 "원가" 열을 찾지 못했습니다. 템플릿을 다운로드해서 형식을 맞춰주세요.');
+  }
+  const items = [];
+  for(let i=1;i<rows.length;i++){
+    const row = rows[i];
+    if(!row) continue;
+    const code = row[codeIdx];
+    const cost = row[costIdx];
+    if(code===undefined || code===null || String(code).trim()==="") continue;
+    if(cost===undefined || cost===null || String(cost).trim()==="") continue;
+    const costNum = Number(cost);
+    if(isNaN(costNum)) continue;
+    const item = { code: String(code).trim(), cost_amount: costNum };
+    if(curIdx!==-1 && row[curIdx]!==undefined && row[curIdx]!==null && String(row[curIdx]).trim()!==""){
+      item.cost_currency = String(row[curIdx]).trim().toUpperCase();
+    }
+    items.push(item);
+  }
+  if(!items.length) throw new Error("유효한 데이터 행이 없습니다. (코드·원가가 모두 채워진 행이 필요합니다)");
+  return items;
+}
+
+async function parseCostFile(){
+  const fileInput = document.getElementById("cost_file");
+  const errBox = document.getElementById("cost_err");
+  const okBox = document.getElementById("cost_ok");
+  const warnBox = document.getElementById("cost_warn");
+  errBox.style.display="none"; okBox.style.display="none"; warnBox.style.display="none";
+  document.getElementById("cost_preview_wrap").classList.remove("show");
+  pendingCostPreview = null;
+
+  if(!fileInput.files || !fileInput.files[0]){ errBox.textContent="엑셀 파일을 선택해주세요."; errBox.style.display="block"; return; }
+
+  const btn = document.getElementById("cost_parse_btn");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>분석 중…';
+  try{
+    const buf = await fileInput.files[0].arrayBuffer();
+    const wb = XLSX.read(buf, {type:"array"});
+    const rows = sheetToRows(wb, wb.SheetNames[0]);
+    const items = parseCostUpdateFile(rows);
+    if(items.length > 2000){
+      throw new Error("한 번에 2,000행까지 처리 가능합니다. 파일을 나눠서 올려주세요. (현재 " + items.length + "행)");
+    }
+
+    const preview = await rpc("preview_cost_update_from_codes", { p_items: items });
+    const matched = preview.filter(r=>r.matched);
+    const unmatched = preview.filter(r=>!r.matched);
+    pendingCostPreview = matched;
+
+    document.getElementById("cost_matched_count").textContent = matched.length;
+    document.getElementById("cost_unmatched_count").textContent = unmatched.length;
+
+    if(unmatched.length){
+      warnBox.innerHTML = "매칭 실패 " + unmatched.length + "건은 반영 대상에서 제외됩니다 (마스터SKU/UPC/자사SKU/판매자코드 중 어느 것과도 일치하지 않음):<br>" +
+        unmatched.slice(0,15).map(u=>"· "+u.input_code).join("<br>") +
+        (unmatched.length>15 ? "<br>… 외 "+(unmatched.length-15)+"건" : "");
+      warnBox.style.display = "block";
+    }
+
+    const tbody = document.querySelector("#cost_preview_table tbody");
+    tbody.innerHTML = "";
+    preview.forEach(r=>{
+      const tr = document.createElement("tr");
+      if(!r.matched) tr.style.opacity = "0.5";
+      const deltaClass = r.delta_krw > 0 ? "delta up" : (r.delta_krw < 0 ? "delta down" : "");
+      tr.innerHTML =
+        '<td style="text-align:left">'+r.input_code+'</td>'+
+        '<td style="text-align:left" class="tabular">'+(r.master_sku||"매칭 실패")+'</td>'+
+        '<td style="text-align:left">'+(r.product_name||"-")+'</td>'+
+        '<td style="text-align:left">'+(r.resolved_via||"-")+'</td>'+
+        '<td class="tabular">'+(r.old_cost_krw!=null ? fmtKRW(r.old_cost_krw) : "-")+'</td>'+
+        '<td class="tabular">'+(r.new_cost_krw!=null ? fmtKRW(r.new_cost_krw) : "-")+'</td>'+
+        '<td class="tabular '+deltaClass+'">'+(r.delta_krw!=null ? (r.delta_krw>0?"+":"")+fmtKRW(r.delta_krw) : "-")+'</td>'+
+        '<td class="tabular '+deltaClass+'">'+(r.delta_pct!=null ? (r.delta_pct>0?"+":"")+fmtPct(r.delta_pct) : "-")+'</td>';
+      tbody.appendChild(tr);
+    });
+    document.getElementById("cost_preview_wrap").classList.add("show");
+    okBox.textContent = preview.length + "건 분석 완료 — 매칭 " + matched.length + "건 / 매칭 실패 " + unmatched.length + "건. 내용을 확인한 뒤 반영해주세요.";
+    okBox.style.display = "block";
+  }catch(e){
+    errBox.textContent = "파일 분석 중 오류: " + (e.message || e);
+    errBox.style.display = "block";
+  }finally{
+    btn.disabled = false; btn.textContent = "파일 분석";
+  }
+}
+
+async function applyCostUpdates(){
+  if(!pendingCostPreview || !pendingCostPreview.length) return;
+  const btn = document.getElementById("cost_save_btn");
+  const status = document.getElementById("cost_save_status");
+  btn.disabled = true;
+  status.textContent = "반영 중…";
+  try{
+    const items = pendingCostPreview.map(r => ({
+      master_sku: r.master_sku,
+      cost_amount: r.new_cost_amount,
+      cost_currency: r.new_cost_currency
+    }));
+    const updatedCount = await rpc("apply_cost_update", { p_items: items });
+    status.textContent = updatedCount + "건 반영 완료";
+    pendingCostPreview = null;
+    document.getElementById("cost_preview_wrap").classList.remove("show");
+    document.getElementById("cost_file").value = "";
+  }catch(e){
+    status.textContent = "";
+    const errBox = document.getElementById("cost_err");
+    errBox.textContent = "반영 중 오류: " + (e.message || e);
+    errBox.style.display = "block";
+  }finally{
+    btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>
