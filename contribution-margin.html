@@ -205,6 +205,7 @@
     <button data-tab="trend">월별 정산 트렌드</button>
     <button data-tab="logi">물류비 동기화</button>
     <button data-tab="cost">입고가 업데이트</button>
+    <button data-tab="best">채널별 베스트셀러</button>
   </nav>
 
   <!-- TAB 1: QUICK CALCULATOR -->
@@ -403,6 +404,42 @@
           <button class="primary" id="cost_save_btn" onclick="applyCostUpdates()">매칭된 건만 Supabase에 반영</button>
           <span class="muted" id="cost_save_status" style="font-size:12.5px;"></span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 6: BESTSELLERS -->
+  <section class="panel" id="panel-best">
+    <div class="card">
+      <div class="row">
+        <div class="field"><label>채널</label>
+          <select id="best_channel">
+            <option value="coupang">쿠팡</option>
+            <option value="11st">11번가</option>
+            <option value="ebay">이베이 (지마켓/옥션)</option>
+            <option value="naver">네이버 (스마트스토어)</option>
+          </select>
+        </div>
+        <div class="field" id="best_acct_field" style="display:none"><label>계정</label><select id="best_acct"></select></div>
+        <div class="field" id="best_sub_field" style="display:none"><label>마켓</label>
+          <select id="best_sub"><option value="">전체</option><option value="gmarket">지마켓</option><option value="auction">옥션</option></select>
+        </div>
+        <div class="field"><label>월</label><select id="best_month"><option value="">채널 선택 시 자동 조회</option></select></div>
+        <div class="field"><label>정렬 기준</label>
+          <select id="best_sort"><option value="revenue">매출액</option><option value="qty">판매수량</option></select>
+        </div>
+        <div class="field"><label>표시 개수</label>
+          <select id="best_limit"><option value="10">Top 10</option><option value="20" selected>Top 20</option><option value="50">Top 50</option></select>
+        </div>
+      </div>
+      <button class="primary" onclick="loadBestsellers()">조회</button>
+      <div class="notice bad" id="best_err" style="display:none"></div>
+      <div class="notice warn" id="best_empty" style="display:none">해당 채널·월에 저장된 SKU별 데이터가 없습니다. "정산 파일 업로드" 탭에서 정산 파일을 업로드하고 저장하면 자동으로 쌓입니다 (그 이전 업로드 건은 소급 반영되지 않으니 재업로드해주세요).</div>
+      <div class="tablewrap" id="best_table_wrap" style="margin-top:16px;display:none">
+        <table id="best_table"><thead><tr>
+          <th style="text-align:left">순위</th><th style="text-align:left">상품명</th><th style="text-align:left">마스터SKU</th>
+          <th>판매수량</th><th>매출액</th><th>주문건수</th><th style="text-align:left">전월 대비</th>
+        </tr></thead><tbody></tbody></table>
       </div>
     </div>
   </section>
@@ -695,6 +732,7 @@ async function buildCoupangMonthlyRows(lines){
 
   const unresolved = new Map(); // option_id -> {product_name, line_count}
   const monthly = new Map();
+  const skuMap = new Map(); // "ym||option_id" -> {year_month, raw_code, product_name, qty, revenue_krw, orderSet} (베스트셀러 집계용)
   function ensureMonth(ym){
     if(!monthly.has(ym)) monthly.set(ym, {revenue_krw:0, settlement_krw:0, fee_krw:0, cost_krw:0, domestic_ship_krw:0, intl_ship_krw:0, packaging_krw:0, orderSet:new Set()});
     return monthly.get(ym);
@@ -722,6 +760,12 @@ async function buildCoupangMonthlyRows(lines){
             u.line_count += 1;
             unresolved.set(l.option_id, u);
           }
+          const skuKey = ym + "||" + l.option_id;
+          if(!skuMap.has(skuKey)) skuMap.set(skuKey, {year_month: ym, raw_code: l.option_id, product_name: l.product_name, qty:0, revenue_krw:0, orderSet:new Set()});
+          const sk = skuMap.get(skuKey);
+          sk.qty += l.qty;
+          sk.revenue_krw += l.revenue;
+          sk.orderSet.add(orderNo);
         }
       });
       if(hasRealLine){
@@ -746,6 +790,15 @@ async function buildCoupangMonthlyRows(lines){
   });
   out.sort((a,b)=> a.year_month.localeCompare(b.year_month));
   out._unresolved = [...unresolved.entries()].map(([option_id,v])=>({option_id, product_name:v.product_name, line_count:v.line_count}));
+  out._skuRows = [...skuMap.values()].map(sk=>{
+    const res = costMap.get(sk.raw_code);
+    return {
+      channel: "coupang", seller_account: null, sub_channel: null, year_month: sk.year_month,
+      raw_code: sk.raw_code, master_sku: (res && res.found) ? res.master_sku : null,
+      product_name: (res && res.found && res.product_name) ? res.product_name : sk.product_name,
+      matched: !!(res && res.found), qty: sk.qty, revenue_krw: sk.revenue_krw, order_count: sk.orderSet.size
+    };
+  });
   return out;
 }
 
@@ -777,6 +830,7 @@ async function aggregateLinesToMonths(lines, costMap, meta){
 
   const unresolved = new Map();
   const monthly = new Map();
+  const skuMap = new Map(); // "ym||product_id" -> {year_month, raw_code, product_name, qty, revenue_krw, orderSet} (베스트셀러 집계용)
   function ensureMonth(ym){
     if(!monthly.has(ym)) monthly.set(ym, {revenue_krw:0, settlement_krw:0, fee_krw:0, cost_krw:0, domestic_ship_krw:0, intl_ship_krw:0, packaging_krw:0, orderSet:new Set()});
     return monthly.get(ym);
@@ -803,6 +857,12 @@ async function aggregateLinesToMonths(lines, costMap, meta){
             u.line_count += 1;
             unresolved.set(l.product_id, u);
           }
+          const skuKey = ym + "||" + l.product_id;
+          if(!skuMap.has(skuKey)) skuMap.set(skuKey, {year_month: ym, raw_code: l.product_id, product_name: l.product_name, qty:0, revenue_krw:0, orderSet:new Set()});
+          const sk = skuMap.get(skuKey);
+          sk.qty += l.qty;
+          sk.revenue_krw += l.revenue;
+          sk.orderSet.add(orderNo);
         }
       });
       if(hasRealLine){
@@ -827,6 +887,15 @@ async function aggregateLinesToMonths(lines, costMap, meta){
   });
   out.sort((a,b)=> a.year_month.localeCompare(b.year_month));
   out._unresolved = [...unresolved.entries()].map(([product_id,v])=>({option_id: product_id, product_name:v.product_name, line_count:v.line_count}));
+  out._skuRows = [...skuMap.values()].map(sk=>{
+    const res = costMap.get(sk.raw_code);
+    return {
+      channel: meta.channel, seller_account: meta.seller_account||null, sub_channel: meta.sub_channel||null, year_month: sk.year_month,
+      raw_code: sk.raw_code, master_sku: (res && res.found) ? res.master_sku : null,
+      product_name: (res && res.found && res.product_name) ? res.product_name : sk.product_name,
+      matched: !!(res && res.found), qty: sk.qty, revenue_krw: sk.revenue_krw, order_count: sk.orderSet.size
+    };
+  });
   return out;
 }
 
@@ -1132,6 +1201,15 @@ async function saveUploadRows(){
         p_source: "settlement_file_upload"
       });
     }
+
+    const skuRows = pendingUploadRows._skuRows || [];
+    if(skuRows.length){
+      status.textContent = "베스트셀러용 SKU별 집계 저장 중… (" + skuRows.length + "건)";
+      for(let i=0;i<skuRows.length;i+=500){
+        await rpc("upsert_sku_monthly_sales_batch", { p_items: skuRows.slice(i, i+500) });
+      }
+    }
+
     status.textContent = "저장 완료 (" + pendingUploadRows.length + "건)";
     pendingUploadRows = null;
     document.getElementById("up_preview_wrap").classList.remove("show");
@@ -1534,6 +1612,93 @@ async function parseCostFile(){
     errBox.style.display = "block";
   }finally{
     btn.disabled = false; btn.textContent = "파일 분석";
+  }
+}
+
+// ==============================================================================
+// TAB 6: 채널별 월간 베스트셀러 — 엑셀 업로드 저장 시 함께 쌓이는 sku_monthly_sales를 조회.
+// ==============================================================================
+(function(){
+  const sel = document.getElementById("best_channel");
+  const acctField = document.getElementById("best_acct_field");
+  const acctSel = document.getElementById("best_acct");
+  const subField = document.getElementById("best_sub_field");
+  function sync(){
+    const v = sel.value;
+    acctField.style.display = "none"; subField.style.display = "none"; acctSel.innerHTML = "";
+    if(v === "ebay"){
+      acctField.style.display = "flex"; subField.style.display = "flex";
+      acctSel.innerHTML = '<option value="">전체</option><option value="allthatmal">올댓몰</option><option value="fastople">패스트오플</option>';
+    } else if(v === "naver"){
+      acctField.style.display = "flex";
+      acctSel.innerHTML = '<option value="">전체</option><option value="atm">올댓몰</option><option value="vita">비타코어</option>';
+    }
+    loadBestMonths();
+  }
+  sel.addEventListener("change", sync);
+  sync();
+})();
+
+async function loadBestMonths(){
+  const channel = document.getElementById("best_channel").value;
+  const monthSel = document.getElementById("best_month");
+  monthSel.innerHTML = '<option value="">불러오는 중…</option>';
+  try{
+    const rows = await rpc("get_sku_sales_months", { p_channel: channel });
+    const months = [...new Set((rows||[]).map(r=>r.year_month.slice(0,7)))].sort().reverse();
+    if(!months.length){ monthSel.innerHTML = '<option value="">데이터 없음</option>'; return; }
+    monthSel.innerHTML = months.map(m=>'<option value="'+m+'-01">'+m+'</option>').join("");
+  }catch(e){
+    monthSel.innerHTML = '<option value="">불러오기 실패</option>';
+  }
+}
+
+function bestRankBadge(change){
+  if(change === null || change === undefined) return '<span class="badge">신규</span>';
+  const c = Number(change);
+  if(c > 0) return '<span class="delta up">▲ '+c+'</span>';
+  if(c < 0) return '<span class="delta down">▼ '+Math.abs(c)+'</span>';
+  return '<span class="muted">-</span>';
+}
+
+async function loadBestsellers(){
+  const channel = document.getElementById("best_channel").value;
+  const sellerAccount = document.getElementById("best_acct").value || null;
+  const subChannel = document.getElementById("best_sub").value || null;
+  const yearMonth = document.getElementById("best_month").value;
+  const sort = document.getElementById("best_sort").value;
+  const limit = Number(document.getElementById("best_limit").value);
+  const errBox = document.getElementById("best_err");
+  const emptyBox = document.getElementById("best_empty");
+  const tableWrap = document.getElementById("best_table_wrap");
+  errBox.style.display = "none"; emptyBox.style.display = "none"; tableWrap.style.display = "none";
+
+  if(!yearMonth){ errBox.textContent = "조회할 월을 선택해주세요."; errBox.style.display = "block"; return; }
+
+  try{
+    const rows = await rpc("get_sku_bestsellers", {
+      p_channel: channel, p_year_month: yearMonth, p_seller_account: sellerAccount,
+      p_sub_channel: subChannel, p_limit: limit, p_sort: sort
+    });
+    if(!rows || !rows.length){ emptyBox.style.display = "block"; return; }
+    const tbody = document.querySelector("#best_table tbody");
+    tbody.innerHTML = "";
+    rows.forEach(r=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td style="text-align:left" class="tabular">'+r.rank+'</td>'+
+        '<td style="text-align:left">'+(r.product_name||"-")+(r.matched? "" : ' <span class="badge" style="background:var(--warn-soft);color:var(--warn)">미매칭</span>')+'</td>'+
+        '<td style="text-align:left" class="tabular">'+(r.master_sku||"-")+'</td>'+
+        '<td class="tabular">'+fmtNum(r.qty)+'</td>'+
+        '<td class="tabular">'+fmtKRW(r.revenue_krw)+'</td>'+
+        '<td class="tabular">'+fmtNum(r.order_count)+'</td>'+
+        '<td style="text-align:left">'+bestRankBadge(r.rank_change)+'</td>';
+      tbody.appendChild(tr);
+    });
+    tableWrap.style.display = "block";
+  }catch(e){
+    errBox.textContent = "조회 중 오류: " + (e.message || e);
+    errBox.style.display = "block";
   }
 }
 
