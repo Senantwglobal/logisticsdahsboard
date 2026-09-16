@@ -663,7 +663,9 @@ function defaultSettings(){
     KR:{ currency:"₩", lastMile:2950 },
     JP:{ currency:"¥", lastMile:520  },
     packing:{ baseUsd:1.29, stepUsd:0.6 },
-    air:{ thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15 }, // volume weight < threshold -> lowRate, >= threshold -> highRate
+    // 부피무게 < threshold → lowRate, >= threshold → highRate.
+    // tierFromDate 이전 컷오프는 구간 없이 lowRate 단일 적용 (2026-01-30 이전은 전 건 $1.30였다)
+    air:{ thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15, tierFromDate:"2026-01-30" },
     trucking:{ perDayUsd:100 },       // 컷오프가 있는 날 하루당 정액
     handling:{ perEaUsd:0.39 },       // 취급주의 품목 1 EA당
     channels:{                        // 판매 채널 → 국가. 새 채널은 업로드 화면에서 바로 지정할 수 있다.
@@ -2465,13 +2467,17 @@ function packingRates(){ return CD.Cache.settings.packing || {baseUsd:1.29, step
 function tierUsd(k){ const p = packingRates(); return p.baseUsd + p.stepUsd*(k-1); }
 function airTiers(){ return CD.Cache.settings.air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
 /** Air freight rate in USD/kg for one shipment, tiered by its ACTUAL weight. */
-/** 단가 구간은 부피무게로 가른다: 700kg 이상 $1.15/kg, 미만 $1.30/kg */
-function airRateUsdFor(volumeWeightKg){
+/**
+ * 단가 구간은 부피무게로 가른다: 700kg 이상 $1.15/kg, 미만 $1.30/kg.
+ * 단, 구간 요율 시행일(tierFromDate) 이전 건은 구간 없이 $1.30 단일 적용이었다.
+ */
+function airRateUsdFor(volumeWeightKg, dateISO){
   const t = airTiers();
+  if(t.tierFromDate && dateISO && dateISO < t.tierFromDate) return t.lowRateUsd;
   return (volumeWeightKg||0) >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd;
 }
 /** 한 항공건의 항공비 (USD) = 부피무게 × 부피무게 구간 단가 */
-function airCostUsd(s){ const w = billableWeight(s); return w * airRateUsdFor(w); }
+function airCostUsd(s){ const w = billableWeight(s); return w * airRateUsdFor(w, s.cutoffDate); }
 /** 취급주의 출고비 — 지정 SKU 1 EA당 정액 */
 function handlingRate(){ const h = CD.Cache.settings.handling || {}; return h.perEaUsd == null ? 0.39 : Number(h.perEaUsd)||0; }
 /**
@@ -2559,6 +2565,7 @@ function shell(){
             <div class="field"><label>트럭킹 (컷오프 1일당, $)</label><input type="number" min="0" step="1" class="num-input" id="rTruckDay"></div>
             <div class="field"><label>기준 미만 단가 ($/kg)</label><input type="number" min="0" step="0.01" class="num-input" id="rAirLow"></div>
             <div class="field"><label>기준 이상 단가 ($/kg)</label><input type="number" min="0" step="0.01" class="num-input" id="rAirHigh"></div>
+            <div class="field full"><label>구간 요율 시행일 (이전 건은 기준 미만 단가 단일 적용)</label><input type="date" class="mono" id="rAirTierFrom"></div>
           </div>
           <div class="help" style="margin-top:6px;">항공비는 <b>부피무게 × 부피무게 구간 단가</b>. 트럭킹은 컷오프가 있는 <b>날짜 1일당 정액</b>으로, 같은 날 몇 건이든 한 번만 붙습니다.</div>
         </div>
@@ -2702,6 +2709,9 @@ function shell(){
   });
   document.getElementById("rTruckDay").addEventListener("change", async e=>{
     await CD.Store.saveSettings({ trucking:{ perDayUsd: Number(e.target.value)||0 } });
+  });
+  document.getElementById("rAirTierFrom").addEventListener("change", async e=>{
+    await CD.Store.saveSettings({ air:{ ...airTiers(), tierFromDate: e.target.value || "" } });
   });
   document.getElementById("rHandlingEa").addEventListener("change", async e=>{
     await CD.Store.saveSettings({ handling:{ perEaUsd: Number(e.target.value)||0 } });
@@ -3283,6 +3293,7 @@ function renderRateForms(){
   document.getElementById("rAirThreshold").value = airTiers().thresholdKg;
   document.getElementById("rTruckDay").value = truckingRate();
   document.getElementById("rHandlingEa").value = handlingRate();
+  document.getElementById("rAirTierFrom").value = airTiers().tierFromDate || "";
   const skuBtn = document.getElementById("rSkuListBtn");
   if(skuBtn) skuBtn.textContent = `취급주의 SKU 목록 ${CD.fmtNum((CD.Cache.handlingSkus||[]).length)}개`;
   document.getElementById("rAirLow").value = airTiers().lowRateUsd;
@@ -3772,7 +3783,8 @@ function aggregate(start, end, countries){
     if(!s.cutoffDate || s.cutoffDate < start || s.cutoffDate > end || !countries.includes(s.country)) return;
     const t = airTiers();
     const bw = billableWeight(s);                                   // 청구 중량 · 단가 구간 모두 부피무게 기준
-    const usd = bw * (bw >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd);
+    const tiered = !(t.tierFromDate && s.cutoffDate && s.cutoffDate < t.tierFromDate);
+    const usd = bw * ((tiered && bw >= t.thresholdKg) ? t.highRateUsd : t.lowRateUsd);
     const v = toDisp(usd*fxRate(s.country), s.country);
     a.airCost += v;
     if(a.byCountry[s.country]) a.byCountry[s.country].cost += v;
