@@ -31,7 +31,7 @@
   --warning:#FFC800; --warning-ink:#8f7000; --warning-soft:#fff9e6;
   --serious:#FF7052; --serious-ink:#c7452a; --serious-soft:#fff1ee;
   --critical:#FF7052; --critical-ink:#c7452a; --critical-soft:#fff1ee;
-  --cost-pack:#2F61D5; --cost-lastmile:#3FB6DC; --cost-air:#7540EE;
+  --cost-pack:#2F61D5; --cost-lastmile:#3FB6DC; --cost-air:#7540EE; --cost-truck:#FFC800;
   --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 20px -14px rgba(0,0,0,.12);
   --radius-s:9px; --radius-m:14px; --radius-l:18px;
   --font-ui:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -53,7 +53,7 @@
     --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#33301c;
     --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
     --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
-    --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5;
+    --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5; --cost-truck:#e8b93f;
     --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
   }
 }
@@ -70,7 +70,7 @@
   --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#33301c;
   --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
   --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
-  --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5;
+  --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5; --cost-truck:#e8b93f;
   --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
 }
 
@@ -133,11 +133,13 @@ a{color:var(--accent);}
 .grid.kpis2{grid-template-columns:repeat(2,1fr);}
 .grid.kpis3{grid-template-columns:repeat(3,1fr);}
 /* 윗줄 합계 2장 + 아랫줄 국가별 4장 */
+.grid.kpis4{grid-template-columns:repeat(4,1fr);}
 .grid.kpis24{grid-template-columns:repeat(4,1fr);}
 .grid.kpis24 > .wide{grid-column:span 2;}
 @media (max-width:1000px){.grid.kpis24{grid-template-columns:repeat(2,1fr);} .grid.kpis24 > .wide{grid-column:span 1;}}
+@media (max-width:1000px){.grid.kpis4{grid-template-columns:repeat(2,1fr);}}
 @media (max-width:900px){.grid.kpis3{grid-template-columns:repeat(2,1fr);}}
-@media (max-width:660px){.grid.kpis2, .grid.kpis3, .grid.kpis24{grid-template-columns:1fr;} .grid.kpis24 > .wide{grid-column:span 1;}}
+@media (max-width:660px){.grid.kpis2, .grid.kpis3, .grid.kpis4, .grid.kpis24{grid-template-columns:1fr;} .grid.kpis24 > .wide{grid-column:span 1;}}
 /* 국가 카드: 총 물류비 · 건당 평균을 한 카드 안에 나란히 */
 .kpi-split .split{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
 .kpi-split .split > div{min-width:0; display:flex; flex-direction:column; gap:5px;}
@@ -2327,7 +2329,8 @@ function keyLabel(k){
   return k;
 }
 function rateFor(country){ return (CD.Cache.settings[country]) || {lastMile:0, currency: CD.CURRENCY[country]}; }
-function chargeableWeight(s){ return Math.max(s.actualWeight||0, s.volumeWeight||0) || s.cutoffWeight||0; }
+/** 항공비 청구 중량 — 부피무게(Volume Weight) 기준. 비어 있으면 실중량 → 컷오프 중량 순으로 대체한다. */
+function billableWeight(s){ return (s.volumeWeight||0) || (s.actualWeight||0) || (s.cutoffWeight||0); }
 function fxRate(country){ const f = CD.Cache.settings.fx || {}; return country==="KR" ? (f.usdKrw||1300) : (f.usdJpy||150); }
 /** 1 unit of USD in the given display currency, from the live fx settings. */
 function fxOf(cur){
@@ -2352,9 +2355,37 @@ function packingRates(){ return CD.Cache.settings.packing || {baseUsd:1.29, step
 function tierUsd(k){ const p = packingRates(); return p.baseUsd + p.stepUsd*(k-1); }
 function airTiers(){ return CD.Cache.settings.air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
 /** Air freight rate in USD/kg for one shipment, tiered by its ACTUAL weight. */
-function airRateUsdFor(actualWeightKg){
+/** 단가 구간은 부피무게로 가른다: 700kg 이상 $1.15/kg, 미만 $1.30/kg */
+function airRateUsdFor(volumeWeightKg){
   const t = airTiers();
-  return (actualWeightKg||0) >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd;
+  return (volumeWeightKg||0) >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd;
+}
+/** 한 항공건의 항공비 (USD) = 부피무게 × 부피무게 구간 단가 */
+function airCostUsd(s){ const w = billableWeight(s); return w * airRateUsdFor(w); }
+/** 트럭킹 — 컷오프가 있는 날 하루당 정액 (건수와 무관) */
+function truckingRate(){ const t = CD.Cache.settings.trucking || {}; return t.perDayUsd == null ? 100 : Number(t.perDayUsd)||0; }
+/**
+ * 컷오프 날짜별 트럭킹비를 국가에 안분한다.
+ * 창고→공항 트럭은 하루 한 번이라 같은 날 컷오프가 몇 건이든, 국가가 몇 개든 하루 정액이다.
+ * 국가별 표에 나눠 싣기 위해 그날 부피중량 비율로 쪼갠다 (국가 필터와 무관하게 전체 기준으로 쪼갠 뒤 필요한 몫만 쓴다).
+ */
+function truckingByDate(start, end){
+  const perDay = truckingRate();
+  const wByDate = {};
+  CD.Cache.shipments.forEach(s=>{
+    if(!s.cutoffDate || s.cutoffDate < start || s.cutoffDate > end) return;
+    const d = wByDate[s.cutoffDate] = wByDate[s.cutoffDate] || {};
+    d[s.country] = (d[s.country]||0) + billableWeight(s);
+  });
+  const out = {};
+  Object.keys(wByDate).forEach(date=>{
+    const w = wByDate[date];
+    const cs = Object.keys(w);
+    const tot = cs.reduce((a,c)=> a + w[c], 0);
+    out[date] = {};
+    cs.forEach(c=>{ out[date][c] = tot > 0 ? perDay * (w[c]/tot) : perDay / cs.length; });
+  });
+  return out;
 }
 /** 합포장(consolidated packing) cost in USD for one daily record, from its box-count fields. */
 function packingCostUsd(rec){
@@ -2376,13 +2407,14 @@ function shell(){
           </div>
         </div>
         <div class="card tight">
-          <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">항공 비용 (공통, USD 기준)</b></div>
+          <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">항공 · 트럭킹 (공통, USD 기준)</b></div>
           <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
-            <div class="field"><label>기준 중량 (kg)</label><input type="number" min="0" class="num-input" id="rAirThreshold"></div>
-            <div class="field"></div>
+            <div class="field"><label>단가 구간 기준 중량 (kg)</label><input type="number" min="0" class="num-input" id="rAirThreshold"></div>
+            <div class="field"><label>트럭킹 (컷오프 1일당, $)</label><input type="number" min="0" step="1" class="num-input" id="rTruckDay"></div>
             <div class="field"><label>기준 미만 단가 ($/kg)</label><input type="number" min="0" step="0.01" class="num-input" id="rAirLow"></div>
             <div class="field"><label>기준 이상 단가 ($/kg)</label><input type="number" min="0" step="0.01" class="num-input" id="rAirHigh"></div>
           </div>
+          <div class="help" style="margin-top:6px;">항공비는 <b>부피무게 × 부피무게 구간 단가</b>. 트럭킹은 컷오프가 있는 <b>날짜 1일당 정액</b>으로, 같은 날 몇 건이든 한 번만 붙습니다.</div>
         </div>
         <div class="card tight">
           <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">환율 (USD 기준)</b></div>
@@ -2439,7 +2471,7 @@ function shell(){
 
     <div class="section">
       <div class="section-head"><h2>비용 항목별</h2><span class="hint" id="aCostHint"></span></div>
-      <div class="grid kpis3" id="aCostKpis"></div>
+      <div class="grid kpis4" id="aCostKpis"></div>
     </div>
 
     <div class="section">
@@ -2451,7 +2483,7 @@ function shell(){
     </div>
 
     <div class="section">
-      <div class="section-head"><h2>비용 구성 (출고비 · 통관·택배 · 항공)</h2></div>
+      <div class="section-head"><h2>비용 구성 (출고비 · 통관·택배 · 항공 · 트럭킹)</h2></div>
       <div class="card">
         <div id="aCompWrap" class="grid even"></div>
         <div class="chart-legend" id="aCompLegend"></div>
@@ -2510,6 +2542,9 @@ function shell(){
   document.getElementById("rStepUsd").addEventListener("change", async e=>{
     await CD.Store.saveSettings({ packing:{ ...packingRates(), stepUsd: Number(e.target.value)||0 } });
   });
+  document.getElementById("rTruckDay").addEventListener("change", async e=>{
+    await CD.Store.saveSettings({ trucking:{ perDayUsd: Number(e.target.value)||0 } });
+  });
   document.getElementById("rFxKrw").addEventListener("change", async e=>{
     const fx = CD.Cache.settings.fx||{};
     await CD.Store.saveSettings({ fx:{ ...fx, usdKrw: Number(e.target.value)||0, updatedAt: CD.todayISO(), auto:false } });
@@ -2556,6 +2591,7 @@ function renderRateForms(){
   document.getElementById("rBaseUsd").value = packingRates().baseUsd;
   document.getElementById("rStepUsd").value = packingRates().stepUsd;
   document.getElementById("rAirThreshold").value = airTiers().thresholdKg;
+  document.getElementById("rTruckDay").value = truckingRate();
   document.getElementById("rAirLow").value = airTiers().lowRateUsd;
   document.getElementById("rAirHigh").value = airTiers().highRateUsd;
   document.getElementById("rFxKrw").value = fxRate("KR");
@@ -2587,7 +2623,7 @@ function aggregate(countries){
   const buckets = {};
   function cell(k,c){
     buckets[k] = buckets[k] || {};
-    buckets[k][c] = buckets[k][c] || {shipped:0,packed:0,picked:0,pallet:0,pkg:0,weight:0,bookings:0,packingCost:0,lastMileCost:0,airCost:0};
+    buckets[k][c] = buckets[k][c] || {shipped:0,packed:0,picked:0,pallet:0,pkg:0,weight:0,bookings:0,cutoffDays:0,packingCost:0,lastMileCost:0,airCost:0,truckingCost:0};
     return buckets[k][c];
   }
   CD.Cache.daily.forEach(r=>{
@@ -2600,10 +2636,20 @@ function aggregate(countries){
   CD.Cache.shipments.forEach(s=>{
     if(!countries.includes(s.country) || !inRange(s.cutoffDate)) return;
     const k = kf(s.cutoffDate); const b = cell(k, s.country);
-    const w = chargeableWeight(s);
-    b.weight += w; b.pallet += s.palletCount||0; b.pkg += s.packageCount||0; b.bookings += 1;
-    const aw = s.actualWeight||0;
-    b.airCost += aw * airRateUsdFor(aw) * fxRate(s.country);
+    b.weight += billableWeight(s);
+    b.pallet += s.palletCount||0; b.pkg += s.packageCount||0; b.bookings += 1;
+    b.airCost += airCostUsd(s) * fxRate(s.country);
+  });
+  // 트럭킹 — 컷오프 날짜 단위 정액을 국가별로 안분해 넣는다
+  const truck = truckingByDate(aRange.start, aRange.end);
+  Object.keys(truck).forEach(date=>{
+    const k = kf(date);
+    Object.keys(truck[date]).forEach(c=>{
+      if(!countries.includes(c)) return;
+      const b = cell(k, c);
+      b.truckingCost += truck[date][c] * fxRate(c);
+      b.cutoffDays += 1;
+    });
   });
   const keys = Object.keys(buckets).sort();
   return keys.map(k=>({key:k, byCountry:buckets[k]}));
@@ -2613,11 +2659,12 @@ function bucketTotal(row){
   const countries = Object.keys(row.byCountry);
   return countries.reduce((acc,c)=>{
     const b = row.byCountry[c];
-    acc.shipped+=b.shipped; acc.packingCost+=b.packingCost; acc.lastMileCost+=b.lastMileCost; acc.airCost+=b.airCost;
+    acc.shipped+=b.shipped; acc.packingCost+=b.packingCost; acc.lastMileCost+=b.lastMileCost;
+    acc.airCost+=b.airCost; acc.truckingCost+=b.truckingCost||0;
     return acc;
-  }, {shipped:0, packingCost:0, lastMileCost:0, airCost:0});
+  }, {shipped:0, packingCost:0, lastMileCost:0, airCost:0, truckingCost:0});
 }
-function bucketCost(b){ return b.packingCost+b.lastMileCost+b.airCost; }
+function bucketCost(b){ return b.packingCost + b.lastMileCost + b.airCost + (b.truckingCost||0); }
 
 /* ---------------------------------------------------------------------
    증감 비교는 화면의 집계 단위(일/주/월/연)와 상관없이 항상 "최근 30일 vs
@@ -2634,7 +2681,7 @@ function deltaWindows(){
 /** 한 구간(시작~종료, 양 끝 포함)의 국가별 수량·비용 합계 (각 국가 현지통화 기준) */
 function rangeAgg(start, end, countries){
   const by = {};
-  countries.forEach(c=> by[c] = {shipped:0, packingCost:0, lastMileCost:0, airCost:0});
+  countries.forEach(c=> by[c] = {shipped:0, packingCost:0, lastMileCost:0, airCost:0, truckingCost:0});
   CD.Cache.daily.forEach(r=>{
     if(!by[r.country] || !r.date || r.date < start || r.date > end) return;
     const b = by[r.country];
@@ -2644,8 +2691,13 @@ function rangeAgg(start, end, countries){
   });
   CD.Cache.shipments.forEach(sh=>{
     if(!by[sh.country] || !sh.cutoffDate || sh.cutoffDate < start || sh.cutoffDate > end) return;
-    const aw = sh.actualWeight||0;
-    by[sh.country].airCost += aw * airRateUsdFor(aw) * fxRate(sh.country);
+    by[sh.country].airCost += airCostUsd(sh) * fxRate(sh.country);
+  });
+  const truck = truckingByDate(start, end);
+  Object.keys(truck).forEach(date=>{
+    Object.keys(truck[date]).forEach(c=>{
+      if(by[c]) by[c].truckingCost += truck[date][c] * fxRate(c);
+    });
   });
   return by;
 }
@@ -2698,7 +2750,7 @@ function refresh(){
   const rangeSub = rangeText();
   const cards = [
     `<div class="kpi wide"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${label} 합계 · ${rangeSub}</div></div>`,
-    `<div class="kpi wide"><div class="label">총 물류비</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공 · ${rangeSub}</div></div>`
+    `<div class="kpi wide"><div class="label">총 물류비</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공+트럭킹 · ${rangeSub}</div></div>`
   ];
   kpiCountries.forEach(c=>{
     const st = countryStats(c);
@@ -2706,7 +2758,7 @@ function refresh(){
     const dCol = st.deltaPct==null ? "var(--muted)" : (st.deltaPct<=0 ? "var(--good-ink)" : "var(--critical-ink)");
     const dot = `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>`;
     const wide = oneCountry ? " wide" : "";     // 국가 하나면 아랫줄도 2칸씩 채운다
-    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp(costDisp)}</div><div class="sub" title="${rangeSub}">출고비+통관·택배+항공 · ${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)}</div></div>`);
+    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp(costDisp)}</div><div class="sub" title="${rangeSub}">출고비+통관·택배+항공+트럭킹 · ${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)}</div></div>`);
     cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${dCol}">${st.deltaPct==null?'최근 30일 비교 불가':'직전 30일 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
   });
   const aK = document.getElementById("aKpis");
@@ -2719,6 +2771,7 @@ function refresh(){
     {key:"packingCost",  label:"출고비",      color:"--cost-pack"},
     {key:"lastMileCost", label:"통관·택배비",  color:"--cost-lastmile"},
     {key:"airCost",      label:"항공비",      color:"--cost-air"},
+    {key:"truckingCost", label:"트럭킹비",     color:"--cost-truck"},
   ];
   /** 한 구간(row)의 특정 비용 항목을 표시 통화로 합산 */
   function bucketTypeSum(row, key){
@@ -2793,12 +2846,13 @@ function refresh(){
       date: r.key,
       packingCost: toDisp(r.byCountry[c]? r.byCountry[c].packingCost:0, c),
       lastMileCost: toDisp(r.byCountry[c]? r.byCountry[c].lastMileCost:0, c),
-      airCost: toDisp(r.byCountry[c]? r.byCountry[c].airCost:0, c)
+      airCost: toDisp(r.byCountry[c]? r.byCountry[c].airCost:0, c),
+      truckingCost: toDisp(r.byCountry[c]? (r.byCountry[c].truckingCost||0):0, c)
     }));
-    const compColor = {packingCost:"--cost-pack", lastMileCost:"--cost-lastmile", airCost:"--cost-air"};
-    const compLabel = {packingCost:"출고비", lastMileCost:"통관 택배비용", airCost:"항공비용"};
+    const compColor = {packingCost:"--cost-pack", lastMileCost:"--cost-lastmile", airCost:"--cost-air", truckingCost:"--cost-truck"};
+    const compLabel = {packingCost:"출고비", lastMileCost:"통관 택배비용", airCost:"항공비용", truckingCost:"트럭킹비"};
     Charts.stackedBarChart(box.querySelector(".chart-holder"), {
-      data, keys:["packingCost","lastMileCost","airCost"],
+      data, keys:["packingCost","lastMileCost","airCost","truckingCost"],
       colorFn:k=> CD.cssVar(compColor[k]),
       labelFn:k=> compLabel[k],
       xLabelFn: keyLabel, tipTitleFn: keyLabel,
@@ -2843,6 +2897,7 @@ function refresh(){
         <td>${fmtDisp(toDisp(b.packingCost, c))}</td>
         <td>${fmtDisp(toDisp(b.lastMileCost, c))}</td>
         <td>${fmtDisp(toDisp(b.airCost, c))}</td>
+        <td title="컷오프 ${CD.fmtNum(b.cutoffDays||0)}일 안분">${fmtDisp(toDisp(b.truckingCost||0, c))}</td>
         <td>${fmtDisp(toDisp(total, c))}</td>
         <td>${fmtDisp(toDisp(po, c))}</td>
         <td class="text">${chg(po, prevPo, false)}</td>
@@ -2854,10 +2909,12 @@ function refresh(){
         <table>
           <thead><tr>
             <th>기간</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>출고 증감</th>
-            <th>항공부킹</th><th>중량(kg)</th>
-            <th>출고비</th><th>통관 택배비용</th><th>항공비용</th><th>총비용</th><th>건당비용</th><th>건당 증감</th>
+            <th>항공부킹</th><th title="항공비 청구 중량 · 부피무게 기준">부피중량(kg)</th>
+            <th>출고비</th><th>통관 택배비용</th><th>항공비용</th>
+            <th title="컷오프가 있는 날 하루당 정액 · 국가별 부피중량 비율로 안분">트럭킹비</th>
+            <th>총비용</th><th>건당비용</th><th>건당 증감</th>
           </tr></thead>
-          <tbody>${trs.join("") || `<tr><td colspan="13" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`}</tbody>
+          <tbody>${trs.join("") || `<tr><td colspan="14" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`}</tbody>
         </table>
       </div>
     </div>`;
@@ -2904,11 +2961,15 @@ function packRates(){ return S().packing || {baseUsd:1.29, stepUsd:0.6}; }
 function tierUsd(k){ const p=packRates(); return p.baseUsd + p.stepUsd*(k-1); }
 function airTiers(){ return S().air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
 function lastMileOf(c){ return (S()[c]||{}).lastMile || 0; }
+function truckPerDay(){ const t = S().trucking || {}; return t.perDayUsd == null ? 100 : Number(t.perDayUsd)||0; }
+/** 청구 중량 = 부피무게 (없으면 실중량 → 컷오프 중량) */
+function billableWeight(s){ return (s.volumeWeight||0) || (s.actualWeight||0) || (s.cutoffWeight||0); }
 
 /* ---------- 구간 집계 (시작일~종료일, 양 끝 포함) ---------- */
 function aggregate(start, end, countries){
   const a = { days:0, picked:0, packed:0, shipped:0, boxes:0, skuUnits:0,
-              packCost:0, lastMileCost:0, airCost:0, peak:{date:null, v:0}, byCountry:{} };
+              packCost:0, lastMileCost:0, airCost:0, truckCost:0, cutoffDays:0,
+              peak:{date:null, v:0}, byCountry:{} };
   countries.forEach(c=> a.byCountry[c] = {picked:0,packed:0,shipped:0,boxes:0,skuUnits:0,cost:0,days:0});
   const dayset = new Set();
   CD.Cache.daily.forEach(r=>{
@@ -2934,14 +2995,35 @@ function aggregate(start, end, countries){
   a.days = dayset.size;                       // 국가가 둘이어도 같은 날은 하루로 센다
   CD.Cache.shipments.forEach(s=>{
     if(!s.cutoffDate || s.cutoffDate < start || s.cutoffDate > end || !countries.includes(s.country)) return;
-    const aw = s.actualWeight||0;
     const t = airTiers();
-    const usd = aw * (aw >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd);
+    const bw = billableWeight(s);                                   // 청구 중량 · 단가 구간 모두 부피무게 기준
+    const usd = bw * (bw >= t.thresholdKg ? t.highRateUsd : t.lowRateUsd);
     const v = toDisp(usd*fxRate(s.country), s.country);
     a.airCost += v;
     if(a.byCountry[s.country]) a.byCountry[s.country].cost += v;
   });
-  a.total = a.packCost + a.lastMileCost + a.airCost;
+  // 트럭킹 — 컷오프가 있는 날 하루당 정액. 국가별로는 그날 부피중량 비율로 안분한다.
+  const wByDate = {};
+  CD.Cache.shipments.forEach(s=>{
+    if(!s.cutoffDate || s.cutoffDate < start || s.cutoffDate > end) return;
+    const d = wByDate[s.cutoffDate] = wByDate[s.cutoffDate] || {};
+    d[s.country] = (d[s.country]||0) + billableWeight(s);
+  });
+  const perDay = truckPerDay();
+  Object.keys(wByDate).forEach(date=>{
+    const w = wByDate[date];
+    const cs = Object.keys(w);
+    const tot = cs.reduce((x,c)=> x + w[c], 0);
+    cs.forEach(c=>{
+      if(!countries.includes(c)) return;
+      const usd = tot > 0 ? perDay*(w[c]/tot) : perDay/cs.length;
+      const v = toDisp(usd*fxRate(c), c);
+      a.truckCost += v;
+      if(a.byCountry[c]) a.byCountry[c].cost += v;
+    });
+    if(cs.some(c=>countries.includes(c))) a.cutoffDays++;
+  });
+  a.total = a.packCost + a.lastMileCost + a.airCost + a.truckCost;
   a.perOrder = a.shipped>0 ? a.total/a.shipped : 0;
   a.packRate = a.picked>0 ? a.packed/a.picked : null;      // 픽킹 → 팩킹
   a.shipRate = a.packed>0 ? a.shipped/a.packed : null;     // 팩킹 → 출고
