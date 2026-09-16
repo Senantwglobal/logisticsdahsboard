@@ -1996,7 +1996,7 @@ function openForm(existing){
       <div class="grid form">
         ${fieldRow("국가", `<select id="mCountry"><option value="KR" ${s.country==='KR'?'selected':''}>한국</option><option value="JP" ${s.country==='JP'?'selected':''}>일본</option></select>`)}
         <div></div>
-        ${fieldRow("컷오프 날짜", `<input type="date" id="mCutoffDate" value="${s.cutoffDate||''}" required>`)}
+        ${fieldRow("컷오프 날짜 (ETD 전날)", `<input type="date" id="mCutoffDate" value="${s.cutoffDate||''}" required>`)}
         ${fieldRow("컷오프 시간", `<input type="time" id="mCutoffTime" value="${s.cutoffTime||''}">`)}
         ${fieldRow("항공사", `<select id="mCarrierSel"></select>`)}
         ${fieldRow("편명 (FLT)", `<select id="mFlightSel"></select>`)}
@@ -2039,6 +2039,38 @@ function openForm(existing){
     flightSel.innerHTML = `<option value="">직접 입력</option>` +
       list.map(c=>`<option value="${c.id}" ${s.flightNo===c.flightNo?'selected':''}>${c.flightNo} (${c.origin||'-'}→${c.dest||'-'})</option>`).join("");
   }
+  /* 컷오프 날짜는 항상 ETD 전날이다. 한쪽을 고치면 반대쪽이 따라오고, ETA는 기존 간격을 유지한다. */
+  /** ETD가 prev → next로 옮겨간 만큼 ETA도 같이 민다 (간격이 비정상이면 +1일로 본다) */
+  function shiftEta(prev, next){
+    const etaEl = document.getElementById("mEta");
+    if(!etaEl.value || !prev || !next) return;
+    let gap = Math.round((CD.parseISO(etaEl.value.slice(0,10)) - CD.parseISO(prev.slice(0,10))) / 86400000);
+    if(!isFinite(gap) || gap < 0 || gap > 3) gap = 1;
+    etaEl.value = `${CD.addDays(next.slice(0,10), gap)}T${etaEl.value.slice(11) || "00:00"}`;
+  }
+  /** ETD를 바꾸면서 컷오프·ETA를 한 번에 맞춘다 */
+  function setEtd(value){
+    const el = document.getElementById("mEtd");
+    const prev = el.dataset.prev || el.value;
+    el.value = value;
+    el.dataset.prev = value;
+    if(value && value.length >= 10){
+      document.getElementById("mCutoffDate").value = CD.addDays(value.slice(0,10), -1);
+      shiftEta(prev, value);
+    }
+  }
+  function syncFromCutoff(){
+    const cut = document.getElementById("mCutoffDate").value;
+    const el = document.getElementById("mEtd");
+    if(!cut) return;
+    setEtd(`${CD.addDays(cut, 1)}T${(el.value.slice(11) || "00:00")}`);
+  }
+  function syncFromEtd(){
+    const el = document.getElementById("mEtd");
+    if(!el.value || el.value.length < 10) return;
+    setEtd(el.value);
+  }
+
   /** Apply a preset to the form: carrier/flight/route always, ETD/ETA built from the cutoff date. */
   function applyCargo(rec){
     if(!rec) return;
@@ -2047,14 +2079,22 @@ function openForm(existing){
     if(rec.origin) document.getElementById("mOrigin").value = rec.origin;
     if(rec.dest) document.getElementById("mDest").value = rec.dest;
     if(rec.country) document.getElementById("mCountry").value = rec.country;
-    const base = document.getElementById("mCutoffDate").value || CD.todayISO();
-    if(rec.etd) document.getElementById("mEtd").value = `${base}T${rec.etd}`;
+    const cut = document.getElementById("mCutoffDate").value || CD.todayISO();
+    const dep = CD.addDays(cut, 1);                       // 컷오프 다음날 출발
+    if(rec.etd){
+      const el = document.getElementById("mEtd");
+      el.value = `${dep}T${rec.etd}`;
+      el.dataset.prev = el.value;
+    }
     if(rec.eta){
-      // arrival earlier than departure means it lands the next day
-      const nextDay = (rec.etd && rec.eta < rec.etd) ? CD.addDays(base,1) : base;
-      document.getElementById("mEta").value = `${nextDay}T${rec.eta}`;
+      // 도착 시각이 출발보다 이르면 다음날 도착
+      const arr = (rec.etd && rec.eta < rec.etd) ? CD.addDays(dep,1) : dep;
+      document.getElementById("mEta").value = `${arr}T${rec.eta}`;
     }
   }
+  document.getElementById("mEtd").dataset.prev = document.getElementById("mEtd").value || "";
+  document.getElementById("mCutoffDate").addEventListener("change", syncFromCutoff);
+  document.getElementById("mEtd").addEventListener("change", syncFromEtd);
   fillCarrierSel(); fillFlightSel();
   carrierSel.addEventListener("change", ()=>{
     fillFlightSel();
@@ -2072,6 +2112,7 @@ function openForm(existing){
   }
   document.getElementById("mForm").addEventListener("submit", async e=>{
     e.preventDefault();
+    syncFromEtd();                               // ETD가 있으면 컷오프는 무조건 그 전날로 맞춘다
     const data = {
       country: document.getElementById("mCountry").value,
       cutoffDate: document.getElementById("mCutoffDate").value,
