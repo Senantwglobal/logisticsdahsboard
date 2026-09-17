@@ -20,9 +20,10 @@
    ============================= */
 :root{
   color-scheme: light;
-  --page:#f4f4f4; --surface:#ffffff; --surface-2:#f1f1f1; --surface-3:#e6e6e6;
+  --page:#f4f5f7; --surface:#ffffff; --surface-2:#f6f7f9; --surface-3:#edeff3;
   --ink:#25265E; --ink-2:#868697; --muted:#9d9dab;
-  --line:#e7e7e7; --line-strong:#d6d6d6; --border:rgba(0,0,0,0.09);
+  --line:#ecedf1; --line-strong:#dcdee6; --border:rgba(16,24,40,0.08);
+  --side:#ffffff; --side-ink:#6b6e80; --side-ink-active:#2F61D5;
   --accent:#2F61D5; --accent-ink:#ffffff; --accent-soft:#eaeffb; --accent-soft-line:#c8d6f5;
   --kr:#2F61D5; --kr-ink:#2F61D5; --kr-soft:#eaeffb;
   --jp:#7540EE; --jp-ink:#7540EE; --jp-soft:#f1ecfd;
@@ -32,8 +33,9 @@
   --serious:#FF7052; --serious-ink:#c7452a; --serious-soft:#fff1ee;
   --critical:#FF7052; --critical-ink:#c7452a; --critical-soft:#fff1ee;
   --cost-pack:#2F61D5; --cost-lastmile:#3FB6DC; --cost-air:#7540EE; --cost-truck:#FFC800; --cost-handling:#FF7052;
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 20px -14px rgba(0,0,0,.12);
-  --radius-s:9px; --radius-m:14px; --radius-l:18px;
+  --shadow: 0 1px 2px rgba(16,24,40,.03), 0 14px 30px -20px rgba(16,24,40,.16);
+  --shadow-lift: 0 2px 6px rgba(16,24,40,.05), 0 20px 44px -24px rgba(16,24,40,.22);
+  --radius-s:10px; --radius-m:14px; --radius-l:20px;
   --font-ui:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   /* numbers use the same 산돌고딕(Pretendard/Apple SD Gothic Neo) face as everything else —
      kept as a separate token only so number cells can still opt into tabular (evenly spaced) figures */
@@ -42,9 +44,10 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --page:#141414; --surface:#1c1c1c; --surface-2:#242424; --surface-3:#303030;
+    --page:#111214; --surface:#1a1b1e; --surface-2:#212226; --surface-3:#2b2d32;
     --ink:#eeeeee; --ink-2:#a8a8a8; --muted:#7d7d7d;
-    --line:#2b2b2b; --line-strong:#3a3a3a; --border:rgba(255,255,255,0.10);
+    --line:#292a2f; --line-strong:#383a41; --border:rgba(255,255,255,0.10);
+    --side:#1a1b1e; --side-ink:#9497a3; --side-ink-active:#8fabf2;
     --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#22293d; --accent-soft-line:#32405c;
     --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#212739;
     --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#27223a;
@@ -54,14 +57,16 @@
     --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
     --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
     --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5; --cost-truck:#e8b93f; --cost-handling:#f08267;
-    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 30px -20px rgba(0,0,0,.6);
+  --shadow-lift: 0 2px 8px rgba(0,0,0,.45), 0 22px 46px -24px rgba(0,0,0,.7);
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --page:#141414; --surface:#1c1c1c; --surface-2:#242424; --surface-3:#303030;
+  --page:#111214; --surface:#1a1b1e; --surface-2:#212226; --surface-3:#2b2d32;
   --ink:#eeeeee; --ink-2:#a8a8a8; --muted:#7d7d7d;
-  --line:#2b2b2b; --line-strong:#3a3a3a; --border:rgba(255,255,255,0.10);
+  --line:#292a2f; --line-strong:#383a41; --border:rgba(255,255,255,0.10);
+  --side:#1a1b1e; --side-ink:#9497a3; --side-ink-active:#8fabf2;
   --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#22293d; --accent-soft-line:#32405c;
   --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#212739;
   --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#27223a;
@@ -71,7 +76,8 @@
   --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
   --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
   --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5; --cost-truck:#e8b93f; --cost-handling:#f08267;
-  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 30px -14px rgba(0,0,0,.6);
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 30px -20px rgba(0,0,0,.6);
+  --shadow-lift: 0 2px 8px rgba(0,0,0,.45), 0 22px 46px -24px rgba(0,0,0,.7);
 }
 
 /* ============================= BASE ============================= */
@@ -88,44 +94,82 @@ b,strong{font-weight:600;}
 button{font-family:inherit; font-weight:inherit;}
 ::selection{background:var(--accent-soft);}
 a{color:var(--accent);}
-.app{max-width:1240px; margin:0 auto; padding:20px 20px 64px;}
 
-/* ============================= HEADER ============================= */
-.topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 4px 14px; border-bottom:1px solid var(--line);}
-.brand{display:flex; align-items:center; gap:11px;}
-.brand-mark{width:30px; height:30px; border-radius:8px; background:var(--ink); color:var(--page); display:flex; align-items:center; justify-content:center; flex:none; font-size:13px; font-weight:800; letter-spacing:0; padding:0; cursor:pointer; overflow:hidden; position:relative;}
+/* ============================= APP SHELL ============================= */
+.app{display:flex; align-items:flex-start; gap:0; min-height:100vh;}
+.sidebar{position:sticky; top:0; align-self:stretch; flex:none; width:238px; min-height:100vh;
+  background:var(--side); border-right:1px solid var(--line); padding:20px 14px 22px;
+  display:flex; flex-direction:column; gap:22px; z-index:30;}
+.side-brand{display:flex; align-items:center; gap:10px; padding:2px 6px 0;}
+.side-nav{display:flex; flex-direction:column; gap:3px;}
+.side-foot{margin-top:auto; padding:14px 8px 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px;}
+.main{flex:1 1 auto; min-width:0; padding:0 26px 72px;}
+.main-inner{max-width:1180px; margin:0 auto;}
+.topbar{display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:20px 0 18px; margin-bottom:6px;}
+.page-title{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.page-title h1{font-size:21px; letter-spacing:-.02em;}
+.page-title .tag{font-size:12.5px; color:var(--muted);}
+.topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
+.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2); background:var(--surface);
+  border:1px solid var(--line); padding:7px 12px; border-radius:11px;}
+
+.brand-mark{width:32px; height:32px; border-radius:10px; background:var(--ink); color:#fff; display:flex;
+  align-items:center; justify-content:center; flex:none; font-size:13px; font-weight:800; padding:0;
+  cursor:pointer; overflow:hidden; position:relative; border:none;}
 .brand-mark img{width:100%; height:100%; object-fit:cover; display:block;}
 .brand-mark:hover{filter:brightness(1.08);}
-/* with a real logo: drop the tile entirely and show the artwork as-is */
 .brand-mark.has-logo{background:transparent; border:none; border-radius:0; overflow:visible;
-  width:auto; max-width:170px; height:34px; box-shadow:none;}
-.brand-mark.has-logo img{width:auto; max-width:170px; height:100%; object-fit:contain;}
+  width:auto; max-width:150px; height:32px; box-shadow:none;}
+.brand-mark.has-logo img{width:auto; max-width:150px; height:100%; object-fit:contain;}
 .brand-mark.has-logo:hover{filter:brightness(1); opacity:.75;}
-.brand-text h1{font-size:17px; letter-spacing:-.01em;}
-.brand-text .tag{font-size:11.5px; color:var(--muted); letter-spacing:.02em; margin-top:1px;}
-.topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
-.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2); background:var(--surface); border:1px solid var(--line); padding:5px 10px; border-radius:9px;}
+.brand-text h1{font-size:14.5px; letter-spacing:-.01em; line-height:1.25;}
+.brand-text .tag{font-size:10.5px; color:var(--muted); margin-top:2px; line-height:1.3;}
 
-/* ============================= TABS ============================= */
-.tabs{display:flex; gap:4px; margin:18px 0 22px; border-bottom:1px solid var(--line); overflow-x:auto;}
-.tab-btn{appearance:none; background:none; border:none; padding:10px 16px; font-size:13.5px; font-weight:300; color:var(--muted); cursor:pointer; border-radius:8px 8px 0 0; position:relative; top:1px; white-space:nowrap; display:flex; align-items:center; gap:7px;}
-.tab-btn:hover{color:var(--ink);}
-.tab-btn.active{color:var(--ink); border-bottom:2px solid var(--accent);}
+/* ============================= SIDE NAV ============================= */
+.tabs{display:flex; flex-direction:column; gap:3px;}
+.tab-btn{appearance:none; background:none; border:none; width:100%; text-align:left;
+  padding:10px 12px; font-size:13.5px; font-weight:300; color:var(--side-ink); cursor:pointer;
+  border-radius:11px; display:flex; align-items:center; gap:11px; white-space:nowrap;
+  transition:background .14s ease, color .14s ease;}
+.tab-btn svg{width:18px; height:18px; flex:none; stroke-width:1.7;}
+.tab-btn:hover{background:var(--surface-2); color:var(--ink);}
+.tab-btn.active{background:var(--accent-soft); color:var(--side-ink-active); font-weight:600;}
+.tab-btn.active svg{stroke-width:2;}
 .view{display:none;}
-.view.active{display:block; animation:fadein .18s ease;}
-@keyframes fadein{from{opacity:0; transform:translateY(2px);} to{opacity:1; transform:none;}}
+.view.active{display:block; animation:fadein .2s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:none;}}
 @media (prefers-reduced-motion:reduce){.view.active{animation:none;}}
+
+/* 좁은 화면: 사이드바를 상단 가로 바로 눕힌다 */
+@media (max-width:900px){
+  /* 세로로 눕히면 교차축이 가로가 되므로 stretch 로 바꿔야 본문이 화면 폭을 채운다 */
+  .app{flex-direction:column; align-items:stretch;}
+  .main{width:100%;}
+  .sidebar{position:static; width:100%; min-height:0; border-right:none; border-bottom:1px solid var(--line);
+    padding:14px 14px 10px; gap:12px;}
+  .side-brand{padding:0 2px;}
+  .tabs{flex-direction:row; gap:4px; overflow-x:auto; padding-bottom:2px;}
+  .tab-btn{width:auto; padding:8px 13px; font-size:12.5px;}
+  .tab-btn svg{display:none;}
+  .side-foot{margin-top:0; border-top:none; padding:0 2px; flex-direction:row; align-items:center; gap:12px;}
+  .main{padding:0 16px 56px;}
+  .topbar{padding:16px 0 12px;}
+  .page-title h1{font-size:18px;}
+}
+@media (max-width:640px){ .main{padding:0 12px 48px;} .topbar-right .clock{display:none;} }
 
 /* ============================= LAYOUT PRIMITIVES ============================= */
 .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
 .row.between{justify-content:space-between;}
 .stack{display:flex; flex-direction:column; gap:4px;}
-.section{margin-bottom:26px;}
-.section-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
-.section-head h2{font-size:15px;}
+.section{margin-bottom:24px;}
+.section-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+.section-head h2{font-size:15.5px; letter-spacing:-.01em;}
 .section-head .hint{font-size:12px; color:var(--muted);}
-.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:18px; box-shadow:var(--shadow); min-width:0;}
-.card.tight{padding:14px 16px;}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:20px; box-shadow:var(--shadow); min-width:0;}
+.card.tight{padding:15px 17px; border-radius:var(--radius-m);}
+.card.collapsed{padding:15px 20px;}
 .grid{display:grid; gap:14px; min-width:0;}
 .grid > *{min-width:0;}
 .grid.kpis{grid-template-columns:repeat(6,1fr);}
@@ -160,18 +204,31 @@ a{color:var(--accent);}
 @media (max-width:960px){.grid.settings3{grid-template-columns:1fr;}}
 
 /* ============================= KPI TILES ============================= */
-.kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:16px 18px; display:flex; flex-direction:column; gap:8px; justify-content:space-between; min-height:104px;}
+.kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:17px 19px; display:flex; flex-direction:column; gap:7px; justify-content:space-between; min-height:104px;}
 .kpi .label{font-size:12px; color:var(--muted); letter-spacing:0; display:flex; align-items:center; gap:6px; line-height:1.35;}
-.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:27px; font-weight:300; letter-spacing:-.02em; line-height:1.2; color:var(--ink); white-space:nowrap; overflow:hidden; min-width:0;}
+.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:26px; font-weight:300; letter-spacing:-.025em; line-height:1.18; color:var(--ink); white-space:nowrap; overflow:hidden; min-width:0;}
 .kpi .sub{font-size:11.5px; color:var(--muted); line-height:1.45;}
+
+/* 여러 장을 한 카드로 묶고 1px 간격만 남겨 칸막이처럼 보이게 한다 (어느 폭에서 줄바꿈해도 선이 맞는다) */
+.grid.kpis, .grid.kpis3, .grid.kpis4, .grid.kpis5, .grid.kpis24{
+  gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius-l);
+  overflow:hidden; box-shadow:var(--shadow);}
+.grid.kpis > .kpi, .grid.kpis3 > .kpi, .grid.kpis4 > .kpi, .grid.kpis5 > .kpi, .grid.kpis24 > .kpi{
+  border:none; border-radius:0; box-shadow:none;}
 .kpi .sub.up{color:var(--good-ink);} .kpi .sub.down{color:var(--critical-ink);}
 .kpi .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+/* 증감은 글자색 대신 알약으로 — 참고 대시보드들의 "Last month +24%" 패턴 */
+.delta{display:inline-flex; align-items:center; gap:3px; font-size:11px; padding:3px 8px; border-radius:8px;
+  background:var(--surface-2); color:var(--ink-2); font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1.4;}
+.delta.good{background:var(--good-soft); color:var(--good-ink);}
+.delta.bad{background:var(--critical-soft); color:var(--critical-ink);}
+.kpi .sub{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
 
 /* ============================= FORM ELEMENTS ============================= */
 .field{display:flex; flex-direction:column; gap:5px; min-width:0;}
 .field label{font-size:11.5px; color:var(--ink-2); font-weight:300;}
 .field > input, .field > select, .field > textarea{width:100%;}
-input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-s); padding:8px 10px; outline:none; box-sizing:border-box;}
+input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-s); padding:9px 11px; outline:none; box-sizing:border-box; transition:border-color .12s ease, box-shadow .12s ease;}
 input.mono, .num-input{font-family:var(--font-mono);}
 input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
 input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
@@ -188,34 +245,35 @@ input[type=number]{-moz-appearance:textfield;}
 select{cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:30px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%23868697' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 10px center;}
-.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:300; padding:7px 14px; border-radius:10px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; transition:background .12s ease, border-color .12s ease, filter .12s ease;}
+.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:300; padding:8px 15px; border-radius:11px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; transition:background .12s ease, border-color .12s ease, filter .12s ease;}
 .btn:hover{background:var(--surface-2); border-color:var(--line-strong);}
 .btn:active{transform:translateY(1px);}
 .btn:focus-visible, .tab-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
-.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); box-shadow:0 6px 14px -8px var(--accent);}
 .btn.primary:hover{filter:brightness(1.06); background:var(--accent);}
 .btn.ghost{border-color:transparent; background:none;}
 .btn.ghost:hover{background:var(--surface-2);}
 .btn.danger{color:var(--critical-ink); border-color:var(--critical-soft);}
 .btn.danger:hover{background:var(--critical-soft);}
-.btn.small{padding:5px 11px; font-size:11.5px; border-radius:8px;}
+.btn.small{padding:6px 12px; font-size:11.5px; border-radius:9px;}
 .btn.on{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
 .btn.on:hover{background:var(--accent); filter:brightness(1.06);}
 td.offday{color:var(--critical-ink);}
 /* square icon button (calendar prev/next, paging) — matches the button set, no OS glyphs */
-.btn.icon{width:34px; height:34px; padding:0; font-size:16px; line-height:1; color:var(--ink-2);}
+.btn.icon{width:34px; height:34px; padding:0; font-size:16px; line-height:1; color:var(--ink-2); border-radius:11px;}
 .btn.icon:hover{color:var(--ink);}
 .btn svg{width:14px; height:14px;}
-.seg{display:inline-flex; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface-2); padding:2px;}
-.seg button{appearance:none; border:none; background:none; padding:7px 13px; font-size:12.5px; font-weight:300; color:var(--ink-2); cursor:pointer;}
-.seg button.active{background:var(--surface); color:var(--ink); border-radius:9px; box-shadow:0 1px 3px rgba(20,18,12,.10);}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--surface-2); padding:3px;}
+.seg button{appearance:none; border:none; background:none; padding:7px 14px; font-size:12.5px; font-weight:300; color:var(--ink-2); cursor:pointer; border-radius:10px; transition:background .12s ease, color .12s ease;}
+.seg button:hover{color:var(--ink);}
+.seg button.active{background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(16,24,40,.10);}
 
 /* ============================= TABLE ============================= */
-.table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-m);}
+.table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-m); background:var(--surface);}
 /* ---- 목록 도구모음 (검색 / 필터 / 페이지) ---- */
 .list-tools{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
 .list-tools .search{position:relative; flex:none;}
-.list-tools .search input{width:220px; padding-left:30px;}
+.list-tools .search input{width:230px; padding-left:32px;}
 .list-tools .search::before{content:""; position:absolute; left:11px; top:50%; width:12px; height:12px; margin-top:-6px;
   background:var(--muted); pointer-events:none;
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") center/contain no-repeat;
@@ -227,8 +285,8 @@ td.offday{color:var(--critical-ink);}
 .pager .pages button{min-width:30px; height:30px; padding:0 7px; font-size:11.5px;}
 .pager .pages button.cur{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
 table{border-collapse:collapse; width:100%; font-size:12.5px; min-width:640px;}
-thead th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:300; padding:9px 12px; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0;}
-tbody td{padding:9px 12px; border-bottom:1px solid var(--line); white-space:nowrap; font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+thead th{text-align:left; font-size:11.5px; letter-spacing:0; color:var(--muted); font-weight:300; padding:11px 13px; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0;}
+tbody td{padding:11px 13px; border-bottom:1px solid var(--line); white-space:nowrap; font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
 tbody td.text{font-family:var(--font-ui);}
 tbody tr:last-child td{border-bottom:none;}
 tbody tr:hover{background:var(--surface-2);}
@@ -309,9 +367,9 @@ svg.chart .gridline{stroke:var(--line);}
 .cal-cell-more{font-size:9.5px; color:var(--muted); cursor:pointer;}
 
 /* ============================= MODAL / DRAWER ============================= */
-.overlay{position:fixed; inset:0; background:rgba(11,11,11,.42); backdrop-filter:blur(1px); display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; z-index:100; overflow-y:auto;}
+.overlay{position:fixed; inset:0; background:rgba(16,24,40,.38); backdrop-filter:blur(1px); display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; z-index:100; overflow-y:auto;}
 .overlay[hidden]{display:none;}
-.modal{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:22px; width:100%; max-width:560px; box-shadow:var(--shadow);}
+.modal{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-l); padding:24px; width:100%; max-width:560px; box-shadow:var(--shadow-lift);}
 .modal.wide{max-width:920px;}
 .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;}
 .modal-head h3{font-size:15.5px;}
@@ -341,27 +399,45 @@ svg.chart .gridline{stroke:var(--line);}
 
 <div class="app">
 
-  <div class="topbar">
-    <div class="brand">
+  <aside class="sidebar">
+    <div class="side-brand">
       <button type="button" class="brand-mark" id="brandMark" title="클릭해서 로고 이미지 변경">C</button>
       <input type="file" id="brandLogoInput" accept="image/*" hidden>
       <div class="brand-text">
-        <h1>OPLE Logistics Dashboard</h1>
-        <div class="tag">한국 · 일본 풀필먼트 &amp; 항공물류 운영 대시보드</div>
+        <h1>OPLE Logistics</h1>
+        <div class="tag">한국 · 일본 풀필먼트</div>
       </div>
     </div>
-    <div class="topbar-right">
+
+    <nav class="tabs" id="tabNav" role="tablist">
+      <button class="tab-btn active" data-tab="dashboard" role="tab"
+              data-title="대시보드" data-sub="일별 픽킹 · 팩킹 · 출고 현황과 취급주의 수량"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="8" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="11" width="7" height="10" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/></svg><span>대시보드</span></button>
+      <button class="tab-btn" data-tab="report" role="tab"
+              data-title="리포트 · 인사이트" data-sub="최근 구간 실적과 직전 구간 대비 변화"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 6-7"/><path d="M15 8h4v4"/><path d="M3 21h18"/></svg><span>리포트 · 인사이트</span></button>
+      <button class="tab-btn" data-tab="holidays" role="tab"
+              data-title="휴무일" data-sub="한국 · 일본 · 미국 창고 휴무 달력"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>휴무일</span></button>
+      <button class="tab-btn" data-tab="flights" role="tab"
+              data-title="항공스케줄 &amp; 컷오프" data-sub="항공편 마스터와 컷오프 등록 내역"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20l1.8-6.2 5.9 3.4 1.6-1-5.2-4.6 3.4-4.9a1.7 1.7 0 0 0-2.4-2.3l-4.6 3.6L6.4 3 5 4l3.1 6.1L3.5 13l-.6 2.2 5.4-1 .9 5.4z"/></svg><span>항공스케줄 &amp; 컷오프</span></button>
+      <button class="tab-btn" data-tab="accounting" role="tab"
+              data-title="회계 &amp; 분석" data-sub="비용 구성과 기간별 상세 내역"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 7h8M8 11h3M8 15h3M15 11v6M12.5 14h5"/></svg><span>회계 &amp; 분석</span></button>
+    </nav>
+
+    <div class="side-foot">
       <span id="storeStatus" class="status-ind"><span class="status-dot"></span><span class="status-txt">확인 중</span></span>
+    </div>
+  </aside>
+
+  <div class="main">
+   <div class="main-inner">
+
+  <div class="topbar">
+    <div class="page-title">
+      <h1 id="pageTitle">대시보드</h1>
+      <div class="tag" id="pageSub">일별 픽킹 · 팩킹 · 출고 현황과 취급주의 수량</div>
+    </div>
+    <div class="topbar-right">
       <span class="clock" id="clockNow">--</span>
     </div>
-  </div>
-
-  <div class="tabs" id="tabNav" role="tablist">
-    <button class="tab-btn active" data-tab="dashboard" role="tab">대시보드</button>
-    <button class="tab-btn" data-tab="report" role="tab">리포트 · 인사이트</button>
-    <button class="tab-btn" data-tab="holidays" role="tab">휴무일</button>
-    <button class="tab-btn" data-tab="flights" role="tab">항공스케줄 &amp; 컷오프</button>
-    <button class="tab-btn" data-tab="accounting" role="tab">회계 &amp; 분석</button>
   </div>
 
   <!-- ============ DASHBOARD ============ -->
@@ -378,6 +454,9 @@ svg.chart .gridline{stroke:var(--line);}
 
   <!-- ============ ACCOUNTING ============ -->
   <div class="view" id="view-accounting"></div>
+
+   </div>
+  </div>
 
 </div>
 
@@ -969,8 +1048,17 @@ async function boot(){
     const btn = e.target.closest(".tab-btn"); if(!btn) return;
     document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b===btn));
     document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+btn.dataset.tab));
+    setPageTitle(btn);
+    window.scrollTo({top:0, behavior:"smooth"});
     emit("tab", btn.dataset.tab);
   });
+  /** 사이드바에서 고른 메뉴 이름을 본문 상단 제목으로 옮긴다 */
+  function setPageTitle(btn){
+    const t = document.getElementById("pageTitle"), sub = document.getElementById("pageSub");
+    if(t && btn.dataset.title) t.innerHTML = btn.dataset.title;
+    if(sub && btn.dataset.sub) sub.textContent = btn.dataset.sub;
+  }
+  setPageTitle(document.querySelector(".tab-btn.active"));
 
   emit("ready");
 }
@@ -1075,6 +1163,9 @@ function bandBarChart(container, {data, thresholds, unitLabel, metricKey}){
     const bh = Math.max(2, plotH * Math.min(1,d.value/maxV));
     const y = padT+plotH-bh;
     const st = statusColor(d.value, thresholds);
+    // 옅은 트랙을 뒤에 깔아 막대가 어디까지 찰 수 있는지 보이게 한다
+    svg.appendChild(svgEl("rect",{x:cx-bw/2, y:padT, width:bw, height:plotH, rx:4, ry:4,
+      fill:CD.cssVar("--surface-2"), opacity:0.9}));
     const rect = svgEl("rect",{class:"bar-rect", x:cx-bw/2, y, width:bw, height:bh, rx:4, ry:4, fill:CD.cssVar("--"+st.key)});
     rect.addEventListener("mousemove", e=>{
       const r = d.rec || {};
@@ -2829,6 +2920,8 @@ function shell(){
       body.hidden = !open;
       btn.textContent = open ? "접기" : "펼치기";
       btn.setAttribute("aria-expanded", open ? "true" : "false");
+      const card = body.closest(".card");
+      if(card) card.classList.toggle("collapsed", !open);   // 접혔을 땐 카드도 얇게
     };
     btn.addEventListener("click", ()=>{
       open = !open;
@@ -3612,11 +3705,12 @@ function refresh(){
   kpiCountries.forEach(c=>{
     const st = countryStats(c);
     const costDisp = toDisp(st.cost, c), perOrderDisp = toDisp(st.perOrder, c);
-    const dCol = st.deltaPct==null ? "var(--muted)" : (st.deltaPct<=0 ? "var(--good-ink)" : "var(--critical-ink)");
+    const flat = st.deltaPct!=null && Math.abs(st.deltaPct) < 0.05;
+    const dCls = (st.deltaPct==null || flat) ? "" : (st.deltaPct<0 ? " good" : " bad");
     const dot = `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>`;
     const wide = oneCountry ? " wide" : "";     // 국가 하나면 아랫줄도 2칸씩 채운다
     cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp0(costDisp)}</div><div class="sub" title="출고비+통관·택배+항공+트럭킹+취급주의">${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)} 합계</div></div>`);
-    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${dCol}">${st.deltaPct==null?'최근 30일 비교 불가':'직전 30일 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
+    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub">${st.deltaPct==null?'<span class="delta">최근 30일 비교 불가</span>':`<span class="delta${dCls}">${flat?"":(st.deltaPct>0?"▲":"▼")}${Math.abs(st.deltaPct).toFixed(1)}%</span><span style="color:var(--muted)">직전 30일 대비</span>`}</div></div>`);
   });
   const aK = document.getElementById("aKpis");
   aK.className = "section grid kpis24";
@@ -3658,12 +3752,14 @@ function refresh(){
     const now = winTypeSum(cur30, t.key);
     const before = winTypeSum(prev30, t.key);
     if(before>0) d = (now-before)/before*100;
-    const dCol = d==null ? "var(--muted)" : (d<=0 ? "var(--good-ink)" : "var(--critical-ink)");
-    const dTxt = d==null ? "최근 30일 비교 불가" : `직전 30일 대비 ${d>0?"+":""}${d.toFixed(1)}%`;
+    const dFlat = d!=null && Math.abs(d) < 0.05;
+    const dCls = (d==null || dFlat) ? "" : (d<0 ? " good" : " bad");
+    const dTxt = d==null ? `<span class="delta">비교 불가</span>`
+                         : `<span class="delta${dCls}">${dFlat?"":(d>0?"▲":"▼")}${Math.abs(d).toFixed(1)}%</span>`;
     return `<div class="kpi">
       <div class="label"><span class="dot" style="background:var(${t.color})"></span>${t.label}</div>
       <div class="value">${fmtDisp0(total)}</div>
-      <div class="sub">전체의 ${share.toFixed(1)}% · <span style="color:${dCol}">${dTxt}</span></div>
+      <div class="sub">${dTxt}<span style="color:var(--muted)">전체의 ${share.toFixed(1)}%</span></div>
       <div style="height:5px; border-radius:3px; background:var(--surface-2); overflow:hidden;">
         <div style="height:100%; width:${share}%; background:var(${t.color}); border-radius:3px;"></div>
       </div>
@@ -4043,11 +4139,12 @@ function pct(now, before){
 /** delta chip — 증가가 좋은 지표(good=true)면 초록, 비용처럼 낮을수록 좋은 지표면 반대 */
 function delta(now, before, goodUp){
   const p = pct(now, before);
-  if(p===null) return `<span class="sub" style="color:var(--muted)">직전 ${days}일 데이터 없음</span>`;
-  const up = p>0;
-  let col = "var(--ink-2)";
-  if(goodUp!==null && Math.abs(p)>=0.05) col = (goodUp?up:!up) ? "var(--good-ink)" : "var(--critical-ink)";
-  return `<span style="color:${col}">직전 ${days}일 대비 ${up?"+":""}${p.toFixed(1)}%</span>`;
+  if(p===null) return `<span class="delta">직전 ${days}일 데이터 없음</span>`;
+  const up = p>0, flat = Math.abs(p) < 0.05;
+  let cls = "";
+  if(goodUp!==null && !flat) cls = (goodUp?up:!up) ? " good" : " bad";
+  return `<span class="delta${cls}">${flat?"":(up?"▲":"▼")}${Math.abs(p).toFixed(1)}%</span>` +
+         `<span style="color:var(--muted)">직전 ${days}일 대비</span>`;
 }
 
 /* ---------- 자동 인사이트 ---------- */
