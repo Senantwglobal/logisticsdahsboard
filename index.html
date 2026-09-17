@@ -234,6 +234,30 @@ tbody tr:last-child td{border-bottom:none;}
 tbody tr:hover{background:var(--surface-2);}
 tfoot td{padding:9px 12px; font-weight:300; border-top:1px solid var(--line-strong); font-family:var(--font-mono);}
 
+/* ---- 기간별 상세: 열이 많아 그룹 헤더 + 첫 열 고정 + 무게 차등으로 읽는다 ---- */
+table.detail{min-width:980px;}
+table.detail thead th{text-transform:none; letter-spacing:0; font-size:11.5px; padding:8px 11px;}
+table.detail thead tr.grp-row th{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+  text-align:center; padding:8px 11px 4px; border-bottom:none;}
+table.detail thead tr.col-row th{top:29px;}
+table.detail th.num, table.detail td.num{text-align:right;}
+table.detail td.dim{color:var(--muted);}
+table.detail td.key{font-weight:600; color:var(--ink);}
+table.detail .gsep{box-shadow:inset 1px 0 0 var(--line-strong);}
+table.detail .stick{position:sticky; left:0; z-index:3; background:var(--surface); box-shadow:inset -1px 0 0 var(--line-strong);}
+table.detail thead .stick{z-index:6; background:var(--surface-2);}
+table.detail tfoot .stick{background:var(--surface-2);}
+table.detail tbody tr:hover .stick{background:var(--surface-2);}
+table.detail tfoot td{background:var(--surface-2); font-weight:600; color:var(--ink); border-top:1.5px solid var(--line-strong);}
+.cost-cell{display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
+.cost-bar{display:block; width:62px; height:3px; border-radius:2px; background:var(--accent-soft);}
+.cost-bar i{display:block; height:100%; background:var(--accent); border-radius:2px;}
+.chg{display:inline-flex; align-items:center; gap:2px; font-size:11px; padding:2px 6px; border-radius:6px;
+  background:var(--surface-2); color:var(--ink-2); font-variant-numeric:tabular-nums; white-space:nowrap;}
+.chg.good{background:var(--good-soft); color:var(--good-ink);}
+.chg.bad{background:var(--critical-soft); color:var(--critical-ink);}
+.chg.flat{background:var(--surface-2); color:var(--muted);}
+
 /* ============================= BADGES / TAGS ============================= */
 .badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:300; padding:3px 8px; border-radius:7px; line-height:1.5;}
 .badge.kr{background:var(--kr-soft); color:var(--kr-ink);}
@@ -2533,6 +2557,8 @@ function fmtDisp(v){
   if(dispCurrency==="USD") return "$" + (v||0).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
   return dispSym() + CD.fmtNum(v||0);
 }
+/** 합계처럼 큰 금액은 센트까지 보면 자릿수만 길어진다. 정수로 끊어 읽기 쉽게. */
+function fmtDisp0(v){ return dispSym() + Math.round(v||0).toLocaleString("en-US"); }
 function packingRates(){ return CD.Cache.settings.packing || {baseUsd:1.29, stepUsd:0.6}; }
 function tierUsd(k){ const p = packingRates(); return p.baseUsd + p.stepUsd*(k-1); }
 function airTiers(){ return CD.Cache.settings.air || {thresholdKg:700, lowRateUsd:1.30, highRateUsd:1.15}; }
@@ -2615,7 +2641,11 @@ function packingCostUsd(rec){
 function shell(){
   root.innerHTML = `
     <div class="section card">
-      <div class="section-head"><h2>비용 기준 설정</h2></div>
+      <div class="section-head" style="margin-bottom:0;">
+        <h2>비용 기준 설정</h2>
+        <button type="button" class="btn ghost small" id="aSettingsToggle" aria-expanded="false">펼치기</button>
+      </div>
+      <div id="aSettingsBody" hidden style="margin-top:14px;">
       <div class="grid settings3" style="margin-bottom:14px;">
         <div class="card tight">
           <div class="row" style="margin-bottom:10px;"><b style="font-size:12.5px;">출고비 · 취급주의 (공통, USD 기준)</b></div>
@@ -2650,6 +2680,7 @@ function shell(){
         </div>
       </div>
       <div class="grid two" id="rateForms"></div>
+      </div>
     </div>
 
 
@@ -2788,6 +2819,24 @@ function shell(){
   });
   document.getElementById("rSkuListBtn").addEventListener("click", openSkuList);
   document.getElementById("aExport").addEventListener("click", exportDetail);
+  // 단가 설정은 자주 볼 화면이 아니라 기본으로 접어두고, 펼친 상태는 기억한다
+  (function(){
+    const btn = document.getElementById("aSettingsToggle");
+    const body = document.getElementById("aSettingsBody");
+    let open = false;
+    try{ open = localStorage.getItem("cargodesk_acctSettingsOpen") === "1"; }catch(e){}
+    const paint = ()=>{
+      body.hidden = !open;
+      btn.textContent = open ? "접기" : "펼치기";
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    btn.addEventListener("click", ()=>{
+      open = !open;
+      try{ localStorage.setItem("cargodesk_acctSettingsOpen", open ? "1" : "0"); }catch(e){}
+      paint();
+    });
+    paint();
+  })();
   // 취급주의 수량 섹션은 대시보드 탭에 있다 (이 모듈이 계산·렌더를 맡는다)
   wireHandlingSection();
   document.getElementById("rFxKrw").addEventListener("change", async e=>{
@@ -3558,7 +3607,7 @@ function refresh(){
   const rangeSub = rangeText();
   const cards = [
     `<div class="kpi wide"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${label} 합계 · ${rangeSub}</div></div>`,
-    `<div class="kpi wide"><div class="label">총 물류비</div><div class="value">${fmtDisp(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공+트럭킹+취급주의 · ${rangeSub}</div></div>`
+    `<div class="kpi wide"><div class="label">총 물류비</div><div class="value">${fmtDisp0(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공+트럭킹+취급주의 · ${rangeSub}</div></div>`
   ];
   kpiCountries.forEach(c=>{
     const st = countryStats(c);
@@ -3566,7 +3615,7 @@ function refresh(){
     const dCol = st.deltaPct==null ? "var(--muted)" : (st.deltaPct<=0 ? "var(--good-ink)" : "var(--critical-ink)");
     const dot = `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>`;
     const wide = oneCountry ? " wide" : "";     // 국가 하나면 아랫줄도 2칸씩 채운다
-    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp(costDisp)}</div><div class="sub" title="${rangeSub}">출고비+통관·택배+항공+트럭킹+취급주의 · ${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)}</div></div>`);
+    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp0(costDisp)}</div><div class="sub" title="출고비+통관·택배+항공+트럭킹+취급주의">${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)} 합계</div></div>`);
     cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub" style="color:${dCol}">${st.deltaPct==null?'최근 30일 비교 불가':'직전 30일 대비 '+(st.deltaPct>0?'+':'')+st.deltaPct.toFixed(1)+'%'}</div></div>`);
   });
   const aK = document.getElementById("aKpis");
@@ -3613,7 +3662,7 @@ function refresh(){
     const dTxt = d==null ? "최근 30일 비교 불가" : `직전 30일 대비 ${d>0?"+":""}${d.toFixed(1)}%`;
     return `<div class="kpi">
       <div class="label"><span class="dot" style="background:var(${t.color})"></span>${t.label}</div>
-      <div class="value">${fmtDisp(total)}</div>
+      <div class="value">${fmtDisp0(total)}</div>
       <div class="sub">전체의 ${share.toFixed(1)}% · <span style="color:${dCol}">${dTxt}</span></div>
       <div style="height:5px; border-radius:3px; background:var(--surface-2); overflow:hidden;">
         <div style="height:100%; width:${share}%; background:var(${t.color}); border-radius:3px;"></div>
@@ -3653,7 +3702,7 @@ function refresh(){
       const sh = shippedFor(c);
       const v = sh>0 ? typeSumFor(c, t.keys)/sh : 0;
       return `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>${CD.COUNTRY_LABEL[c]} ${fmtDisp(v)}`;
-    }).join(" · ") : `총 ${fmtDisp(cost)}`;
+    }).join(" · ") : `총 ${fmtDisp0(cost)}`;
     return `<div class="kpi">
       <div class="label"><span class="dot" style="background:var(${t.color})"></span>${t.label}${t.note?` <span style="color:var(--muted)">(${t.note})</span>`:""}</div>
       <div class="value">${fmtDisp(per)}</div>
@@ -3725,57 +3774,104 @@ function refresh(){
     `${rangeText()} · ${granLabel} ${rows.length}개 구간 · ${dispSym()} 기준` +
     (rows.length > 60 ? " · 구간이 많습니다. 월별/연도별로 보시면 읽기 편합니다." : "");
 
+  lastRows = rows; lastCountries = countries;   // 엑셀 내보내기가 화면과 같은 값을 쓰도록 보관
+
   /** 직전 구간 대비 증감 칩 (비용은 낮을수록 좋으므로 내려가면 초록) */
   function chg(now, before, goodUp){
-    if(before===null || before===undefined || before===0) return `<span style="color:var(--muted)">-</span>`;
+    if(before===null || before===undefined || before===0) return `<span class="chg flat">–</span>`;
     const p = (now-before)/before*100;
-    if(!isFinite(p)) return `<span style="color:var(--muted)">-</span>`;
-    let col = "var(--ink-2)";
-    if(Math.abs(p)>=0.05) col = ((goodUp?p>0:p<0)) ? "var(--good-ink)" : "var(--critical-ink)";
-    return `<span style="color:${col}">${p>0?"+":""}${p.toFixed(1)}%</span>`;
+    if(!isFinite(p)) return `<span class="chg flat">–</span>`;
+    if(Math.abs(p) < 0.05) return `<span class="chg flat">0.0%</span>`;
+    const up = p > 0;
+    const cls = (goodUp ? up : !up) ? "good" : "bad";
+    return `<span class="chg ${cls}">${up?"▲":"▼"}${Math.abs(p).toFixed(1)}%</span>`;
   }
+  const maxTotal = Math.max(1, ...countries.flatMap(c=>
+    rows.map(r=>{ const b=r.byCountry[c]; return b ? toDisp(bucketCost(b), c) : 0; })));
 
-  lastRows = rows; lastCountries = countries;
   document.getElementById("aTables").innerHTML = countries.map(c=>{
     const ordered = [...rows];                 // 오래된 → 최신 (증감 계산용)
     const trs = [];
-    for(let i=ordered.length-1; i>=0; i--){    // 표시는 최신 → 오래된
+    const sum = {picked:0,packed:0,shipped:0,bookings:0,pallet:0,weight:0,
+                 packingCost:0,lastMileCost:0,airCost:0,truckingCost:0,handlingCost:0,total:0};
+    for(let i = ordered.length-1; i >= 0; i--){    // 표시는 최신 → 오래된
       const b = ordered[i].byCountry[c]; if(!b) continue;
       const prev = i>0 ? ordered[i-1].byCountry[c] : null;
       const total = bucketCost(b);
       const po = b.shipped>0 ? total/b.shipped : 0;
       const prevPo = prev && prev.shipped>0 ? bucketCost(prev)/prev.shipped : null;
+      const totalDisp = toDisp(total, c);
+      const barPct = Math.max(2, Math.min(100, totalDisp/maxTotal*100));
+      ["picked","packed","shipped","bookings","pallet","weight",
+       "packingCost","lastMileCost","airCost","truckingCost","handlingCost"].forEach(k=> sum[k] += (b[k]||0));
+      sum.total += total;
       trs.push(`<tr>
-        <td class="text">${keyLabel(ordered[i].key)}</td>
-        <td>${CD.fmtNum(b.picked)}</td>
-        <td>${CD.fmtNum(b.packed)}</td>
-        <td>${CD.fmtNum(b.shipped)}</td>
+        <td class="text stick">${keyLabel(ordered[i].key)}</td>
+        <td class="num dim">${CD.fmtNum(b.picked)}</td>
+        <td class="num dim">${CD.fmtNum(b.packed)}</td>
+        <td class="num key">${CD.fmtNum(b.shipped)}</td>
         <td class="text">${chg(b.shipped, prev?prev.shipped:null, true)}</td>
-        <td>${CD.fmtNum(b.bookings)}건 / ${CD.fmtNum(b.pallet)}PLT</td>
-        <td>${CD.fmtNum(b.weight)}</td>
-        <td>${fmtDisp(toDisp(b.packingCost, c))}</td>
-        <td>${fmtDisp(toDisp(b.lastMileCost, c))}</td>
-        <td>${fmtDisp(toDisp(b.airCost, c))}</td>
-        <td title="컷오프 ${CD.fmtNum(b.cutoffDays||0)}일 안분">${fmtDisp(toDisp(b.truckingCost||0, c))}</td>
-        <td title="취급주의 ${CD.fmtNum(Math.round(b.handlingEa||0))} EA">${fmtDisp(toDisp(b.handlingCost||0, c))}</td>
-        <td>${fmtDisp(toDisp(total, c))}</td>
-        <td>${fmtDisp(toDisp(po, c))}</td>
+        <td class="num dim gsep">${CD.fmtNum(b.bookings)}건 · ${CD.fmtNum(b.pallet)}PLT</td>
+        <td class="num dim">${CD.fmtNum(b.weight)}</td>
+        <td class="num gsep">${fmtDisp0(toDisp(b.packingCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(b.lastMileCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(b.airCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(b.truckingCost||0, c))}</td>
+        <td class="num" title="취급주의 ${CD.fmtNum(Math.round(b.handlingEa||0))} EA">${fmtDisp0(toDisp(b.handlingCost||0, c))}</td>
+        <td class="num key">
+          <div class="cost-cell"><span>${fmtDisp0(totalDisp)}</span>
+            <span class="cost-bar"><i style="width:${barPct.toFixed(1)}%"></i></span></div>
+        </td>
+        <td class="num key gsep">${fmtDisp(toDisp(po, c))}</td>
         <td class="text">${chg(po, prevPo, false)}</td>
       </tr>`);
     }
+    const sumPo = sum.shipped>0 ? sum.total/sum.shipped : 0;
+    const foot = trs.length ? `<tfoot><tr>
+        <td class="text stick">합계</td>
+        <td class="num">${CD.fmtNum(sum.picked)}</td>
+        <td class="num">${CD.fmtNum(sum.packed)}</td>
+        <td class="num">${CD.fmtNum(sum.shipped)}</td>
+        <td></td>
+        <td class="num gsep">${CD.fmtNum(sum.bookings)}건 · ${CD.fmtNum(sum.pallet)}PLT</td>
+        <td class="num">${CD.fmtNum(sum.weight)}</td>
+        <td class="num gsep">${fmtDisp0(toDisp(sum.packingCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(sum.lastMileCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(sum.airCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(sum.truckingCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(sum.handlingCost, c))}</td>
+        <td class="num">${fmtDisp0(toDisp(sum.total, c))}</td>
+        <td class="num gsep">${fmtDisp(toDisp(sumPo, c))}</td>
+        <td></td>
+      </tr></tfoot>` : "";
     return `<div class="card" style="margin-bottom:14px;">
-      <div class="row" style="margin-bottom:10px;"><span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span></div>
+      <div class="row between" style="margin-bottom:10px;">
+        <span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span>
+        <span class="hint">출고 ${CD.fmtNum(sum.shipped)}건 · 물류비 ${fmtDisp0(toDisp(sum.total, c))} · 건당 ${fmtDisp(toDisp(sumPo, c))}</span>
+      </div>
       <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>기간</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>출고 증감</th>
-            <th>항공부킹</th><th title="항공비 청구 중량 · 부피무게 기준">부피중량(kg)</th>
-            <th>출고비</th><th>통관 택배비용</th><th>항공비용</th>
-            <th title="컷오프가 있는 날 하루당 정액 · 국가별 부피중량 비율로 안분">트럭킹비</th>
-            <th title="취급주의 SKU 출고 EA × 단가">취급주의 출고비</th>
-            <th>총비용</th><th>건당비용</th><th>건당 증감</th>
-          </tr></thead>
+        <table class="detail">
+          <thead>
+            <tr class="grp-row">
+              <th class="stick"></th>
+              <th colspan="4">물동량</th>
+              <th colspan="2" class="gsep">항공</th>
+              <th colspan="6" class="gsep">비용 (${dispSym()})</th>
+              <th colspan="2" class="gsep">건당</th>
+            </tr>
+            <tr class="col-row">
+              <th class="stick">기간</th>
+              <th class="num">픽킹</th><th class="num">팩킹</th><th class="num">출고</th><th>전 구간비</th>
+              <th class="num gsep">부킹</th><th class="num" title="항공비 청구 중량 · 부피무게 기준">부피중량</th>
+              <th class="num gsep">출고비</th><th class="num">통관·택배</th><th class="num">항공</th>
+              <th class="num" title="컷오프가 있는 날 하루당 정액">트럭킹</th>
+              <th class="num" title="취급주의 SKU 출고 EA × 단가">취급주의</th>
+              <th class="num">총비용</th>
+              <th class="num gsep">건당비용</th><th>전 구간비</th>
+            </tr>
+          </thead>
           <tbody>${trs.join("") || `<tr><td colspan="15" class="text empty-note">표시할 데이터가 없습니다.</td></tr>`}</tbody>
+          ${foot}
         </table>
       </div>
     </div>`;
