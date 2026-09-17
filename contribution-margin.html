@@ -194,7 +194,7 @@
   <header class="top">
     <div>
       <h1>OPLE 공헌이익 시스템</h1>
-      <div class="sub">실시간 Supabase 연동 · 한국 물류비 기준 (일본 제외)</div>
+      <div class="sub">Supabase 연동 · 결산 파일 기반 채널 수수료/환율 자동 반영</div>
     </div>
     <div class="sub" id="fxLine">환율 불러오는 중…</div>
   </header>
@@ -203,9 +203,7 @@
     <button class="active" data-tab="calc">빠른 계산기</button>
     <button data-tab="price">권장 판매가</button>
     <button data-tab="trend">월별 정산 트렌드</button>
-    <button data-tab="logi">물류비 동기화</button>
     <button data-tab="cost">입고가 업데이트</button>
-    <button data-tab="best">채널별 베스트셀러</button>
   </nav>
 
   <!-- TAB 1: QUICK CALCULATOR -->
@@ -243,7 +241,7 @@
           <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v tabular" id="bd_cost">-</div></div>
           <div class="bd-item"><div class="k">부자재비</div><div class="v tabular" id="bd_pack">-</div></div>
           <div class="bd-item"><div class="k">수수료 (<span id="bd_feerate"></span>)</div><div class="v tabular" id="bd_fee">-</div></div>
-          <div class="bd-item"><div class="k">물류비 (당월 평균)</div><div class="v tabular" id="bd_logi">-</div></div>
+          <div class="bd-item"><div class="k">물류비 (배송비+출고비)</div><div class="v tabular" id="bd_logi">-</div></div>
         </div>
       </div>
     </div>
@@ -265,7 +263,7 @@
           <select id="price_sub"><option value="">선택</option><option value="gmarket">지마켓</option><option value="auction">옥션</option></select>
         </div>
       </div>
-      <div class="notice info">물류비는 <b>최근 30일 평균</b> 기준으로 계산됩니다 (한국 물류만, 일본 제외).</div>
+      <div class="notice info">물류비는 <b>배송비 5,050원 + 창고출고비 2,350원</b> 고정 기준(취급주의 대상 상품은 취급주의 수수료 추가)으로 계산됩니다.</div>
       <button class="primary" id="price_btn" onclick="runPriceCalc()">권장 판매가 계산</button>
       <div class="notice bad" id="price_err" style="display:none"></div>
 
@@ -285,7 +283,7 @@
           <div class="bd-item"><div class="k">원가 (입고가)</div><div class="v tabular" id="pbd_cost">-</div></div>
           <div class="bd-item"><div class="k">부자재비</div><div class="v tabular" id="pbd_pack">-</div></div>
           <div class="bd-item"><div class="k">수수료율</div><div class="v tabular" id="pbd_feerate">-</div></div>
-          <div class="bd-item"><div class="k">물류비 (30일 평균)</div><div class="v tabular" id="pbd_logi">-</div></div>
+          <div class="bd-item"><div class="k">물류비 (배송비+출고비)</div><div class="v tabular" id="pbd_logi">-</div></div>
         </div>
       </div>
     </div>
@@ -294,39 +292,27 @@
   <!-- TAB 3: MONTHLY TREND (redesigned) -->
   <section class="panel" id="panel-trend">
     <div class="card">
-      <h3 class="upload-title">정산 파일 업로드</h3>
-      <div class="upload-desc" id="up_desc">각 채널 판매자센터에서 다운로드한 정산 원본 파일을 가공 없이 그대로 올리면 자동으로 파싱해서 반영합니다 (쿠팡: Order Detail Report · 11번가: 정산 확정건 상세내역 · 이베이(ESM): 지마켓/옥션 정산 템플릿 각각 업로드 · 네이버: 정산내역+구매확정내역 두 파일 함께 업로드). 매월 새 파일을 올릴 때마다 해당 월 데이터가 갱신됩니다.</div>
+      <h3 class="upload-title">결산 업로드 (월별 마감)</h3>
+      <div class="upload-desc" id="settle_desc">매월 마감 후 나오는 결산 파일(구분·정산월·채널구분·매출·공헌이익·입고가·배송비·취급주위·기본출고비·부자재·주문건수·수수료·환율1 컬럼 포함)을 가공 없이 그대로 올리면 채널구분을 자동 매핑해서 반영합니다. 채널별 수수료율과 USD 환율은 이 파일의 값으로 자동 갱신됩니다. 매월 새 파일을 올릴 때마다 해당 정산월 데이터가 갱신됩니다.</div>
       <div class="row">
-        <div class="field"><label>채널</label>
-          <select id="up_channel">
-            <option value="coupang">쿠팡</option>
-            <option value="11st">11번가</option>
-            <option value="ebay">이베이 (ESM, 지마켓/옥션)</option>
-            <option value="naver">네이버 (스마트스토어)</option>
-          </select>
-        </div>
-        <div class="field" id="up_acct_field" style="display:none"><label>판매자 계정</label><select id="up_acct"></select></div>
-        <div class="field" style="flex:2"><label id="up_file_label">정산 엑셀 파일</label>
-          <input id="up_file" type="file" accept=".xlsx,.xls" class="upload-file-input">
-        </div>
-        <div class="field" id="up_file2_field" style="display:none"><label>구매확정내역 파일 (SKU 매핑용)</label>
-          <input id="up_file2" type="file" accept=".xlsx,.xls" class="upload-file-input">
+        <div class="field" style="flex:2"><label>결산 엑셀 파일</label>
+          <input id="settle_file" type="file" accept=".xlsx,.xls" class="upload-file-input">
         </div>
       </div>
-      <button class="primary" id="up_parse_btn" onclick="parseUploadFile()">파일 분석</button>
-      <div class="notice bad" id="up_err" style="display:none"></div>
-      <div class="notice good" id="up_ok" style="display:none"></div>
-      <div class="notice warn" id="up_warn" style="display:none"></div>
+      <button class="primary" id="settle_parse_btn" onclick="parseSettlementFile()">파일 분석</button>
+      <div class="notice bad" id="settle_err" style="display:none"></div>
+      <div class="notice good" id="settle_ok" style="display:none"></div>
+      <div class="notice warn" id="settle_warn" style="display:none"></div>
 
-      <div class="preview-wrap" id="up_preview_wrap">
+      <div class="preview-wrap" id="settle_preview_wrap">
         <div class="sectiontitle">분석 결과 미리보기</div>
-        <div class="tablewrap"><table id="up_preview_table"><thead><tr>
-          <th style="text-align:left">채널</th><th style="text-align:left">계정/마켓</th><th style="text-align:left">월</th>
-          <th>매출</th><th>공헌이익</th><th>공헌이익율</th><th>주문건수</th>
+        <div class="tablewrap"><table id="settle_preview_table"><thead><tr>
+          <th style="text-align:left">채널구분</th><th style="text-align:left">매핑</th><th style="text-align:left">정산월</th>
+          <th>매출</th><th>공헌이익</th><th>공헌이익율</th><th>수수료율</th><th>환율</th><th>주문건수</th>
         </tr></thead><tbody></tbody></table></div>
         <div class="preview-actions">
-          <button class="primary" id="up_save_btn" onclick="saveUploadRows()">Supabase에 저장</button>
-          <span class="muted" id="up_save_status" style="font-size:12.5px;"></span>
+          <button class="primary" id="settle_save_btn" onclick="saveSettlementRows()">Supabase에 저장</button>
+          <span class="muted" id="settle_save_status" style="font-size:12.5px;"></span>
         </div>
       </div>
     </div>
@@ -348,31 +334,6 @@
         <div class="sectiontitle">채널별 매출 추이</div>
         <div class="chartrow" id="trend_charts"></div>
       </div>
-    </div>
-  </section>
-
-  <!-- TAB 4: LOGISTICS SYNC -->
-  <section class="panel" id="panel-logi">
-    <div class="card">
-      <div class="refreshbar">
-        <div>
-          <h3 style="margin:0 0 4px;font-size:15px;">한국 물류비 동기화</h3>
-          <div class="lastsync" id="logi_synctime">동기화 정보 불러오는 중…</div>
-        </div>
-        <button class="primary" id="logi_btn" onclick="doLogisticsRefresh()">↻ CARGODESK에서 동기화</button>
-      </div>
-      <div class="notice bad" id="logi_err" style="display:none"></div>
-      <div class="cards3" id="logi_kpis" style="margin-top:18px"></div>
-      <div class="sectiontitle">비용 구성 (당월)</div>
-      <div class="tablewrap"><table id="logi_table"><thead><tr>
-        <th style="text-align:left">구간</th><th>주문건수</th><th>출고비</th><th>통관·라스트마일</th><th>항공비</th><th>합계</th><th>건당 평균</th>
-      </tr></thead><tbody></tbody></table></div>
-      <details style="margin-top:16px">
-        <summary style="cursor:pointer;font-size:12.5px;color:var(--ink-dim)">레이트 카드 (참고용, 고정값)</summary>
-        <div class="notice info" style="margin-top:10px">
-          라스트마일·통관: 주문 1건당 2,950원 고정 · 출고비: 박스당 1개차 $1.29, 2개차부터 +$0.60/개 · 항공비: kg당 700kg 미만 $1.30 / 700kg 이상 $1.15 (모두 당시 환율 적용)
-        </div>
-      </details>
     </div>
   </section>
 
@@ -408,41 +369,6 @@
     </div>
   </section>
 
-  <!-- TAB 6: BESTSELLERS -->
-  <section class="panel" id="panel-best">
-    <div class="card">
-      <div class="row">
-        <div class="field"><label>채널</label>
-          <select id="best_channel">
-            <option value="coupang">쿠팡</option>
-            <option value="11st">11번가</option>
-            <option value="ebay">이베이 (지마켓/옥션)</option>
-            <option value="naver">네이버 (스마트스토어)</option>
-          </select>
-        </div>
-        <div class="field" id="best_acct_field" style="display:none"><label>계정</label><select id="best_acct"></select></div>
-        <div class="field" id="best_sub_field" style="display:none"><label>마켓</label>
-          <select id="best_sub"><option value="">전체</option><option value="gmarket">지마켓</option><option value="auction">옥션</option></select>
-        </div>
-        <div class="field"><label>월</label><select id="best_month"><option value="">채널 선택 시 자동 조회</option></select></div>
-        <div class="field"><label>정렬 기준</label>
-          <select id="best_sort"><option value="revenue">매출액</option><option value="qty">판매수량</option></select>
-        </div>
-        <div class="field"><label>표시 개수</label>
-          <select id="best_limit"><option value="10">Top 10</option><option value="20" selected>Top 20</option><option value="50">Top 50</option></select>
-        </div>
-      </div>
-      <button class="primary" onclick="loadBestsellers()">조회</button>
-      <div class="notice bad" id="best_err" style="display:none"></div>
-      <div class="notice warn" id="best_empty" style="display:none">해당 채널·월에 저장된 SKU별 데이터가 없습니다. "정산 파일 업로드" 탭에서 정산 파일을 업로드하고 저장하면 자동으로 쌓입니다 (그 이전 업로드 건은 소급 반영되지 않으니 재업로드해주세요).</div>
-      <div class="tablewrap" id="best_table_wrap" style="margin-top:16px;display:none">
-        <table id="best_table"><thead><tr>
-          <th style="text-align:left">순위</th><th style="text-align:left">상품명</th><th style="text-align:left">마스터SKU</th>
-          <th>판매수량</th><th>매출액</th><th>주문건수</th><th style="text-align:left">전월 대비</th>
-        </tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-  </section>
 
 </div>
 
@@ -463,7 +389,6 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
     if(btn.dataset.tab==="trend" && !trendsLoaded) loadTrends();
-    if(btn.dataset.tab==="logi" && !logiLoaded) loadLogisticsSnapshot();
   });
 });
 
@@ -488,30 +413,6 @@ function wireChannelDeps(prefix){
 }
 wireChannelDeps("calc");
 wireChannelDeps("price");
-(function(){
-  const sel = document.getElementById("up_channel");
-  const acctField = document.getElementById("up_acct_field");
-  const acctSel = document.getElementById("up_acct");
-  const file2Field = document.getElementById("up_file2_field");
-  const fileLabel = document.getElementById("up_file_label");
-  function sync(){
-    const v = sel.value;
-    acctField.style.display = "none"; file2Field.style.display = "none"; acctSel.innerHTML = "";
-    fileLabel.textContent = "정산 엑셀 파일";
-    if(v === "ebay"){
-      acctField.style.display = "flex";
-      acctSel.innerHTML = '<option value="">선택</option><option value="allthatmal">올댓몰</option><option value="fastople">패스트오플</option>';
-      fileLabel.textContent = "정산 파일 (지마켓 또는 옥션 템플릿 1개, 마켓은 자동 인식)";
-    } else if(v === "naver"){
-      acctField.style.display = "flex";
-      acctSel.innerHTML = '<option value="">선택</option><option value="atm">올댓몰</option><option value="vita">비타코어</option>';
-      fileLabel.textContent = "정산내역 파일 (SettleCaseByCase)";
-      file2Field.style.display = "flex";
-    }
-  }
-  sel.addEventListener("change", sync);
-  sync();
-})();
 
 // ---- RPC helper ----
 async function rpc(name, body){
@@ -520,15 +421,17 @@ async function rpc(name, body){
   return data;
 }
 
-// ---- fx line (best-effort, non-blocking) ----
+// ---- fx line (best-effort, non-blocking): shows the USD rate + rate card,
+// both sourced from the latest 결산 upload rather than a CARGODESK sync. ----
 (async ()=>{
   try{
-    const rows = await rpc("get_kr_logistics_snapshot", {});
-    if(rows && rows.length){
-      document.getElementById("fxLine").textContent = "물류 스냅샷 기준일 " + (rows[0].computed_at||"").slice(0,10);
-    } else {
-      document.getElementById("fxLine").textContent = "";
-    }
+    const [rateCard] = await Promise.all([rpc("get_quick_calc_rate_card", {})]);
+    const rc = Array.isArray(rateCard) ? rateCard[0] : rateCard;
+    const fx = await rpc("get_usd_fx_rate", {});
+    const parts = [];
+    if(fx) parts.push("USD 환율 " + Number(fx).toLocaleString("ko-KR", {maximumFractionDigits:2}));
+    if(rc) parts.push("배송비 " + fmtKRW(rc.domestic_ship_krw) + " + 출고비 " + fmtKRW(rc.warehouse_dispatch_krw));
+    document.getElementById("fxLine").textContent = parts.join(" · ");
   }catch(e){ document.getElementById("fxLine").textContent = ""; }
 })();
 
