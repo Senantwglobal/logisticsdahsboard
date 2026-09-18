@@ -28,6 +28,8 @@
     --warn-soft:#faf1de;
     --bad:#c23a3a;
     --bad-soft:#fce9e9;
+    --metric-cm:#c9741f;
+    --metric-cm-soft:#faf0e2;
     --shadow: 0 1px 2px rgba(20,30,60,.05), 0 10px 28px -12px rgba(20,30,60,.16);
   }
   @media (prefers-color-scheme: dark){
@@ -46,6 +48,8 @@
       --warn-soft:#2d2412;
       --bad:#e28080;
       --bad-soft:#2f1a1a;
+      --metric-cm:#e0a05c;
+      --metric-cm-soft:#2e2313;
       --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 28px -12px rgba(0,0,0,.55);
     }
   }
@@ -64,6 +68,8 @@
     --warn-soft:#2d2412;
     --bad:#e28080;
     --bad-soft:#2f1a1a;
+    --metric-cm:#e0a05c;
+    --metric-cm-soft:#2e2313;
     --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 28px -12px rgba(0,0,0,.55);
   }
   *{box-sizing:border-box}
@@ -236,54 +242,60 @@
   .chDetail td.rowlabel{font-weight:300;}
 
   /* ---- top stat row (trend tab) ---- */
-  .statRow{display:flex; gap:32px; flex-wrap:wrap; margin-top:16px;}
-  .statItem .lbl{display:flex; align-items:center; font-size:12px; color:var(--ink-dim); margin-bottom:7px; white-space:nowrap;}
-  .statItem .val{font-size:25px; font-weight:300; letter-spacing:-.01em;}
-  .chip{display:inline-block; font-size:10.5px; font-weight:300; padding:1px 7px; border-radius:99px; margin-left:7px;}
+  .statRow{display:flex; gap:28px; flex-wrap:wrap; margin-top:16px;}
+  .statItem .lbl{display:flex; align-items:center; font-size:11.5px; color:var(--ink-dim); margin-bottom:6px; white-space:nowrap;}
+  .statItem .val{font-size:20px; font-weight:300; letter-spacing:-.01em;}
+  .chip{display:inline-block; font-size:10px; font-weight:300; padding:1px 6px; border-radius:99px; margin-left:6px;}
   .chip.up{background:var(--good-soft); color:var(--good);}
   .chip.down{background:var(--bad-soft); color:var(--bad);}
 
-  /* ---- big interactive trend chart ---- */
-  .chartWrap{position:relative; margin-top:56px; cursor:crosshair;}
-  .chartWrap svg{width:100%; height:auto; display:block; overflow:visible;}
-  .chartWrap svg text{font-family:'Pretendard',-apple-system,sans-serif;}
+  /* ---- shared chart tooltip (combo chart) ---- */
   .chartTooltip{
-    position:absolute; transform:translate(-50%,-100%) translateY(-14px); background:var(--ink); color:var(--paper-raised);
-    padding:10px 14px; border-radius:10px; font-size:12px; line-height:1.5; pointer-events:none;
-    opacity:0; transition:opacity .1s; white-space:nowrap; z-index:5; box-shadow:var(--shadow); min-width:150px;
+    position:absolute; transform:translate(-50%,-100%) translateY(-12px); background:var(--ink); color:var(--paper-raised);
+    padding:9px 12px; border-radius:9px; font-size:11px; line-height:1.5; pointer-events:none;
+    opacity:0; transition:opacity .1s; white-space:nowrap; z-index:5; box-shadow:var(--shadow); min-width:140px;
   }
-  .chartTooltip .tt-month{font-size:11.5px; color:color-mix(in srgb, var(--paper-raised) 65%, transparent); margin-bottom:6px;}
+  .chartTooltip .tt-month{font-size:10.5px; color:color-mix(in srgb, var(--paper-raised) 65%, transparent); margin-bottom:5px;}
   .chartTooltip .tt-row{display:flex; align-items:center; gap:7px; justify-content:space-between; padding:2px 0;}
   .chartTooltip .tt-row .tt-lbl{display:flex; align-items:center; gap:6px; color:color-mix(in srgb, var(--paper-raised) 80%, transparent);}
-  .chartTooltip .tt-dot{width:7px; height:7px; border-radius:99px; display:inline-block; flex-shrink:0;}
+  .chartTooltip .tt-key{width:10px; height:2px; border-radius:2px; display:inline-block; flex-shrink:0;}
   .chartTooltip .tt-val{font-variant-numeric:tabular-nums; margin-left:14px;}
-  .chartTooltip .tt-rate{font-size:11px; color:color-mix(in srgb, var(--paper-raised) 65%, transparent); margin-top:5px; padding-top:5px; border-top:1px solid color-mix(in srgb, var(--paper-raised) 18%, transparent);}
+  .chartTooltip .tt-rate{font-size:10.5px; color:color-mix(in srgb, var(--paper-raised) 65%, transparent); margin-top:5px; padding-top:5px; border-top:1px solid color-mix(in srgb, var(--paper-raised) 18%, transparent);}
   .chartTooltip.show{opacity:1;}
-  .chartLegend{display:flex; gap:18px; margin-top:10px; flex-wrap:wrap;}
-  .chartLegend span{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-dim);}
-  .chartLegend .dot{width:8px; height:8px; border-radius:99px; display:inline-block;}
-  .chartLegend .lv{color:var(--ink); font-variant-numeric:tabular-nums; margin-left:2px;}
+  .chartLegend{display:flex; gap:16px; margin-top:8px; flex-wrap:wrap; align-items:center;}
+  .chartLegend span{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-dim);}
+  .chartLegend .sw{width:9px; height:9px; border-radius:2px; display:inline-block;}
+  .chartLegend .ln{width:12px; height:2px; border-radius:2px; display:inline-block;}
+  .chartUnitNote{font-size:10.5px; color:var(--ink-dim); text-align:right; margin-top:2px;}
 
-  /* ---- 종합 요약: 채널 매출 비중 랭킹 + 핵심 콜아웃 (항상 표시되는 근거 기반 요약) ---- */
-  .summaryGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:14px; margin-top:14px;}
-  @media (max-width:900px){.summaryGrid{grid-template-columns:1fr;}}
-  .rankPanel{border:1px solid var(--line); border-radius:12px; padding:16px 18px; background:var(--paper-raised);}
-  .rankPanel-head{font-size:11.5px; color:var(--ink-dim); margin-bottom:12px; display:flex; justify-content:space-between; gap:8px;}
-  .rankItem{display:grid; grid-template-columns:16px 92px 1fr auto; gap:12px; align-items:center; padding:9px 0;}
-  .rankItem + .rankItem{border-top:1px solid var(--line);}
-  .rankItem .rnum{color:var(--ink-dim); font-size:12px; font-variant-numeric:tabular-nums;}
-  .rankItem .rname{font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rankItem .rbar-wrap{position:relative; height:7px; border-radius:99px; background:var(--paper); overflow:hidden;}
-  .rankItem .rbar-fill{position:absolute; inset:0 auto 0 0; border-radius:99px;}
-  .rankItem .rmeta{text-align:right; font-size:12.5px; white-space:nowrap; font-variant-numeric:tabular-nums;}
-  .rankItem .rmeta .pct{color:var(--ink-dim); font-size:11px; margin-left:7px;}
+  /* ---- combo chart: 매출·공헌이익 막대 + 공헌이익율 선 (월별 결산 트렌드 핵심 차트) ---- */
+  .comboChartWrap{position:relative; margin-top:14px;}
+  .comboChartWrap svg{width:100%; height:auto; display:block; overflow:visible;}
+  .comboChartWrap svg text{font-family:'Pretendard',-apple-system,sans-serif;}
+  .comboBarHit{cursor:pointer;}
+
+  /* ---- 채널별 비중: 도넛 2개 + 범례 + 표 ---- */
+  .shareGrid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
+  @media (max-width:760px){.shareGrid{grid-template-columns:1fr;}}
+  .donutCard{border:1px solid var(--line); border-radius:12px; padding:16px 18px; background:var(--paper-raised);}
+  .donutCard-head{font-size:12px; color:var(--ink-dim); margin-bottom:12px;}
+  .donutRow{display:flex; gap:18px; align-items:center; flex-wrap:wrap;}
+  .donutRow svg{width:132px; height:132px; flex-shrink:0;}
+  .donutLegend{flex:1; min-width:150px; display:flex; flex-direction:column; gap:7px;}
+  .donutLegend .dItem{display:flex; align-items:center; gap:8px; font-size:12px;}
+  .donutLegend .dItem .sw{width:9px; height:9px; border-radius:2px; flex-shrink:0;}
+  .donutLegend .dItem .dname{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink);}
+  .donutLegend .dItem .dpct{color:var(--ink-dim); font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .calloutRow{display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;}
+  .calloutRow .callout{flex:1; min-width:230px;}
   .calloutStack{display:flex; flex-direction:column; gap:12px;}
-  .callout{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--paper-raised); display:flex; gap:12px; align-items:center;}
-  .callout .cicon{width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .callout .cicon svg{width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .callout{border:1px solid var(--line); border-radius:12px; padding:13px 15px; background:var(--paper-raised); display:flex; gap:11px; align-items:center;}
+  .callout .cicon{width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .callout .cicon svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
   .callout .cbody{min-width:0;}
-  .callout .clbl{font-size:11.5px; color:var(--ink-dim); margin-bottom:3px;}
-  .callout .cval{font-size:14.5px; line-height:1.4;}
+  .callout .clbl{font-size:11px; color:var(--ink-dim); margin-bottom:3px;}
+  .callout .cval{font-size:13.5px; line-height:1.4;}
   .callout .cval b{font-weight:300; color:var(--accent);}
 
   /* ---- consolidated channel list (replaces card grid + always-open matrix) ---- */
@@ -572,20 +584,37 @@
         </div>
         <div class="statRow" id="trend_kpis"></div>
 
-        <div class="chartWrap" id="trend_chart_wrap">
-          <svg id="trend_chart_svg" viewBox="0 0 720 248" preserveAspectRatio="none"></svg>
-          <div class="chartTooltip" id="trend_chart_tooltip"></div>
+        <div class="sectiontitle">월별 매출 · 공헌이익 · 공헌이익율</div>
+        <div class="comboChartWrap" id="combo_chart_wrap">
+          <svg id="combo_chart_svg" viewBox="0 0 760 300" preserveAspectRatio="none"></svg>
+          <div class="chartTooltip" id="combo_chart_tooltip"></div>
         </div>
-        <div class="chartLegend" id="trend_chart_legend"></div>
+        <div class="chartLegend" id="combo_chart_legend"></div>
+        <div class="chartUnitNote">* 매출·공헌이익 단위: 백만원</div>
 
-        <div class="sectiontitle">종합 요약 <span class="muted" style="text-transform:none; font-weight:300; font-size:11.5px;">(선택한 조건 기준, 매출 비중 랭킹 · 매 갱신마다 자동 산출)</span></div>
-        <div class="summaryGrid">
-          <div class="rankPanel">
-            <div class="rankPanel-head"><span id="trend_rank_head">매출 비중 순위</span></div>
-            <div id="trend_rank_list"></div>
+        <div class="sectiontitle">채널별 비중 <span class="muted" id="share_month_label" style="text-transform:none; font-weight:300; font-size:11.5px;"></span></div>
+        <div class="shareGrid">
+          <div class="donutCard">
+            <div class="donutCard-head">매출액 비중</div>
+            <div class="donutRow">
+              <svg id="donut_revenue_svg" viewBox="0 0 132 132"></svg>
+              <div class="donutLegend" id="donut_revenue_legend"></div>
+            </div>
           </div>
-          <div class="calloutStack" id="trend_callouts"></div>
+          <div class="donutCard">
+            <div class="donutCard-head">공헌이익액 비중</div>
+            <div class="donutRow">
+              <svg id="donut_contribution_svg" viewBox="0 0 132 132"></svg>
+              <div class="donutLegend" id="donut_contribution_legend"></div>
+            </div>
+          </div>
         </div>
+        <div class="tablewrap" style="margin-top:14px;">
+          <table id="share_table"><thead><tr>
+            <th style="text-align:left">채널</th><th>매출액(원)</th><th>매출 비중</th><th>공헌이익금(원)</th><th>공헌이익 비중</th>
+          </tr></thead><tbody id="share_table_body"></tbody></table>
+        </div>
+        <div class="calloutRow" id="trend_callouts"></div>
 
         <div class="sectiontitle">특이사항</div>
         <div class="insightGrid" id="trend_insights"></div>
@@ -1398,110 +1427,112 @@ function niceTicks(maxVal, count){
   return ticks;
 }
 
-// 큰 "전체 추이" 차트: 매출 vs 공헌이익, 그라데이션 영역 + 부드러운 곡선 + Y축 눈금(억/만 단위) +
-// 끝점 값 라벨 + 카드형 호버 툴팁(월/두 지표/전월 대비 증감/마진율까지 한번에). 마우스 & 터치 지원.
-function mountTrendChart(months, revSeries, cmSeries){
-  const svg = document.getElementById("trend_chart_svg");
-  const tooltip = document.getElementById("trend_chart_tooltip");
-  const wrap = document.getElementById("trend_chart_wrap");
-  const W = 720, H = 248, padL = 46, padR = 46, padT = 20, padB = 28;
-  const maxRaw = Math.max(...revSeries, ...cmSeries, 1);
-  const yTicks = niceTicks(maxRaw, 5);
-  const maxV = yTicks[yTicks.length-1];
+// 백만원 단위 축약 표기 (콤보 차트 막대 라벨·Y축 전용 — 항상 정수로 반올림)
+const fmtM = n => (n==null||isNaN(n)) ? "-" : Math.round(n/1e6).toLocaleString("ko-KR");
+
+// 결산 트렌드 핵심 차트: 월별 매출액·공헌이익액 = 막대(같은 축), 공헌이익율 = 상단에 겹친 선.
+// 사용자가 실제로 쓰던 엑셀/BI 리포트 형식(막대+선 콤보, 값 직접 라벨)을 그대로 재현하되,
+// 라벨/범례/그리드는 앱 테마 톤에 맞춤. 막대는 <=24px, 4px 라운드 캡, 막대 사이 2px 여백 —
+// 공헌이익율 선은 축을 따로 그리지 않고 각 점에 실제 값을 라벨로 직접 붙여 왜곡 없이 읽히게 함.
+function mountComboChart(months, revSeries, cmSeries){
+  const svg = document.getElementById("combo_chart_svg");
+  const tooltip = document.getElementById("combo_chart_tooltip");
+  const wrap = document.getElementById("combo_chart_wrap");
+  const W = 760, H = 300, padL = 40, padR = 16, padT = 46, padB = 30;
   const n = months.length;
-  const xAt = i => padL + i*((W-padL-padR)/Math.max(n-1,1));
-  const yAt = v => H-padB-(v/maxV)*(H-padT-padB);
-  const revPts = revSeries.map((v,i)=>[xAt(i), yAt(v)]);
-  const cmPts = cmSeries.map((v,i)=>[xAt(i), yAt(v)]);
-  const revPath = smoothPathD(revPts);
-  const cmPath = smoothPathD(cmPts);
-  const revArea = revPts.length ? revPath+" L"+revPts[revPts.length-1][0].toFixed(1)+","+(H-padB)+" L"+revPts[0][0].toFixed(1)+","+(H-padB)+" Z" : "";
-  const cmArea = cmPts.length ? cmPath+" L"+cmPts[cmPts.length-1][0].toFixed(1)+","+(H-padB)+" L"+cmPts[0][0].toFixed(1)+","+(H-padB)+" Z" : "";
+  const rateSeries = months.map((m,i)=> revSeries[i] ? cmSeries[i]/revSeries[i] : 0);
+
+  const maxRawM = Math.max(...revSeries, ...cmSeries, 1) / 1e6;
+  const yTicks = niceTicks(maxRawM, 5);
+  const maxV = yTicks[yTicks.length-1];
+  const plotTop = padT, plotBot = H - padB;
+  const yAt = v => plotBot - (v/maxV) * (plotBot - plotTop);
+
+  const groupW = (W - padL - padR) / Math.max(n, 1);
+  const barW = Math.min(22, groupW * 0.30);
+  const barGap = 4;
+  const xGroup = i => padL + i*groupW + groupW/2;
+  const xRev = i => xGroup(i) - barGap/2 - barW;
+  const xCm  = i => xGroup(i) + barGap/2;
 
   const gridLines = yTicks.map(t=>{
-    const y = H-padB-(t/maxV)*(H-padT-padB);
+    const y = yAt(t);
     return '<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1"></line>'+
-      '<text x="'+(padL-10)+'" y="'+(y+3.5).toFixed(1)+'" font-size="10.5" text-anchor="end" fill="var(--ink-dim)">'+fmtKRWShort(t)+'</text>';
+      '<text x="'+(padL-8)+'" y="'+(y+3.5).toFixed(1)+'" font-size="10" text-anchor="end" fill="var(--ink-dim)">'+t.toLocaleString("ko-KR")+'</text>';
   }).join("");
-  const xLabels = months.map((m,i)=> '<text x="'+xAt(i).toFixed(1)+'" y="'+(H-8)+'" font-size="10.5" text-anchor="middle" fill="var(--ink-dim)">'+m.slice(0,4)+"."+m.slice(5,7)+'</text>').join("");
-  const colW = (W-padL-padR)/Math.max(n,1);
-  const hitCols = months.map((m,i)=> '<rect data-idx="'+i+'" x="'+(xAt(i)-colW/2).toFixed(1)+'" y="0" width="'+colW.toFixed(1)+'" height="'+H+'" fill="transparent"></rect>').join("");
 
-  // end-of-line value badges (마지막 달 값을 선 끝에 바로 표시)
-  const endLabels = n ? (
-    '<text x="'+(revPts[n-1][0]+8).toFixed(1)+'" y="'+(revPts[n-1][1]+3.5).toFixed(1)+'" font-size="11" fill="var(--accent)">'+fmtKRWShort(revSeries[n-1])+'</text>'+
-    '<text x="'+(cmPts[n-1][0]+8).toFixed(1)+'" y="'+(cmPts[n-1][1]+3.5).toFixed(1)+'" font-size="11" fill="#8b5cf6">'+fmtKRWShort(cmSeries[n-1])+'</text>'
-  ) : "";
+  // 막대 + 막대 위 값 라벨 (텍스트는 항상 잉크 색 — 색은 막대 자체가 이미 담당)
+  let bars = "";
+  months.forEach((m,i)=>{
+    const revM = revSeries[i]/1e6, cmM = cmSeries[i]/1e6;
+    const revY = yAt(revM), cmY = yAt(cmM);
+    bars +=
+      '<rect class="comboBarHit" data-idx="'+i+'" x="'+xRev(i).toFixed(1)+'" y="'+revY.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(0,plotBot-revY).toFixed(1)+'" rx="4" ry="4" fill="var(--accent)"></rect>'+
+      '<rect class="comboBarHit" data-idx="'+i+'" x="'+xCm(i).toFixed(1)+'" y="'+cmY.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(0,plotBot-cmY).toFixed(1)+'" rx="4" ry="4" fill="var(--metric-cm)"></rect>'+
+      '<text x="'+(xRev(i)+barW/2).toFixed(1)+'" y="'+(revY-6).toFixed(1)+'" font-size="10" text-anchor="middle" fill="var(--ink)">'+fmtM(revSeries[i])+'</text>'+
+      '<text x="'+(xCm(i)+barW/2).toFixed(1)+'" y="'+(cmY-6).toFixed(1)+'" font-size="10" text-anchor="middle" fill="var(--ink)">'+fmtM(cmSeries[i])+'</text>';
+  });
+
+  // 공헌이익율 선: 별도 축을 그리지 않는 독립 스케일(상단 밴드)에 얹어, 매출/공헌이익 축과
+  // 혼동 없이 "추세 + 각 점 라벨"만으로 정확히 읽히게 함 (막대 축과의 이중축 비교를 강요하지 않음).
+  const rateMax = Math.max(...rateSeries, 0.01) * 1.25;
+  const lineBandTop = 8, lineBandBot = padT - 10;
+  const yRate = v => lineBandBot - (Math.max(v,0)/rateMax) * (lineBandBot - lineBandTop);
+  const linePts = months.map((m,i)=>[xGroup(i), yRate(rateSeries[i])]);
+  const linePath = smoothPathD(linePts);
+  let rateMarks = "";
+  months.forEach((m,i)=>{
+    const [x,y] = linePts[i];
+    rateMarks +=
+      '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4" fill="var(--good)" stroke="var(--paper-raised)" stroke-width="2"></circle>'+
+      '<rect x="'+(x-19).toFixed(1)+'" y="'+(y-22).toFixed(1)+'" width="38" height="15" rx="7.5" fill="var(--good-soft)"></rect>'+
+      '<text x="'+x.toFixed(1)+'" y="'+(y-11.5).toFixed(1)+'" font-size="10" text-anchor="middle" fill="var(--good)">'+fmtPct(rateSeries[i])+'</text>';
+  });
+
+  const xLabels = months.map((m,i)=> '<text x="'+xGroup(i).toFixed(1)+'" y="'+(H-10)+'" font-size="10.5" text-anchor="middle" fill="var(--ink-dim)">'+m.slice(0,4)+"."+m.slice(5,7)+'</text>').join("");
+  const hitCols = months.map((m,i)=> '<rect class="comboBarHit" data-idx="'+i+'" x="'+(padL+i*groupW).toFixed(1)+'" y="0" width="'+groupW.toFixed(1)+'" height="'+H+'" fill="transparent"></rect>').join("");
+  const hoverBg = '<rect id="combo_hover_bg" x="0" y="'+plotTop+'" width="'+groupW.toFixed(1)+'" height="'+(plotBot-plotTop).toFixed(1)+'" fill="var(--accent)" opacity="0" rx="6"></rect>';
 
   svg.setAttribute("viewBox","0 0 "+W+" "+H);
-  svg.innerHTML =
-    '<defs>'+
-      '<linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">'+
-        '<stop offset="0%" stop-color="var(--accent)" stop-opacity="0.22"></stop>'+
-        '<stop offset="100%" stop-color="var(--accent)" stop-opacity="0"></stop>'+
-      '</linearGradient>'+
-      '<linearGradient id="gradCm" x1="0" y1="0" x2="0" y2="1">'+
-        '<stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.18"></stop>'+
-        '<stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"></stop>'+
-      '</linearGradient>'+
-    '</defs>'+
-    gridLines +
-    '<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(H-padB)+'" stroke="var(--line)" stroke-width="1"></line>'+
-    '<path d="'+revArea+'" fill="url(#gradRev)" stroke="none"></path>' +
-    '<path d="'+cmArea+'" fill="url(#gradCm)" stroke="none"></path>' +
-    '<path d="'+cmPath+'" fill="none" stroke="#8b5cf6" stroke-width="2.25"></path>' +
-    '<path d="'+revPath+'" fill="none" stroke="var(--accent)" stroke-width="2.25"></path>' +
-    xLabels + endLabels +
-    '<g id="trend_chart_guide" style="display:none">'+
-      '<line x1="0" y1="'+padT+'" x2="0" y2="'+(H-padB)+'" stroke="var(--ink-dim)" stroke-width="1" stroke-dasharray="3,3"></line>'+
-      '<circle r="4" fill="var(--accent)" stroke="var(--paper-raised)" stroke-width="2"></circle>'+
-      '<circle r="4" fill="#8b5cf6" stroke="var(--paper-raised)" stroke-width="2"></circle>'+
-    '</g>'+
-    hitCols;
+  svg.innerHTML = gridLines + hoverBg + '<path d="'+linePath+'" fill="none" stroke="var(--good)" stroke-width="2" stroke-dasharray="1,4" stroke-linecap="round"></path>' + bars + rateMarks + xLabels + hitCols;
 
-  document.getElementById("trend_chart_legend").innerHTML =
-    '<span><i class="dot" style="background:var(--accent)"></i>매출 <b class="lv">'+fmtKRW(revSeries[n-1])+'</b></span>'+
-    '<span><i class="dot" style="background:#8b5cf6"></i>공헌이익 <b class="lv">'+fmtKRW(cmSeries[n-1])+'</b></span>';
+  document.getElementById("combo_chart_legend").innerHTML =
+    '<span><i class="sw" style="background:var(--accent)"></i>매출액(원)</span>'+
+    '<span><i class="sw" style="background:var(--metric-cm)"></i>공헌이익액(원)</span>'+
+    '<span><i class="ln" style="background:var(--good)"></i>공헌이익율(%)</span>';
 
-  const guide = svg.querySelector("#trend_chart_guide");
-  const guideLine = guide.querySelector("line");
-  const dots = guide.querySelectorAll("circle");
+  const hoverBgEl = svg.querySelector("#combo_hover_bg");
 
   function deltaTxt(cur, prevV){
     if(prevV==null || !prevV) return "";
     const pct = (cur-prevV)/Math.abs(prevV)*100;
     const up = pct >= 0;
-    return ' <span style="color:'+(up?"#59caa0":"#e28080")+'">'+(up?"▲":"▼")+' '+Math.abs(pct).toFixed(1)+'%</span>';
+    return ' <span style="color:'+(up?"var(--good)":"var(--bad)")+'">'+(up?"▲":"▼")+' '+Math.abs(pct).toFixed(1)+'%</span>';
   }
 
   function showAt(idx){
     idx = Math.max(0, Math.min(n-1, idx));
-    const x = xAt(idx);
-    guideLine.setAttribute("x1", x); guideLine.setAttribute("x2", x);
-    dots[0].setAttribute("cx", x); dots[0].setAttribute("cy", yAt(revSeries[idx]));
-    dots[1].setAttribute("cx", x); dots[1].setAttribute("cy", yAt(cmSeries[idx]));
-    guide.style.display = "block";
-    const leftPct = (x/W)*100;
-    const topPct = (Math.min(yAt(revSeries[idx]), yAt(cmSeries[idx]))/H)*100;
+    hoverBgEl.setAttribute("x", (padL+idx*groupW).toFixed(1));
+    hoverBgEl.setAttribute("opacity", "0.05");
+    const leftPct = ((padL+(idx+0.5)*groupW)/W)*100;
     tooltip.style.left = Math.min(Math.max(leftPct,12),88)+"%";
-    tooltip.style.top = Math.max(topPct,8)+"%";
-    const rate = revSeries[idx] ? cmSeries[idx]/revSeries[idx] : null;
+    tooltip.style.top = "6%";
     const prevRev = idx>0 ? revSeries[idx-1] : null;
     const prevCm = idx>0 ? cmSeries[idx-1] : null;
     tooltip.innerHTML =
       '<div class="tt-month">'+months[idx].slice(0,4)+'년 '+months[idx].slice(5,7)+'월</div>'+
-      '<div class="tt-row"><span class="tt-lbl"><i class="tt-dot" style="background:var(--accent)"></i>매출</span><span class="tt-val">'+fmtKRW(revSeries[idx])+deltaTxt(revSeries[idx],prevRev)+'</span></div>'+
-      '<div class="tt-row"><span class="tt-lbl"><i class="tt-dot" style="background:#8b5cf6"></i>공헌이익</span><span class="tt-val">'+fmtKRW(cmSeries[idx])+deltaTxt(cmSeries[idx],prevCm)+'</span></div>'+
-      '<div class="tt-rate">공헌이익율 '+fmtPct(rate)+'</div>';
+      '<div class="tt-row"><span class="tt-lbl"><i class="tt-key" style="background:var(--accent)"></i>매출액</span><span class="tt-val">'+fmtKRW(revSeries[idx])+deltaTxt(revSeries[idx],prevRev)+'</span></div>'+
+      '<div class="tt-row"><span class="tt-lbl"><i class="tt-key" style="background:var(--metric-cm)"></i>공헌이익액</span><span class="tt-val">'+fmtKRW(cmSeries[idx])+deltaTxt(cmSeries[idx],prevCm)+'</span></div>'+
+      '<div class="tt-rate">공헌이익율 '+fmtPct(rateSeries[idx])+'</div>';
     tooltip.classList.add("show");
   }
-  function hide(){ guide.style.display = "none"; tooltip.classList.remove("show"); }
+  function hide(){ hoverBgEl.setAttribute("opacity","0"); tooltip.classList.remove("show"); }
 
   wrap.onmousemove = (e)=>{
     const rect = wrap.getBoundingClientRect();
     if(!rect.width) return;
     const frac = (e.clientX - rect.left) / rect.width;
-    showAt(Math.round(frac * (n-1)));
+    showAt(Math.floor((frac*W - padL)/groupW));
   };
   wrap.onmouseleave = hide;
   wrap.ontouchstart = wrap.ontouchmove = (e)=>{
@@ -1509,10 +1540,34 @@ function mountTrendChart(months, revSeries, cmSeries){
     const rect = wrap.getBoundingClientRect();
     if(!rect.width) return;
     const frac = (touch.clientX - rect.left) / rect.width;
-    showAt(Math.round(frac*(n-1)));
+    showAt(Math.floor((frac*W - padL)/groupW));
   };
-  // 초기 로드 시엔 툴팁을 자동으로 띄우지 않음 — 최신월 값은 위 KPI와 선 끝의 값 라벨로 이미 보이므로,
+  // 초기 로드 시엔 툴팁을 자동으로 띄우지 않음 — 막대·선 위에 이미 실제 값이 직접 라벨로 표시되므로,
   // 마우스오버(또는 터치) 전까지는 차트를 깔끔하게 유지.
+}
+
+// 도넛 하나 그리기: stroke-dasharray로 구간을 이어붙임. items = [{label,color,value}], 중심에 합계 라벨.
+function mountDonut(svgId, items, centerLabel){
+  const svg = document.getElementById(svgId);
+  const size = 132, cx = size/2, cy = size/2, r = 48, sw = 20;
+  const circumference = 2*Math.PI*r;
+  const total = items.reduce((s,it)=>s+it.value,0);
+  let offset = 0;
+  let segs = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--line)" stroke-width="'+sw+'"></circle>';
+  if(total > 0){
+    items.forEach(it=>{
+      const frac = it.value/total;
+      const len = Math.max(frac*circumference - 2, 0); // 2px 표면 간격
+      segs += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+it.color+'" stroke-width="'+sw+'" '+
+        'stroke-dasharray="'+len.toFixed(1)+' '+(circumference-len).toFixed(1)+'" stroke-dashoffset="'+(-offset).toFixed(1)+'" '+
+        'transform="rotate(-90 '+cx+' '+cy+')" stroke-linecap="butt"></circle>';
+      offset += frac*circumference;
+    });
+  }
+  svg.setAttribute("viewBox","0 0 "+size+" "+size);
+  svg.innerHTML = segs +
+    '<text x="'+cx+'" y="'+(cy-3)+'" font-size="9.5" text-anchor="middle" fill="var(--ink-dim)">합계</text>'+
+    '<text x="'+cx+'" y="'+(cy+11)+'" font-size="12" text-anchor="middle" fill="var(--ink)">'+centerLabel+'</text>';
 }
 
 const INSIGHT_ICON = {
@@ -1524,11 +1579,16 @@ const INSIGHT_ICON = {
 function renderTrends(rows){
   if(!rows.length){
     document.getElementById("trend_kpis").innerHTML = "";
-    document.getElementById("trend_chart_svg").innerHTML = "";
-    document.getElementById("trend_chart_tooltip").classList.remove("show");
-    document.getElementById("trend_chart_legend").innerHTML = "";
+    document.getElementById("combo_chart_svg").innerHTML = "";
+    document.getElementById("combo_chart_tooltip").classList.remove("show");
+    document.getElementById("combo_chart_legend").innerHTML = "";
+    document.getElementById("share_month_label").textContent = "";
+    document.getElementById("donut_revenue_svg").innerHTML = "";
+    document.getElementById("donut_revenue_legend").innerHTML = "";
+    document.getElementById("donut_contribution_svg").innerHTML = "";
+    document.getElementById("donut_contribution_legend").innerHTML = "";
+    document.getElementById("share_table_body").innerHTML = "";
     document.getElementById("trend_insights").innerHTML = '<div class="notice warn">선택한 조건(채널 구분·판매처·분기)에 해당하는 데이터가 없습니다. 필터를 변경해보세요.</div>';
-    document.getElementById("trend_rank_list").innerHTML = "";
     document.getElementById("trend_callouts").innerHTML = "";
     document.getElementById("trend_channel_list").innerHTML = "";
     return;
@@ -1569,7 +1629,7 @@ function renderTrends(rows){
   // ---- 전체 추이 차트: 매출 vs 공헌이익 (월별 합계, 부드러운 곡선 + 호버 툴팁) ----
   const revSeries = months.map(m=>totalsFor(m).revenue);
   const cmSeries = months.map(m=>totalsFor(m).contribution);
-  mountTrendChart(months, revSeries, cmSeries);
+  mountComboChart(months, revSeries, cmSeries);
 
   // ---- group by channel(+account+sub) ----
   const groupMap = new Map();
@@ -1588,27 +1648,57 @@ function renderTrends(rows){
   const byChannel = {};
   groups.forEach(g=>{ (byChannel[g.channel] = byChannel[g.channel]||[]).push(g); });
 
-  // ---- 종합 요약: 채널별 매출 비중 랭킹 + 핵심 콜아웃 (임계값 트리거 없이, 값이 있으면 항상 산출되는 근거 기반 요약) ----
+  // ---- 채널별 비중: 매출액/공헌이익액 도넛 2개 + 표 (기준 월 = 최신월, 값이 있는 채널만) ----
   const chRanked = Object.keys(byChannel).map(ch=>{
     const t = totalsFor(latest, r=>r.channel===ch);
     return {ch, revenue:t.revenue, contribution:t.contribution, rate:t.rate};
-  }).filter(r=>r.revenue>0).sort((a,b)=>b.revenue-a.revenue);
+  }).filter(r=>r.revenue!==0 || r.contribution!==0);
   const totalRev = chRanked.reduce((s,r)=>s+r.revenue,0);
+  const totalCm = chRanked.reduce((s,r)=>s+r.contribution,0);
 
-  document.getElementById("trend_rank_head").textContent = latest.slice(0,7)+" 매출 비중 순위";
-  document.getElementById("trend_rank_list").innerHTML = chRanked.length ? chRanked.map((r,i)=>{
-    const share = totalRev ? r.revenue/totalRev : 0;
-    return '<div class="rankItem">'+
-      '<span class="rnum">'+(i+1)+'</span>'+
-      '<span class="rname">'+(CHANNEL_LABEL[r.ch]||r.ch)+'</span>'+
-      '<span class="rbar-wrap"><span class="rbar-fill" style="width:'+(share*100).toFixed(1)+'%; background:'+(CHANNEL_COLOR[r.ch]||"var(--accent)")+'"></span></span>'+
-      '<span class="rmeta">'+fmtKRW(r.revenue)+'<span class="pct">'+(share*100).toFixed(0)+'%</span></span>'+
-    '</div>';
-  }).join("") : '<div class="muted" style="font-size:12.5px;">데이터가 없습니다.</div>';
+  document.getElementById("share_month_label").textContent = "("+latest.slice(0,7)+" 기준)";
+
+  // 도넛은 세그먼트가 서로 인접(all-pairs)하므로 최대 7개 + "기타"로 묶어 색 구분이 흐려지지 않게 함
+  function foldForDonut(list, valueKey){
+    const sorted = [...list].filter(r=>r[valueKey]>0).sort((a,b)=>b[valueKey]-a[valueKey]);
+    const head = sorted.slice(0,7).map(r=>({label:CHANNEL_LABEL[r.ch]||r.ch, color:CHANNEL_COLOR[r.ch]||"#8d97ac", value:r[valueKey]}));
+    const restVal = sorted.slice(7).reduce((s,r)=>s+r[valueKey],0);
+    if(restVal>0) head.push({label:"기타", color:"#9aa0ac", value:restVal});
+    return head;
+  }
+  const revItems = foldForDonut(chRanked, "revenue");
+  const cmItems = foldForDonut(chRanked, "contribution");
+
+  mountDonut("donut_revenue_svg", revItems, fmtKRWShort(totalRev));
+  mountDonut("donut_contribution_svg", cmItems, fmtKRWShort(totalCm));
+
+  function donutLegendHtml(items, total){
+    if(!items.length) return '<div class="muted" style="font-size:12px;">데이터가 없습니다.</div>';
+    return items.map(it=>{
+      const pct = total ? it.value/total*100 : 0;
+      return '<div class="dItem"><i class="sw" style="background:'+it.color+'"></i><span class="dname">'+it.label+'</span><span class="dpct">'+pct.toFixed(1)+'%</span></div>';
+    }).join("");
+  }
+  document.getElementById("donut_revenue_legend").innerHTML = donutLegendHtml(revItems, totalRev);
+  document.getElementById("donut_contribution_legend").innerHTML = donutLegendHtml(cmItems, totalCm);
+
+  // 표는 도넛과 달리 원본 채널 그대로(기타로 접지 않음) 전부 노출, 매출 기준 내림차순
+  const tableRanked = [...chRanked].sort((a,b)=>b.revenue-a.revenue);
+  document.getElementById("share_table_body").innerHTML = tableRanked.length ? tableRanked.map(r=>{
+    const revShare = totalRev ? r.revenue/totalRev*100 : 0;
+    const cmShare = totalCm ? r.contribution/totalCm*100 : 0;
+    return '<tr>'+
+      '<td style="text-align:left"><span style="display:inline-flex; align-items:center; gap:6px;"><i style="width:8px; height:8px; border-radius:2px; display:inline-block; background:'+(CHANNEL_COLOR[r.ch]||"#8d97ac")+'"></i>'+(CHANNEL_LABEL[r.ch]||r.ch)+'</span></td>'+
+      '<td class="tabular">'+fmtKRW(r.revenue)+'</td>'+
+      '<td class="tabular">'+revShare.toFixed(1)+'%</td>'+
+      '<td class="tabular">'+fmtKRW(r.contribution)+'</td>'+
+      '<td class="tabular">'+cmShare.toFixed(1)+'%</td>'+
+    '</tr>';
+  }).join("") : '<tr><td colspan="5" class="muted" style="text-align:center;">데이터가 없습니다.</td></tr>';
 
   const bestCh = chRanked.length ? [...chRanked].sort((a,b)=>b.rate-a.rate)[0] : null;
   const worstCh = chRanked.length > 1 ? [...chRanked].sort((a,b)=>a.rate-b.rate)[0] : null;
-  const top2Share = totalRev && chRanked.length ? chRanked.slice(0,2).reduce((s,r)=>s+r.revenue,0)/totalRev : 0;
+  const top2Share = totalRev && chRanked.length ? [...chRanked].sort((a,b)=>b.revenue-a.revenue).slice(0,2).reduce((s,r)=>s+r.revenue,0)/totalRev : 0;
 
   let calloutsHtml = "";
   if(bestCh){
