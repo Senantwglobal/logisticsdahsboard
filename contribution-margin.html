@@ -300,24 +300,29 @@
 
   /* ---- consolidated channel list (replaces card grid + always-open matrix) ---- */
   .channelList{display:flex; flex-direction:column; margin-top:6px; border-top:1px solid var(--line);}
-  .chRow{display:grid; grid-template-columns:40px 1fr auto auto 120px 18px; gap:16px; align-items:center; padding:14px 8px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .chRow{display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:14px 8px; border-bottom:1px solid var(--line); cursor:pointer;}
   .chRow:hover{background:var(--paper);}
   .chRow .chIcon{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:300; font-size:11.5px; color:#fff; flex-shrink:0; letter-spacing:-.01em; overflow:hidden;}
   .chRow .chIcon img{width:100%; height:100%; object-fit:cover; border-radius:inherit;}
+  .chRow .chNameWrap{flex:1 1 130px; min-width:110px;}
   .chRow .chNameWrap .chName{font-weight:300; font-size:14px;}
   .chRow .chNameWrap .chSub{font-size:11.5px; color:var(--ink-dim); margin-top:2px;}
-  .chRow .chRevenue{text-align:right; min-width:110px;}
-  .chRow .chRevenue .v{font-weight:300; font-size:14px;}
-  .chRow .chRevenue .d{font-size:11px; margin-top:3px;}
-  .chRow .chRatePill{padding:4px 11px; border-radius:99px; font-size:12px; font-weight:300; min-width:54px; text-align:center;}
-  .chRow .chSpark{width:100%; height:40px; display:block;}
-  .chRow .chToggle{width:16px; height:16px; color:var(--ink-dim); transition:transform .15s; flex-shrink:0;}
+  .chRow .chMetrics{display:flex; gap:22px; flex-shrink:0;}
+  .chRow .chMetric{text-align:right; min-width:88px;}
+  .chRow .chMetric .mlbl{font-size:10px; color:var(--ink-dim); margin-bottom:4px; white-space:nowrap;}
+  .chRow .chMetric .mval{font-size:13.5px; font-weight:300; white-space:nowrap;}
+  .chRow .chMetric .d{font-size:10.5px; margin-top:3px; min-height:14px;}
+  .chRow .chRatePill{display:inline-block; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:300; min-width:50px; text-align:center;}
+  .chRow .chSpark{width:100px; height:36px; display:block; flex-shrink:0;}
+  .chRow .chToggle{width:16px; height:16px; color:var(--ink-dim); transition:transform .15s; flex-shrink:0; margin-left:auto;}
   .chRow.open .chToggle{transform:rotate(90deg);}
   .chDetail{display:none; padding:4px 8px 18px 64px; border-bottom:1px solid var(--line); background:var(--paper);}
   .chDetail.show{display:block;}
   @media (max-width:760px){
-    .chRow{grid-template-columns:36px 1fr auto; row-gap:8px;}
-    .chRow .chRatePill, .chRow .chSpark{display:none;}
+    .chRow{gap:10px 16px;}
+    .chRow .chSpark{display:none;}
+    .chRow .chMetrics{flex-basis:100%; order:3; gap:18px; margin-left:56px;}
+    .chRow .chToggle{margin-left:0; order:2;}
     .chDetail{padding-left:8px;}
   }
 
@@ -1787,8 +1792,11 @@ function renderTrends(rows){
     row.innerHTML =
       '<div class="chIcon" style="background:'+(CHANNEL_COLOR[ch]||"#888")+'">'+channelIconHtml(ch)+'</div>'+
       '<div class="chNameWrap"><div class="chName">'+(CHANNEL_LABEL[ch]||ch)+'</div><div class="chSub">'+(multi ? subNames : latest.slice(0,7)+" 기준")+'</div></div>'+
-      '<div class="chRevenue"><div class="v tabular">'+fmtKRW(curCh.revenue)+'</div><div class="d">'+(chip(curCh.revenue, prvCh&&prvCh.revenue, false)||'<span class="muted">전월 데이터 없음</span>')+'</div></div>'+
-      '<span class="chRatePill '+rateClass(curCh.rate)+'">'+fmtPct(curCh.rate)+'</span>'+
+      '<div class="chMetrics">'+
+        '<div class="chMetric"><div class="mlbl">매출</div><div class="mval tabular">'+fmtKRW(curCh.revenue)+'</div><div class="d">'+chip(curCh.revenue, prvCh&&prvCh.revenue, false)+'</div></div>'+
+        '<div class="chMetric"><div class="mlbl">공헌이익</div><div class="mval tabular">'+fmtKRW(curCh.contribution)+'</div><div class="d">'+chip(curCh.contribution, prvCh&&prvCh.contribution, false)+'</div></div>'+
+        '<div class="chMetric"><div class="mlbl">공헌이익율</div><span class="chRatePill '+rateClass(curCh.rate)+'">'+fmtPct(curCh.rate)+'</span></div>'+
+      '</div>'+
       sparklineSvg(series)+
       '<svg class="chToggle" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>';
 
