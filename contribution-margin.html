@@ -73,9 +73,16 @@
     font-weight:300;
     font-size:14.5px; line-height:1.55;
   }
-  h1, h3, .bignum, .kpi .num, .pivot-rev, .statItem .val { font-weight:800; }
-  .sub, .sectiontitle, .field label, table th, .badge, .kpi .lbl, .lastsync,
-  .resultHead .meta, .upload-title, .pivot-rate, .delta, .cc-badge { font-weight:600; }
+  /* ---- 3-tier typography system ----
+     제목(titles) = Pretendard ExtraBold(800): page-level h1 only.
+     부제목(subtitles) = Pretendard SemiBold(600): card/section headers (h3, .upload-title, .sectiontitle).
+     그 외(everything else) = Pretendard Light(300), the body default — bold is intentionally
+     avoided everywhere outside the two rules above, including big numbers, labels, badges and buttons. */
+  h1 { font-weight:800; }
+  h3, .upload-title, .sectiontitle { font-weight:600; }
+  .bignum, .kpi .num, .pivot-rev, .statItem .val,
+  .sub, .field label, table th, .badge, .kpi .lbl, .lastsync,
+  .resultHead .meta, .pivot-rate, .delta, .cc-badge { font-weight:300; }
   .tabular{font-variant-numeric:tabular-nums;}
   a{color:var(--accent);}
 
@@ -95,7 +102,7 @@
   .sidebar nav{display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto;}
   .sidebar nav button{
     display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:9px;
-    background:transparent; border:none; color:var(--sidebar-ink); font:inherit; font-weight:600;
+    background:transparent; border:none; color:var(--sidebar-ink); font:inherit; font-weight:300;
     font-size:13.5px; cursor:pointer; text-align:left; width:100%; transition:background .12s,color .12s;
   }
   .sidebar nav button svg{width:17px; height:17px; flex-shrink:0; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
@@ -147,14 +154,14 @@
   .row > *{flex:1; min-width:140px;}
   button.primary{
     appearance:none; border:none; background:var(--accent); color:var(--accent-ink);
-    font:inherit; font-weight:600; font-size:14px; padding:11px 20px; border-radius:9px;
+    font:inherit; font-weight:300; font-size:14px; padding:11px 20px; border-radius:9px;
     cursor:pointer; margin-top:4px;
   }
   button.primary:hover{filter:brightness(1.06);}
   button.primary:disabled{opacity:.5; cursor:default;}
   button.ghost{
     appearance:none; border:1px solid var(--line); background:transparent; color:var(--ink);
-    font:inherit; font-weight:600; font-size:13px; padding:8px 14px; border-radius:8px; cursor:pointer;
+    font:inherit; font-weight:300; font-size:13px; padding:8px 14px; border-radius:8px; cursor:pointer;
   }
   button.ghost:hover{background:var(--accent-soft);}
   button.small{font-size:12px; padding:6px 11px; border-radius:7px;}
@@ -171,11 +178,11 @@
   .bignum{font-size:30px;}
   .bignum.good{color:var(--good);}
   .bignum.bad{color:var(--bad);}
-  .rate{font-size:14px; font-weight:600; margin-left:8px;}
+  .rate{font-size:14px; font-weight:300; margin-left:8px;}
   .breakdown{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-top:16px;}
   .bd-item{background:var(--paper); border:1px solid var(--line); border-radius:9px; padding:10px 12px;}
-  .bd-item .k{font-size:11px; color:var(--ink-dim); font-weight:600; margin-bottom:4px;}
-  .bd-item .v{font-weight:600; font-size:14px;}
+  .bd-item .k{font-size:11px; color:var(--ink-dim); font-weight:300; margin-bottom:4px;}
+  .bd-item .v{font-weight:300; font-size:14px;}
   .notice{padding:12px 14px; border-radius:9px; font-size:13px; margin-top:14px; font-weight:300;}
   .notice.warn{background:var(--warn-soft); color:var(--warn); border:1px solid color-mix(in srgb, var(--warn) 35%, transparent);}
   .notice.bad{background:var(--bad-soft); color:var(--bad); border:1px solid color-mix(in srgb, var(--bad) 35%, transparent);}
@@ -199,7 +206,7 @@
   .spin{display:inline-block; width:13px; height:13px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:sp .7s linear infinite; margin-right:6px; vertical-align:-2px;}
   @keyframes sp{to{transform:rotate(360deg);}}
   .chartbox{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px;}
-  .chartbox h4{margin:0 0 10px; font-size:13px; font-weight:600;}
+  .chartbox h4{margin:0 0 10px; font-size:13px; font-weight:300;}
   .chartbox svg{width:100%; height:auto; display:block;}
   .muted{color:var(--ink-dim);}
   .foot{margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-dim); font-size:12px;}
@@ -225,43 +232,73 @@
   .rate-good{background:var(--good-soft); color:var(--good);}
   .rate-warn{background:var(--warn-soft); color:var(--warn);}
   .rate-bad{background:var(--bad-soft); color:var(--bad);}
-  .chDetail tr.subtotal td{background:color-mix(in srgb, var(--accent) 6%, transparent); font-weight:600;}
-  .chDetail td.rowlabel{font-weight:600;}
+  .chDetail tr.subtotal td{background:color-mix(in srgb, var(--accent) 6%, transparent); font-weight:300;}
+  .chDetail td.rowlabel{font-weight:300;}
 
   /* ---- top stat row (trend tab) ---- */
   .statRow{display:flex; gap:32px; flex-wrap:wrap; margin-top:16px;}
   .statItem .lbl{display:flex; align-items:center; font-size:12px; color:var(--ink-dim); margin-bottom:7px; white-space:nowrap;}
-  .statItem .val{font-size:22px; font-weight:800;}
-  .chip{display:inline-block; font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:99px; margin-left:7px;}
+  .statItem .val{font-size:25px; font-weight:300; letter-spacing:-.01em;}
+  .chip{display:inline-block; font-size:10.5px; font-weight:300; padding:1px 7px; border-radius:99px; margin-left:7px;}
   .chip.up{background:var(--good-soft); color:var(--good);}
   .chip.down{background:var(--bad-soft); color:var(--bad);}
 
   /* ---- big interactive trend chart ---- */
-  .chartWrap{position:relative; margin-top:18px; cursor:crosshair;}
-  .chartWrap svg{width:100%; height:auto; display:block;}
+  .chartWrap{position:relative; margin-top:56px; cursor:crosshair;}
+  .chartWrap svg{width:100%; height:auto; display:block; overflow:visible;}
+  .chartWrap svg text{font-family:'Pretendard',-apple-system,sans-serif;}
   .chartTooltip{
-    position:absolute; transform:translate(-50%,-118%); background:var(--ink); color:var(--paper-raised);
-    padding:8px 12px; border-radius:9px; font-size:12px; line-height:1.55; pointer-events:none;
-    opacity:0; transition:opacity .1s; white-space:nowrap; z-index:5; box-shadow:var(--shadow);
+    position:absolute; transform:translate(-50%,-100%) translateY(-14px); background:var(--ink); color:var(--paper-raised);
+    padding:10px 14px; border-radius:10px; font-size:12px; line-height:1.5; pointer-events:none;
+    opacity:0; transition:opacity .1s; white-space:nowrap; z-index:5; box-shadow:var(--shadow); min-width:150px;
   }
-  .chartTooltip b{font-size:12.5px;}
+  .chartTooltip .tt-month{font-size:11.5px; color:color-mix(in srgb, var(--paper-raised) 65%, transparent); margin-bottom:6px;}
+  .chartTooltip .tt-row{display:flex; align-items:center; gap:7px; justify-content:space-between; padding:2px 0;}
+  .chartTooltip .tt-row .tt-lbl{display:flex; align-items:center; gap:6px; color:color-mix(in srgb, var(--paper-raised) 80%, transparent);}
+  .chartTooltip .tt-dot{width:7px; height:7px; border-radius:99px; display:inline-block; flex-shrink:0;}
+  .chartTooltip .tt-val{font-variant-numeric:tabular-nums; margin-left:14px;}
+  .chartTooltip .tt-rate{font-size:11px; color:color-mix(in srgb, var(--paper-raised) 65%, transparent); margin-top:5px; padding-top:5px; border-top:1px solid color-mix(in srgb, var(--paper-raised) 18%, transparent);}
   .chartTooltip.show{opacity:1;}
-  .chartLegend{display:flex; gap:18px; margin-top:8px;}
+  .chartLegend{display:flex; gap:18px; margin-top:10px; flex-wrap:wrap;}
   .chartLegend span{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-dim);}
   .chartLegend .dot{width:8px; height:8px; border-radius:99px; display:inline-block;}
+  .chartLegend .lv{color:var(--ink); font-variant-numeric:tabular-nums; margin-left:2px;}
+
+  /* ---- 종합 요약: 채널 매출 비중 랭킹 + 핵심 콜아웃 (항상 표시되는 근거 기반 요약) ---- */
+  .summaryGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:14px; margin-top:14px;}
+  @media (max-width:900px){.summaryGrid{grid-template-columns:1fr;}}
+  .rankPanel{border:1px solid var(--line); border-radius:12px; padding:16px 18px; background:var(--paper-raised);}
+  .rankPanel-head{font-size:11.5px; color:var(--ink-dim); margin-bottom:12px; display:flex; justify-content:space-between; gap:8px;}
+  .rankItem{display:grid; grid-template-columns:16px 92px 1fr auto; gap:12px; align-items:center; padding:9px 0;}
+  .rankItem + .rankItem{border-top:1px solid var(--line);}
+  .rankItem .rnum{color:var(--ink-dim); font-size:12px; font-variant-numeric:tabular-nums;}
+  .rankItem .rname{font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rankItem .rbar-wrap{position:relative; height:7px; border-radius:99px; background:var(--paper); overflow:hidden;}
+  .rankItem .rbar-fill{position:absolute; inset:0 auto 0 0; border-radius:99px;}
+  .rankItem .rmeta{text-align:right; font-size:12.5px; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .rankItem .rmeta .pct{color:var(--ink-dim); font-size:11px; margin-left:7px;}
+  .calloutStack{display:flex; flex-direction:column; gap:12px;}
+  .callout{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--paper-raised); display:flex; gap:12px; align-items:center;}
+  .callout .cicon{width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .callout .cicon svg{width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .callout .cbody{min-width:0;}
+  .callout .clbl{font-size:11.5px; color:var(--ink-dim); margin-bottom:3px;}
+  .callout .cval{font-size:14.5px; line-height:1.4;}
+  .callout .cval b{font-weight:300; color:var(--accent);}
 
   /* ---- consolidated channel list (replaces card grid + always-open matrix) ---- */
   .channelList{display:flex; flex-direction:column; margin-top:6px; border-top:1px solid var(--line);}
-  .chRow{display:grid; grid-template-columns:40px 1fr auto auto 104px 18px; gap:16px; align-items:center; padding:14px 8px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .chRow{display:grid; grid-template-columns:40px 1fr auto auto 120px 18px; gap:16px; align-items:center; padding:14px 8px; border-bottom:1px solid var(--line); cursor:pointer;}
   .chRow:hover{background:var(--paper);}
-  .chRow .chIcon{width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11.5px; color:#fff; flex-shrink:0; letter-spacing:-.02em;}
-  .chRow .chNameWrap .chName{font-weight:700; font-size:14px;}
+  .chRow .chIcon{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:300; font-size:11.5px; color:#fff; flex-shrink:0; letter-spacing:-.01em; overflow:hidden;}
+  .chRow .chIcon img{width:100%; height:100%; object-fit:cover; border-radius:inherit;}
+  .chRow .chNameWrap .chName{font-weight:300; font-size:14px;}
   .chRow .chNameWrap .chSub{font-size:11.5px; color:var(--ink-dim); margin-top:2px;}
   .chRow .chRevenue{text-align:right; min-width:110px;}
-  .chRow .chRevenue .v{font-weight:700; font-size:14px;}
+  .chRow .chRevenue .v{font-weight:300; font-size:14px;}
   .chRow .chRevenue .d{font-size:11px; margin-top:3px;}
-  .chRow .chRatePill{padding:4px 11px; border-radius:99px; font-size:12px; font-weight:700; min-width:54px; text-align:center;}
-  .chRow .chSpark{width:100%; height:36px; display:block;}
+  .chRow .chRatePill{padding:4px 11px; border-radius:99px; font-size:12px; font-weight:300; min-width:54px; text-align:center;}
+  .chRow .chSpark{width:100%; height:40px; display:block;}
   .chRow .chToggle{width:16px; height:16px; color:var(--ink-dim); transition:transform .15s; flex-shrink:0;}
   .chRow.open .chToggle{transform:rotate(90deg);}
   .chDetail{display:none; padding:4px 8px 18px 64px; border-bottom:1px solid var(--line); background:var(--paper);}
@@ -281,9 +318,9 @@
   .insight2.warn .icon{background:var(--warn-soft); color:var(--warn);}
   .insight2.good .icon{background:var(--good-soft); color:var(--good);}
   .insight2 .body{min-width:0;}
-  .insight2 .body .ttl{font-weight:700; font-size:13.5px; margin-bottom:3px;}
+  .insight2 .body .ttl{font-weight:300; font-size:13.5px; margin-bottom:3px;}
   .insight2 .body .desc{font-size:12.5px; color:var(--ink-dim); line-height:1.55;}
-  .insight2 .body .action{font-size:12px; color:var(--accent); font-weight:600; margin-top:7px; line-height:1.5;}
+  .insight2 .body .action{font-size:12px; color:var(--accent); font-weight:300; margin-top:7px; line-height:1.5;}
 
   /* ---- settings tab ---- */
   .settingsGrid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
@@ -536,12 +573,21 @@
         <div class="statRow" id="trend_kpis"></div>
 
         <div class="chartWrap" id="trend_chart_wrap">
-          <svg id="trend_chart_svg" viewBox="0 0 720 220" preserveAspectRatio="none"></svg>
+          <svg id="trend_chart_svg" viewBox="0 0 720 248" preserveAspectRatio="none"></svg>
           <div class="chartTooltip" id="trend_chart_tooltip"></div>
         </div>
         <div class="chartLegend" id="trend_chart_legend"></div>
 
-        <div class="sectiontitle">회계 인사이트</div>
+        <div class="sectiontitle">종합 요약 <span class="muted" style="text-transform:none; font-weight:300; font-size:11.5px;">(선택한 조건 기준, 매출 비중 랭킹 · 매 갱신마다 자동 산출)</span></div>
+        <div class="summaryGrid">
+          <div class="rankPanel">
+            <div class="rankPanel-head"><span id="trend_rank_head">매출 비중 순위</span></div>
+            <div id="trend_rank_list"></div>
+          </div>
+          <div class="calloutStack" id="trend_callouts"></div>
+        </div>
+
+        <div class="sectiontitle">특이사항</div>
         <div class="insightGrid" id="trend_insights"></div>
 
         <div class="sectiontitle">채널별 성과 <span class="muted" style="text-transform:none; font-weight:300; font-size:11.5px;">(채널을 클릭하면 월별 상세가 펼쳐집니다)</span></div>
@@ -653,6 +699,15 @@ const fmtKRW = n => n === null || n === undefined || isNaN(n) ? "-" : "₩" + Ma
 const fmtUSD = n => n === null || n === undefined || isNaN(n) ? "-" : "$" + Number(n).toFixed(2);
 const fmtPct = n => n === null || n === undefined || isNaN(n) ? "-" : (n*100).toFixed(1) + "%";
 const fmtNum = n => n === null || n === undefined || isNaN(n) ? "-" : Math.round(n).toLocaleString("ko-KR");
+// 억/만 단위 축약 표기 (차트 축·랭킹 리스트처럼 자리를 적게 쓰면서도 자릿수를 바로 읽어야 하는 곳에 사용)
+const fmtKRWShort = n => {
+  if(n === null || n === undefined || isNaN(n)) return "-";
+  const sign = n < 0 ? "-" : "";
+  const v = Math.abs(n);
+  if(v >= 1e8) return sign + (v/1e8).toFixed(v>=1e9 ? 0 : 1) + "억";
+  if(v >= 1e4) return sign + Math.round(v/1e4).toLocaleString("ko-KR") + "만";
+  return sign + Math.round(v).toLocaleString("ko-KR");
+};
 
 const TAB_TITLES = {
   calc:"빠른 계산기", price:"권장 판매가", upc:"UPC 가격표",
@@ -1089,20 +1144,24 @@ function parseSettlementRaw(rows){
       group_type: r[col["구분"]]!=null ? String(r[col["구분"]]).trim() : null,
       raw_label: String(rawLabel).trim(),
       year_month: ymDate,
+      // 매출/공헌이익/입고가는 DB에서 NOT NULL이라 빈 칸이면 0으로 채움.
+      // 그 외 항목은 DB에서 nullable이라 빈 칸을 0으로 바꾸지 않고 그대로 null(없음)로 둠
+      // — 정산 파일에 값이 아예 없는 항목(예: 이번 채널엔 해당 없는 비용)을 "0원 발생"으로
+      // 잘못 기록하지 않기 위함. 미리보기/저장 모두 null은 "-"로 표시되고 DB에는 NULL로 저장됨.
       revenue_krw: num(r[col["매출"]]) || 0,
       contribution_krw_file: num(r[col["공헌이익"]]) || 0,
       contribution_rate_file: num(r[col["공헌이익율"]]),
       cost_krw: num(r[col["입고가"]]) || 0,
-      domestic_ship_krw: num(r[col["국내배송비"]]) || 0,
-      intl_ship_krw: num(r[col["해외배송비"]]) || 0,
-      shipping_combined_krw: num(r[col["배송비"]]) || 0,
-      handling_fee_krw: num(r[col["취급주위"]]) || 0,
-      base_dispatch_fee_krw: num(r[col["기본출고비"]]) || 0,
-      dispatch_total_krw: num(r[col["출고비합계"]]) || 0,
-      packaging_krw: num(r[col["부자재"]]) || 0,
-      order_count: num(r[col["주문건수"]]) || 0,
-      settlement_krw: col["정산예정금"]!=null ? (num(r[col["정산예정금"]]) || 0) : null,
-      fee_krw: num(r[col["수수료"]]) || 0,
+      domestic_ship_krw: num(r[col["국내배송비"]]),
+      intl_ship_krw: num(r[col["해외배송비"]]),
+      shipping_combined_krw: num(r[col["배송비"]]),
+      handling_fee_krw: num(r[col["취급주위"]]),
+      base_dispatch_fee_krw: num(r[col["기본출고비"]]),
+      dispatch_total_krw: num(r[col["출고비합계"]]),
+      packaging_krw: num(r[col["부자재"]]),
+      order_count: num(r[col["주문건수"]]),
+      settlement_krw: col["정산예정금"]!=null ? num(r[col["정산예정금"]]) : null,
+      fee_krw: num(r[col["수수료"]]),
       fx_rate: num(r[col["환율1"]])
     });
   }
@@ -1267,6 +1326,13 @@ function rowLabel(row){
 
 const CHANNEL_COLOR = {coupang:"#7c4fe0", "11st":"#ff7a1a", ebay:"#0f9ed5", naver:"#1eb75c", owned:"#3452d9", amazon_jp:"#d98a1e", rakuten_jp:"#d5384a", yahoo_jp:"#8b5cf6"};
 const CHANNEL_ABBR = {coupang:"쿠팡", "11st":"11st", ebay:"eBay", naver:"네이버", owned:"오플", amazon_jp:"AZ", rakuten_jp:"RK", yahoo_jp:"YH"};
+// 채널 로고 이미지(data URI)를 넣고 싶으면 여기에 채널 키로 추가하면 됩니다. 예: coupang: "data:image/png;base64,....".
+// 값이 없는 채널은 지금처럼 색상 원 + 약어 텍스트로 자동 대체됩니다.
+const CHANNEL_LOGO = {};
+function channelIconHtml(ch){
+  if(CHANNEL_LOGO[ch]) return '<img src="'+CHANNEL_LOGO[ch]+'" alt="">';
+  return CHANNEL_ABBR[ch]||(CHANNEL_LABEL[ch]||ch).slice(0,2);
+}
 
 // Catmull-Rom -> cubic Bezier smoothing, shared by the big trend chart and the row sparklines.
 function smoothPathD(points){
@@ -1284,31 +1350,62 @@ function smoothPathD(points){
   return d;
 }
 
-// small trend-colored sparkline shown inline in each channel row (no interaction; color = up/down vs first month)
-function sparklineSvg(values){
-  const w=100,h=36,pad=4;
-  const max = Math.max(...values, 1);
-  const min = Math.min(0, ...values);
-  const range = (max-min) || 1;
-  const pts = values.map((v,i)=> [pad + i*((w-2*pad)/(Math.max(values.length-1,1))), h-pad-((v-min)/range)*(h-2*pad)]);
-  const up = values.length>1 ? values[values.length-1] >= values[0] : true;
-  const color = up ? "var(--good)" : "var(--bad)";
-  const path = smoothPathD(pts);
-  const areaPath = pts.length ? path + " L"+pts[pts.length-1][0].toFixed(1)+","+(h-pad)+" L"+pts[0][0].toFixed(1)+","+(h-pad)+" Z" : "";
-  const dot = pts.length ? '<circle cx="'+pts[pts.length-1][0].toFixed(1)+'" cy="'+pts[pts.length-1][1].toFixed(1)+'" r="2.6" fill="'+color+'"></circle>' : "";
+// 채널 행의 미니 차트: 월별 매출 = 막대(공헌이익율 구간별 색상), 월별 공헌이익율 추이 = 겹쳐진 선.
+// 막대 하나에 "이번 달이 지난 달보다 컸는지(크기)"와 "마진이 괜찮았는지(색상)"를 동시에 담고,
+// 선은 마진율 자체의 흐름을 보여줘 — 매출만 보여주던 기존 라인 스파크라인보다 정보량이 많음.
+// 각 막대에는 <title>로 월/매출/마진율을 담아 네이티브 호버 툴팁도 제공.
+function sparklineSvg(monthData){
+  const w=112, h=40, pad=3, gap=3;
+  const n = monthData.length;
+  const maxRev = Math.max(...monthData.map(d=>d.revenue||0), 1);
+  const barW = n ? Math.max(2, (w-2*pad-(n-1)*gap)/n) : 0;
+  const bars = monthData.map((d,i)=>{
+    const bh = Math.max(1.5, ((d.revenue||0)/maxRev) * (h-2*pad));
+    const x = pad + i*(barW+gap);
+    const y = h-pad-bh;
+    const rc = rateClass(d.rate);
+    const color = !d.revenue ? "var(--line)" : (rc ? "var(--"+rc.replace("rate-","")+")" : "var(--ink-dim)");
+    const tip = (d.month?d.month.slice(0,7):"")+" · 매출 "+fmtKRWShort(d.revenue)+" · 마진율 "+fmtPct(d.rate);
+    return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="1.5" fill="'+color+'" opacity="0.82"><title>'+tip+'</title></rect>';
+  }).join("");
+  const rates = monthData.map(d=>d.rate==null?0:d.rate);
+  const rMax = Math.max(...rates, 0.01) * 1.15;
+  const rMin = Math.min(...rates, 0, rMax*-0.1);
+  const rRange = (rMax-rMin) || 1;
+  const linePts = monthData.map((d,i)=> [pad+i*(barW+gap)+barW/2, h-pad-(((d.rate||0)-rMin)/rRange)*(h-2*pad)]);
+  const linePath = smoothPathD(linePts);
+  const lastPt = linePts[linePts.length-1];
+  const dot = lastPt ? '<circle cx="'+lastPt[0].toFixed(1)+'" cy="'+lastPt[1].toFixed(1)+'" r="2.1" fill="var(--ink)"></circle>' : "";
   return '<svg viewBox="0 0 '+w+' '+h+'" class="chSpark" preserveAspectRatio="none">'+
-    '<path d="'+areaPath+'" fill="'+color+'" opacity="0.12" stroke="none"></path>'+
-    '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2"></path>'+ dot +
+    bars +
+    '<path d="'+linePath+'" fill="none" stroke="var(--ink)" stroke-width="1.3" opacity="0.5"></path>'+ dot +
     '</svg>';
 }
 
-// big interactive "전체 추이" chart: 매출 vs 공헌이익, smooth curves + hover tooltip (mouse & touch)
+// 보기 좋은 반올림 눈금값(0, 1억, 2억 …) 생성 — 데이터 최대값을 그대로 등분하면 "6,481만" 같은
+// 어중간한 눈금이 나와 차트가 정돈되어 보이지 않기 때문에, 축 눈금만 1/2/5 단위로 반올림해서 계산.
+function niceTicks(maxVal, count){
+  if(!(maxVal > 0)) return [0,1];
+  const rawStep = maxVal/(count-1);
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep/mag;
+  const niceNorm = norm<1.5 ? 1 : norm<3 ? 2 : norm<7 ? 5 : 10;
+  const step = niceNorm*mag;
+  const ticks = [0];
+  while(ticks[ticks.length-1] < maxVal*1.02) ticks.push(ticks[ticks.length-1]+step);
+  return ticks;
+}
+
+// 큰 "전체 추이" 차트: 매출 vs 공헌이익, 그라데이션 영역 + 부드러운 곡선 + Y축 눈금(억/만 단위) +
+// 끝점 값 라벨 + 카드형 호버 툴팁(월/두 지표/전월 대비 증감/마진율까지 한번에). 마우스 & 터치 지원.
 function mountTrendChart(months, revSeries, cmSeries){
   const svg = document.getElementById("trend_chart_svg");
   const tooltip = document.getElementById("trend_chart_tooltip");
   const wrap = document.getElementById("trend_chart_wrap");
-  const W = 720, H = 220, padL = 6, padR = 6, padT = 14, padB = 24;
-  const maxV = Math.max(...revSeries, ...cmSeries, 1);
+  const W = 720, H = 248, padL = 46, padR = 46, padT = 20, padB = 28;
+  const maxRaw = Math.max(...revSeries, ...cmSeries, 1);
+  const yTicks = niceTicks(maxRaw, 5);
+  const maxV = yTicks[yTicks.length-1];
   const n = months.length;
   const xAt = i => padL + i*((W-padL-padR)/Math.max(n-1,1));
   const yAt = v => H-padB-(v/maxV)*(H-padT-padB);
@@ -1317,22 +1414,42 @@ function mountTrendChart(months, revSeries, cmSeries){
   const revPath = smoothPathD(revPts);
   const cmPath = smoothPathD(cmPts);
   const revArea = revPts.length ? revPath+" L"+revPts[revPts.length-1][0].toFixed(1)+","+(H-padB)+" L"+revPts[0][0].toFixed(1)+","+(H-padB)+" Z" : "";
+  const cmArea = cmPts.length ? cmPath+" L"+cmPts[cmPts.length-1][0].toFixed(1)+","+(H-padB)+" L"+cmPts[0][0].toFixed(1)+","+(H-padB)+" Z" : "";
 
-  const gridLines = [0,0.25,0.5,0.75,1].map(f=>{
-    const y = H-padB-f*(H-padT-padB);
-    return '<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1"></line>';
+  const gridLines = yTicks.map(t=>{
+    const y = H-padB-(t/maxV)*(H-padT-padB);
+    return '<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1"></line>'+
+      '<text x="'+(padL-10)+'" y="'+(y+3.5).toFixed(1)+'" font-size="10.5" text-anchor="end" fill="var(--ink-dim)">'+fmtKRWShort(t)+'</text>';
   }).join("");
-  const xLabels = months.map((m,i)=> '<text x="'+xAt(i).toFixed(1)+'" y="'+(H-6)+'" font-size="10.5" text-anchor="middle" fill="var(--ink-dim)">'+m.slice(5,7)+'월</text>').join("");
-  const colW = W/Math.max(n,1);
+  const xLabels = months.map((m,i)=> '<text x="'+xAt(i).toFixed(1)+'" y="'+(H-8)+'" font-size="10.5" text-anchor="middle" fill="var(--ink-dim)">'+m.slice(0,4)+"."+m.slice(5,7)+'</text>').join("");
+  const colW = (W-padL-padR)/Math.max(n,1);
   const hitCols = months.map((m,i)=> '<rect data-idx="'+i+'" x="'+(xAt(i)-colW/2).toFixed(1)+'" y="0" width="'+colW.toFixed(1)+'" height="'+H+'" fill="transparent"></rect>').join("");
+
+  // end-of-line value badges (마지막 달 값을 선 끝에 바로 표시)
+  const endLabels = n ? (
+    '<text x="'+(revPts[n-1][0]+8).toFixed(1)+'" y="'+(revPts[n-1][1]+3.5).toFixed(1)+'" font-size="11" fill="var(--accent)">'+fmtKRWShort(revSeries[n-1])+'</text>'+
+    '<text x="'+(cmPts[n-1][0]+8).toFixed(1)+'" y="'+(cmPts[n-1][1]+3.5).toFixed(1)+'" font-size="11" fill="#8b5cf6">'+fmtKRWShort(cmSeries[n-1])+'</text>'
+  ) : "";
 
   svg.setAttribute("viewBox","0 0 "+W+" "+H);
   svg.innerHTML =
+    '<defs>'+
+      '<linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0%" stop-color="var(--accent)" stop-opacity="0.22"></stop>'+
+        '<stop offset="100%" stop-color="var(--accent)" stop-opacity="0"></stop>'+
+      '</linearGradient>'+
+      '<linearGradient id="gradCm" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.18"></stop>'+
+        '<stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"></stop>'+
+      '</linearGradient>'+
+    '</defs>'+
     gridLines +
-    '<path d="'+revArea+'" fill="var(--accent)" opacity="0.10" stroke="none"></path>' +
-    '<path d="'+revPath+'" fill="none" stroke="var(--accent)" stroke-width="2.5"></path>' +
-    '<path d="'+cmPath+'" fill="none" stroke="#8b5cf6" stroke-width="2.5"></path>' +
-    xLabels +
+    '<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(H-padB)+'" stroke="var(--line)" stroke-width="1"></line>'+
+    '<path d="'+revArea+'" fill="url(#gradRev)" stroke="none"></path>' +
+    '<path d="'+cmArea+'" fill="url(#gradCm)" stroke="none"></path>' +
+    '<path d="'+cmPath+'" fill="none" stroke="#8b5cf6" stroke-width="2.25"></path>' +
+    '<path d="'+revPath+'" fill="none" stroke="var(--accent)" stroke-width="2.25"></path>' +
+    xLabels + endLabels +
     '<g id="trend_chart_guide" style="display:none">'+
       '<line x1="0" y1="'+padT+'" x2="0" y2="'+(H-padB)+'" stroke="var(--ink-dim)" stroke-width="1" stroke-dasharray="3,3"></line>'+
       '<circle r="4" fill="var(--accent)" stroke="var(--paper-raised)" stroke-width="2"></circle>'+
@@ -1341,12 +1458,19 @@ function mountTrendChart(months, revSeries, cmSeries){
     hitCols;
 
   document.getElementById("trend_chart_legend").innerHTML =
-    '<span><i class="dot" style="background:var(--accent)"></i>매출</span>'+
-    '<span><i class="dot" style="background:#8b5cf6"></i>공헌이익</span>';
+    '<span><i class="dot" style="background:var(--accent)"></i>매출 <b class="lv">'+fmtKRW(revSeries[n-1])+'</b></span>'+
+    '<span><i class="dot" style="background:#8b5cf6"></i>공헌이익 <b class="lv">'+fmtKRW(cmSeries[n-1])+'</b></span>';
 
   const guide = svg.querySelector("#trend_chart_guide");
   const guideLine = guide.querySelector("line");
   const dots = guide.querySelectorAll("circle");
+
+  function deltaTxt(cur, prevV){
+    if(prevV==null || !prevV) return "";
+    const pct = (cur-prevV)/Math.abs(prevV)*100;
+    const up = pct >= 0;
+    return ' <span style="color:'+(up?"#59caa0":"#e28080")+'">'+(up?"▲":"▼")+' '+Math.abs(pct).toFixed(1)+'%</span>';
+  }
 
   function showAt(idx){
     idx = Math.max(0, Math.min(n-1, idx));
@@ -1356,11 +1480,17 @@ function mountTrendChart(months, revSeries, cmSeries){
     dots[1].setAttribute("cx", x); dots[1].setAttribute("cy", yAt(cmSeries[idx]));
     guide.style.display = "block";
     const leftPct = (x/W)*100;
-    const topPct = (yAt(revSeries[idx])/H)*100;
-    tooltip.style.left = leftPct+"%";
-    tooltip.style.top = Math.max(topPct,10)+"%";
+    const topPct = (Math.min(yAt(revSeries[idx]), yAt(cmSeries[idx]))/H)*100;
+    tooltip.style.left = Math.min(Math.max(leftPct,12),88)+"%";
+    tooltip.style.top = Math.max(topPct,8)+"%";
     const rate = revSeries[idx] ? cmSeries[idx]/revSeries[idx] : null;
-    tooltip.innerHTML = '<b>'+months[idx].slice(0,7)+'</b><br>매출 '+fmtKRW(revSeries[idx])+'<br>공헌이익 '+fmtKRW(cmSeries[idx])+' ('+fmtPct(rate)+')';
+    const prevRev = idx>0 ? revSeries[idx-1] : null;
+    const prevCm = idx>0 ? cmSeries[idx-1] : null;
+    tooltip.innerHTML =
+      '<div class="tt-month">'+months[idx].slice(0,4)+'년 '+months[idx].slice(5,7)+'월</div>'+
+      '<div class="tt-row"><span class="tt-lbl"><i class="tt-dot" style="background:var(--accent)"></i>매출</span><span class="tt-val">'+fmtKRW(revSeries[idx])+deltaTxt(revSeries[idx],prevRev)+'</span></div>'+
+      '<div class="tt-row"><span class="tt-lbl"><i class="tt-dot" style="background:#8b5cf6"></i>공헌이익</span><span class="tt-val">'+fmtKRW(cmSeries[idx])+deltaTxt(cmSeries[idx],prevCm)+'</span></div>'+
+      '<div class="tt-rate">공헌이익율 '+fmtPct(rate)+'</div>';
     tooltip.classList.add("show");
   }
   function hide(){ guide.style.display = "none"; tooltip.classList.remove("show"); }
@@ -1379,7 +1509,8 @@ function mountTrendChart(months, revSeries, cmSeries){
     const frac = (touch.clientX - rect.left) / rect.width;
     showAt(Math.round(frac*(n-1)));
   };
-  if(n) showAt(n-1);
+  // 초기 로드 시엔 툴팁을 자동으로 띄우지 않음 — 최신월 값은 위 KPI와 선 끝의 값 라벨로 이미 보이므로,
+  // 마우스오버(또는 터치) 전까지는 차트를 깔끔하게 유지.
 }
 
 const INSIGHT_ICON = {
@@ -1395,6 +1526,8 @@ function renderTrends(rows){
     document.getElementById("trend_chart_tooltip").classList.remove("show");
     document.getElementById("trend_chart_legend").innerHTML = "";
     document.getElementById("trend_insights").innerHTML = '<div class="notice warn">선택한 조건(채널 구분·판매처·분기)에 해당하는 데이터가 없습니다. 필터를 변경해보세요.</div>';
+    document.getElementById("trend_rank_list").innerHTML = "";
+    document.getElementById("trend_callouts").innerHTML = "";
     document.getElementById("trend_channel_list").innerHTML = "";
     return;
   }
@@ -1453,7 +1586,42 @@ function renderTrends(rows){
   const byChannel = {};
   groups.forEach(g=>{ (byChannel[g.channel] = byChannel[g.channel]||[]).push(g); });
 
-  // ---- 회계 인사이트 (구체적 수치 + 권장 조치, 저노이즈) ----
+  // ---- 종합 요약: 채널별 매출 비중 랭킹 + 핵심 콜아웃 (임계값 트리거 없이, 값이 있으면 항상 산출되는 근거 기반 요약) ----
+  const chRanked = Object.keys(byChannel).map(ch=>{
+    const t = totalsFor(latest, r=>r.channel===ch);
+    return {ch, revenue:t.revenue, contribution:t.contribution, rate:t.rate};
+  }).filter(r=>r.revenue>0).sort((a,b)=>b.revenue-a.revenue);
+  const totalRev = chRanked.reduce((s,r)=>s+r.revenue,0);
+
+  document.getElementById("trend_rank_head").textContent = latest.slice(0,7)+" 매출 비중 순위";
+  document.getElementById("trend_rank_list").innerHTML = chRanked.length ? chRanked.map((r,i)=>{
+    const share = totalRev ? r.revenue/totalRev : 0;
+    return '<div class="rankItem">'+
+      '<span class="rnum">'+(i+1)+'</span>'+
+      '<span class="rname">'+(CHANNEL_LABEL[r.ch]||r.ch)+'</span>'+
+      '<span class="rbar-wrap"><span class="rbar-fill" style="width:'+(share*100).toFixed(1)+'%; background:'+(CHANNEL_COLOR[r.ch]||"var(--accent)")+'"></span></span>'+
+      '<span class="rmeta">'+fmtKRW(r.revenue)+'<span class="pct">'+(share*100).toFixed(0)+'%</span></span>'+
+    '</div>';
+  }).join("") : '<div class="muted" style="font-size:12.5px;">데이터가 없습니다.</div>';
+
+  const bestCh = chRanked.length ? [...chRanked].sort((a,b)=>b.rate-a.rate)[0] : null;
+  const worstCh = chRanked.length > 1 ? [...chRanked].sort((a,b)=>a.rate-b.rate)[0] : null;
+  const top2Share = totalRev && chRanked.length ? chRanked.slice(0,2).reduce((s,r)=>s+r.revenue,0)/totalRev : 0;
+
+  let calloutsHtml = "";
+  if(bestCh){
+    calloutsHtml += '<div class="callout"><div class="cicon" style="background:var(--good-soft); color:var(--good)"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"></path><path d="M16 7h6v6"></path></svg></div>'+
+      '<div class="cbody"><div class="clbl">이번 달 공헌이익율 1위</div><div class="cval"><b>'+(CHANNEL_LABEL[bestCh.ch]||bestCh.ch)+'</b> · '+fmtPct(bestCh.rate)+'</div></div></div>';
+  }
+  if(worstCh && worstCh.ch !== (bestCh&&bestCh.ch)){
+    calloutsHtml += '<div class="callout"><div class="cicon" style="background:var(--bad-soft); color:var(--bad)"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17 13.5 8.5 8.5 13.5 2 7"></path><path d="M16 17h6v-6"></path></svg></div>'+
+      '<div class="cbody"><div class="clbl">이번 달 공헌이익율 최저</div><div class="cval"><b>'+(CHANNEL_LABEL[worstCh.ch]||worstCh.ch)+'</b> · '+fmtPct(worstCh.rate)+'</div></div></div>';
+  }
+  calloutsHtml += '<div class="callout"><div class="cicon" style="background:var(--accent-soft); color:var(--accent)"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg></div>'+
+    '<div class="cbody"><div class="clbl">매출 집중도</div><div class="cval">상위 2개 채널이 매출의 <b>'+(top2Share*100).toFixed(0)+'%</b>를 차지</div></div></div>';
+  document.getElementById("trend_callouts").innerHTML = calloutsHtml;
+
+  // ---- 특이사항 (구체적 수치 + 권장 조치, 저노이즈) ----
   const insights = [];
   if(prv && prv.revenue){
     const rateDeltaP = (cur.rate - prv.rate) * 100;
@@ -1519,13 +1687,13 @@ function renderTrends(rows){
     const multi = chGroups.length > 1;
     const curCh = totalsFor(latest, r=>r.channel===ch);
     const prvCh = prev ? totalsFor(prev, r=>r.channel===ch) : null;
-    const series = months.map(m => rows.filter(r=>r.channel===ch && r.year_month===m).reduce((s,r)=>s+Number(r.revenue_krw),0));
+    const series = months.map(m => { const t = totalsFor(m, r=>r.channel===ch); return {month:m, revenue:t.revenue, rate:t.rate}; });
     const subNames = multi ? chGroups.map(g=>[SUB_LABEL[g.sub_channel], ACCT_LABEL[g.seller_account]].filter(Boolean).join(" · ")).join(", ") : "";
 
     const row = document.createElement("div");
     row.className = "chRow";
     row.innerHTML =
-      '<div class="chIcon" style="background:'+(CHANNEL_COLOR[ch]||"#888")+'">'+(CHANNEL_ABBR[ch]||(CHANNEL_LABEL[ch]||ch).slice(0,2))+'</div>'+
+      '<div class="chIcon" style="background:'+(CHANNEL_COLOR[ch]||"#888")+'">'+channelIconHtml(ch)+'</div>'+
       '<div class="chNameWrap"><div class="chName">'+(CHANNEL_LABEL[ch]||ch)+'</div><div class="chSub">'+(multi ? subNames : latest.slice(0,7)+" 기준")+'</div></div>'+
       '<div class="chRevenue"><div class="v tabular">'+fmtKRW(curCh.revenue)+'</div><div class="d">'+(chip(curCh.revenue, prvCh&&prvCh.revenue, false)||'<span class="muted">전월 데이터 없음</span>')+'</div></div>'+
       '<span class="chRatePill '+rateClass(curCh.rate)+'">'+fmtPct(curCh.rate)+'</span>'+
