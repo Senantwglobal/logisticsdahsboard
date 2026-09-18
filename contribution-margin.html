@@ -73,7 +73,7 @@
     font-weight:300;
     font-size:14.5px; line-height:1.55;
   }
-  h1, h3, .bignum, .kpi .num, .pivot-rev, .cc-num { font-weight:800; }
+  h1, h3, .bignum, .kpi .num, .pivot-rev, .statItem .val { font-weight:800; }
   .sub, .sectiontitle, .field label, table th, .badge, .kpi .lbl, .lastsync,
   .resultHead .meta, .upload-title, .pivot-rate, .delta, .cc-badge { font-weight:600; }
   .tabular{font-variant-numeric:tabular-nums;}
@@ -215,42 +215,72 @@
   .preview-wrap{margin-top:16px; display:none;}
   .preview-wrap.show{display:block;}
   .preview-actions{display:flex; gap:10px; margin-top:12px; align-items:center;}
-  /* ---- pivot table ---- */
-  #trend_pivot td.pivot-cell{text-align:right; line-height:1.35;}
-  #trend_pivot .pivot-rev{display:block; font-size:13.5px;}
-  #trend_pivot .pivot-rate{display:inline-block; font-size:11px; padding:1px 6px; border-radius:99px; margin-top:2px;}
+  /* ---- pivot-style detail tables (nested inside channel row expand) ---- */
+  .chDetail td.pivot-cell{text-align:right; line-height:1.35;}
+  .chDetail .pivot-rev{display:block; font-size:13.5px;}
+  .chDetail .pivot-rate{display:inline-block; font-size:11px; padding:1px 6px; border-radius:99px; margin-top:2px;}
   .rate-good{background:var(--good-soft); color:var(--good);}
   .rate-warn{background:var(--warn-soft); color:var(--warn);}
   .rate-bad{background:var(--bad-soft); color:var(--bad);}
-  #trend_pivot tr.subtotal td{background:color-mix(in srgb, var(--accent) 6%, transparent); font-weight:600;}
-  #trend_pivot tr.grandtotal td{background:color-mix(in srgb, var(--accent) 12%, transparent); font-weight:800;}
-  #trend_pivot td.rowlabel{font-weight:600;}
-  #trend_pivot tr.subrow td.rowlabel{padding-left:22px; font-weight:300; color:var(--ink-dim);}
+  .chDetail tr.subtotal td{background:color-mix(in srgb, var(--accent) 6%, transparent); font-weight:600;}
+  .chDetail td.rowlabel{font-weight:600;}
 
-  /* ---- per-channel cards (trend tab) ---- */
-  .channelGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; margin-top:14px;}
-  .chCard{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:16px;}
-  .chCard .chHead{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:10px;}
-  .chCard .chName{font-weight:800; font-size:14.5px;}
-  .chCard .chSub{font-size:11px; color:var(--ink-dim); margin-top:2px;}
-  .cc-num{font-size:19px;}
-  .chCard .chRev{margin-top:6px;}
-  .chCard .subtable{margin-top:10px; font-size:12px;}
-  .chCard .subtable div{display:flex; justify-content:space-between; padding:4px 0; border-top:1px solid var(--line);}
-  .chCard .miniChart{margin-top:10px;}
-  .chCard .miniChart svg{width:100%; height:46px; display:block;}
+  /* ---- top stat row (trend tab) ---- */
+  .statRow{display:flex; gap:32px; flex-wrap:wrap; margin-top:16px;}
+  .statItem .lbl{display:flex; align-items:center; font-size:12px; color:var(--ink-dim); margin-bottom:7px; white-space:nowrap;}
+  .statItem .val{font-size:22px; font-weight:800;}
+  .chip{display:inline-block; font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:99px; margin-left:7px;}
+  .chip.up{background:var(--good-soft); color:var(--good);}
+  .chip.down{background:var(--bad-soft); color:var(--bad);}
 
-  /* ---- insight cards ---- */
-  .insightGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin-top:14px;}
-  .insight{border-radius:11px; padding:14px 16px; border:1px solid var(--line); border-left-width:4px; background:var(--paper);}
-  .insight.bad{border-left-color:var(--bad);}
-  .insight.warn{border-left-color:var(--warn);}
-  .insight.good{border-left-color:var(--good);}
-  .insight .ttl{font-weight:700; font-size:13px; margin-bottom:4px; display:flex; align-items:center; gap:6px;}
-  .insight.bad .ttl{color:var(--bad);}
-  .insight.warn .ttl{color:var(--warn);}
-  .insight.good .ttl{color:var(--good);}
-  .insight .desc{font-size:12.5px; color:var(--ink-dim); line-height:1.5;}
+  /* ---- big interactive trend chart ---- */
+  .chartWrap{position:relative; margin-top:18px; cursor:crosshair;}
+  .chartWrap svg{width:100%; height:auto; display:block;}
+  .chartTooltip{
+    position:absolute; transform:translate(-50%,-118%); background:var(--ink); color:var(--paper-raised);
+    padding:8px 12px; border-radius:9px; font-size:12px; line-height:1.55; pointer-events:none;
+    opacity:0; transition:opacity .1s; white-space:nowrap; z-index:5; box-shadow:var(--shadow);
+  }
+  .chartTooltip b{font-size:12.5px;}
+  .chartTooltip.show{opacity:1;}
+  .chartLegend{display:flex; gap:18px; margin-top:8px;}
+  .chartLegend span{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-dim);}
+  .chartLegend .dot{width:8px; height:8px; border-radius:99px; display:inline-block;}
+
+  /* ---- consolidated channel list (replaces card grid + always-open matrix) ---- */
+  .channelList{display:flex; flex-direction:column; margin-top:6px; border-top:1px solid var(--line);}
+  .chRow{display:grid; grid-template-columns:40px 1fr auto auto 104px 18px; gap:16px; align-items:center; padding:14px 8px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .chRow:hover{background:var(--paper);}
+  .chRow .chIcon{width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11.5px; color:#fff; flex-shrink:0; letter-spacing:-.02em;}
+  .chRow .chNameWrap .chName{font-weight:700; font-size:14px;}
+  .chRow .chNameWrap .chSub{font-size:11.5px; color:var(--ink-dim); margin-top:2px;}
+  .chRow .chRevenue{text-align:right; min-width:110px;}
+  .chRow .chRevenue .v{font-weight:700; font-size:14px;}
+  .chRow .chRevenue .d{font-size:11px; margin-top:3px;}
+  .chRow .chRatePill{padding:4px 11px; border-radius:99px; font-size:12px; font-weight:700; min-width:54px; text-align:center;}
+  .chRow .chSpark{width:100%; height:36px; display:block;}
+  .chRow .chToggle{width:16px; height:16px; color:var(--ink-dim); transition:transform .15s; flex-shrink:0;}
+  .chRow.open .chToggle{transform:rotate(90deg);}
+  .chDetail{display:none; padding:4px 8px 18px 64px; border-bottom:1px solid var(--line); background:var(--paper);}
+  .chDetail.show{display:block;}
+  @media (max-width:760px){
+    .chRow{grid-template-columns:36px 1fr auto; row-gap:8px;}
+    .chRow .chRatePill, .chRow .chSpark{display:none;}
+    .chDetail{padding-left:8px;}
+  }
+
+  /* ---- insight cards (v2: icon chip + concrete action) ---- */
+  .insightGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin-top:14px;}
+  .insight2{display:flex; gap:12px; align-items:flex-start; border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--paper-raised);}
+  .insight2 .icon{width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .insight2 .icon svg{width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .insight2.bad .icon{background:var(--bad-soft); color:var(--bad);}
+  .insight2.warn .icon{background:var(--warn-soft); color:var(--warn);}
+  .insight2.good .icon{background:var(--good-soft); color:var(--good);}
+  .insight2 .body{min-width:0;}
+  .insight2 .body .ttl{font-weight:700; font-size:13.5px; margin-bottom:3px;}
+  .insight2 .body .desc{font-size:12.5px; color:var(--ink-dim); line-height:1.55;}
+  .insight2 .body .action{font-size:12px; color:var(--accent); font-weight:600; margin-top:7px; line-height:1.5;}
 
   /* ---- settings tab ---- */
   .settingsGrid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
@@ -490,16 +520,19 @@
           </div>
           <button class="ghost" onclick="loadTrends()">↻ 새로고침</button>
         </div>
-        <div class="cards3" id="trend_kpis"></div>
+        <div class="statRow" id="trend_kpis"></div>
+
+        <div class="chartWrap" id="trend_chart_wrap">
+          <svg id="trend_chart_svg" viewBox="0 0 720 220" preserveAspectRatio="none"></svg>
+          <div class="chartTooltip" id="trend_chart_tooltip"></div>
+        </div>
+        <div class="chartLegend" id="trend_chart_legend"></div>
 
         <div class="sectiontitle">회계 인사이트</div>
         <div class="insightGrid" id="trend_insights"></div>
 
-        <div class="sectiontitle">채널별 현황</div>
-        <div class="channelGrid" id="trend_channel_cards"></div>
-
-        <div class="sectiontitle">채널 × 월 상세 매트릭스</div>
-        <div class="tablewrap"><table id="trend_pivot"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+        <div class="sectiontitle">채널별 성과 <span class="muted" style="text-transform:none; font-weight:300; font-size:11.5px;">(채널을 클릭하면 월별 상세가 펼쳐집니다)</span></div>
+        <div class="channelList" id="trend_channel_list"></div>
       </div>
     </div>
   </section>
@@ -1163,6 +1196,129 @@ function rowLabel(row){
   return parts.join(" · ");
 }
 
+const CHANNEL_COLOR = {coupang:"#7c4fe0", "11st":"#ff7a1a", ebay:"#0f9ed5", naver:"#1eb75c", owned:"#3452d9", amazon_jp:"#d98a1e", rakuten_jp:"#d5384a", yahoo_jp:"#8b5cf6"};
+const CHANNEL_ABBR = {coupang:"쿠팡", "11st":"11st", ebay:"eBay", naver:"네이버", owned:"오플", amazon_jp:"AZ", rakuten_jp:"RK", yahoo_jp:"YH"};
+
+// Catmull-Rom -> cubic Bezier smoothing, shared by the big trend chart and the row sparklines.
+function smoothPathD(points){
+  if(points.length < 2) return points.length ? ("M"+points[0][0].toFixed(1)+","+points[0][1].toFixed(1)) : "";
+  let d = "M"+points[0][0].toFixed(1)+","+points[0][1].toFixed(1);
+  for(let i=0;i<points.length-1;i++){
+    const p0 = points[i-1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i+1];
+    const p3 = points[i+2] || p2;
+    const c1x = p1[0] + (p2[0]-p0[0])/6, c1y = p1[1] + (p2[1]-p0[1])/6;
+    const c2x = p2[0] - (p3[0]-p1[0])/6, c2y = p2[1] - (p3[1]-p1[1])/6;
+    d += " C"+c1x.toFixed(1)+","+c1y.toFixed(1)+" "+c2x.toFixed(1)+","+c2y.toFixed(1)+" "+p2[0].toFixed(1)+","+p2[1].toFixed(1);
+  }
+  return d;
+}
+
+// small trend-colored sparkline shown inline in each channel row (no interaction; color = up/down vs first month)
+function sparklineSvg(values){
+  const w=100,h=36,pad=4;
+  const max = Math.max(...values, 1);
+  const min = Math.min(0, ...values);
+  const range = (max-min) || 1;
+  const pts = values.map((v,i)=> [pad + i*((w-2*pad)/(Math.max(values.length-1,1))), h-pad-((v-min)/range)*(h-2*pad)]);
+  const up = values.length>1 ? values[values.length-1] >= values[0] : true;
+  const color = up ? "var(--good)" : "var(--bad)";
+  const path = smoothPathD(pts);
+  const areaPath = pts.length ? path + " L"+pts[pts.length-1][0].toFixed(1)+","+(h-pad)+" L"+pts[0][0].toFixed(1)+","+(h-pad)+" Z" : "";
+  const dot = pts.length ? '<circle cx="'+pts[pts.length-1][0].toFixed(1)+'" cy="'+pts[pts.length-1][1].toFixed(1)+'" r="2.6" fill="'+color+'"></circle>' : "";
+  return '<svg viewBox="0 0 '+w+' '+h+'" class="chSpark" preserveAspectRatio="none">'+
+    '<path d="'+areaPath+'" fill="'+color+'" opacity="0.12" stroke="none"></path>'+
+    '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2"></path>'+ dot +
+    '</svg>';
+}
+
+// big interactive "전체 추이" chart: 매출 vs 공헌이익, smooth curves + hover tooltip (mouse & touch)
+function mountTrendChart(months, revSeries, cmSeries){
+  const svg = document.getElementById("trend_chart_svg");
+  const tooltip = document.getElementById("trend_chart_tooltip");
+  const wrap = document.getElementById("trend_chart_wrap");
+  const W = 720, H = 220, padL = 6, padR = 6, padT = 14, padB = 24;
+  const maxV = Math.max(...revSeries, ...cmSeries, 1);
+  const n = months.length;
+  const xAt = i => padL + i*((W-padL-padR)/Math.max(n-1,1));
+  const yAt = v => H-padB-(v/maxV)*(H-padT-padB);
+  const revPts = revSeries.map((v,i)=>[xAt(i), yAt(v)]);
+  const cmPts = cmSeries.map((v,i)=>[xAt(i), yAt(v)]);
+  const revPath = smoothPathD(revPts);
+  const cmPath = smoothPathD(cmPts);
+  const revArea = revPts.length ? revPath+" L"+revPts[revPts.length-1][0].toFixed(1)+","+(H-padB)+" L"+revPts[0][0].toFixed(1)+","+(H-padB)+" Z" : "";
+
+  const gridLines = [0,0.25,0.5,0.75,1].map(f=>{
+    const y = H-padB-f*(H-padT-padB);
+    return '<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1"></line>';
+  }).join("");
+  const xLabels = months.map((m,i)=> '<text x="'+xAt(i).toFixed(1)+'" y="'+(H-6)+'" font-size="10.5" text-anchor="middle" fill="var(--ink-dim)">'+m.slice(5,7)+'월</text>').join("");
+  const colW = W/Math.max(n,1);
+  const hitCols = months.map((m,i)=> '<rect data-idx="'+i+'" x="'+(xAt(i)-colW/2).toFixed(1)+'" y="0" width="'+colW.toFixed(1)+'" height="'+H+'" fill="transparent"></rect>').join("");
+
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  svg.innerHTML =
+    gridLines +
+    '<path d="'+revArea+'" fill="var(--accent)" opacity="0.10" stroke="none"></path>' +
+    '<path d="'+revPath+'" fill="none" stroke="var(--accent)" stroke-width="2.5"></path>' +
+    '<path d="'+cmPath+'" fill="none" stroke="#8b5cf6" stroke-width="2.5"></path>' +
+    xLabels +
+    '<g id="trend_chart_guide" style="display:none">'+
+      '<line x1="0" y1="'+padT+'" x2="0" y2="'+(H-padB)+'" stroke="var(--ink-dim)" stroke-width="1" stroke-dasharray="3,3"></line>'+
+      '<circle r="4" fill="var(--accent)" stroke="var(--paper-raised)" stroke-width="2"></circle>'+
+      '<circle r="4" fill="#8b5cf6" stroke="var(--paper-raised)" stroke-width="2"></circle>'+
+    '</g>'+
+    hitCols;
+
+  document.getElementById("trend_chart_legend").innerHTML =
+    '<span><i class="dot" style="background:var(--accent)"></i>매출</span>'+
+    '<span><i class="dot" style="background:#8b5cf6"></i>공헌이익</span>';
+
+  const guide = svg.querySelector("#trend_chart_guide");
+  const guideLine = guide.querySelector("line");
+  const dots = guide.querySelectorAll("circle");
+
+  function showAt(idx){
+    idx = Math.max(0, Math.min(n-1, idx));
+    const x = xAt(idx);
+    guideLine.setAttribute("x1", x); guideLine.setAttribute("x2", x);
+    dots[0].setAttribute("cx", x); dots[0].setAttribute("cy", yAt(revSeries[idx]));
+    dots[1].setAttribute("cx", x); dots[1].setAttribute("cy", yAt(cmSeries[idx]));
+    guide.style.display = "block";
+    const leftPct = (x/W)*100;
+    const topPct = (yAt(revSeries[idx])/H)*100;
+    tooltip.style.left = leftPct+"%";
+    tooltip.style.top = Math.max(topPct,10)+"%";
+    const rate = revSeries[idx] ? cmSeries[idx]/revSeries[idx] : null;
+    tooltip.innerHTML = '<b>'+months[idx].slice(0,7)+'</b><br>매출 '+fmtKRW(revSeries[idx])+'<br>공헌이익 '+fmtKRW(cmSeries[idx])+' ('+fmtPct(rate)+')';
+    tooltip.classList.add("show");
+  }
+  function hide(){ guide.style.display = "none"; tooltip.classList.remove("show"); }
+
+  wrap.onmousemove = (e)=>{
+    const rect = wrap.getBoundingClientRect();
+    if(!rect.width) return;
+    const frac = (e.clientX - rect.left) / rect.width;
+    showAt(Math.round(frac * (n-1)));
+  };
+  wrap.onmouseleave = hide;
+  wrap.ontouchstart = wrap.ontouchmove = (e)=>{
+    const touch = e.touches[0]; if(!touch) return;
+    const rect = wrap.getBoundingClientRect();
+    if(!rect.width) return;
+    const frac = (touch.clientX - rect.left) / rect.width;
+    showAt(Math.round(frac*(n-1)));
+  };
+  if(n) showAt(n-1);
+}
+
+const INSIGHT_ICON = {
+  bad: '<path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path>',
+  warn: '<path d="M12 9v4"></path><path d="M12 17h.01"></path><circle cx="12" cy="12" r="10"></circle>',
+  good: '<path d="M20 6 9 17l-5-5"></path>'
+};
+
 function renderTrends(rows){
   const months = [...new Set(rows.map(r=>r.year_month))].sort();
   const latest = months[months.length-1];
@@ -1180,22 +1336,27 @@ function renderTrends(rows){
   const cur = totalsFor(latest);
   const prv = prev ? totalsFor(prev) : null;
 
-  function deltaHtml(curVal, prevVal, isRatePoint){
+  function chip(curVal, prevVal, isRatePoint){
     if(prv==null || prevVal==null || prevVal===0) return "";
     const diff = curVal - prevVal;
     const pct = isRatePoint ? (diff*100) : (diff/Math.abs(prevVal)*100);
     const up = diff >= 0;
     const arrow = up ? "▲" : "▼";
     const txt = isRatePoint ? (Math.abs(pct).toFixed(1)+"%p") : (Math.abs(pct).toFixed(1)+"%");
-    return '<span class="delta '+(up?"up":"down")+'">'+arrow+' '+txt+' 전월대비</span>';
+    return '<span class="chip '+(up?"up":"down")+'">'+arrow+' '+txt+'</span>';
   }
 
   const kpis = document.getElementById("trend_kpis");
   kpis.innerHTML =
-    '<div class="kpi"><div class="lbl">'+latest.slice(0,7)+' 전체 매출</div><div class="num tabular">'+fmtKRW(cur.revenue)+'</div>'+deltaHtml(cur.revenue, prv&&prv.revenue, false)+'</div>'+
-    '<div class="kpi"><div class="lbl">'+latest.slice(0,7)+' 전체 공헌이익</div><div class="num tabular">'+fmtKRW(cur.contribution)+'</div>'+deltaHtml(cur.contribution, prv&&prv.contribution, false)+'</div>'+
-    '<div class="kpi"><div class="lbl">공헌이익율</div><div class="num tabular">'+fmtPct(cur.rate)+'</div>'+deltaHtml(cur.rate, prv&&prv.rate, true)+'</div>'+
-    '<div class="kpi"><div class="lbl">총 주문건수</div><div class="num tabular">'+fmtNum(cur.orders)+'</div>'+deltaHtml(cur.orders, prv&&prv.orders, false)+'</div>';
+    '<div class="statItem"><div class="lbl">'+latest.slice(0,7)+' 매출'+chip(cur.revenue, prv&&prv.revenue, false)+'</div><div class="val tabular">'+fmtKRW(cur.revenue)+'</div></div>'+
+    '<div class="statItem"><div class="lbl">'+latest.slice(0,7)+' 공헌이익'+chip(cur.contribution, prv&&prv.contribution, false)+'</div><div class="val tabular">'+fmtKRW(cur.contribution)+'</div></div>'+
+    '<div class="statItem"><div class="lbl">공헌이익율'+chip(cur.rate, prv&&prv.rate, true)+'</div><div class="val tabular">'+fmtPct(cur.rate)+'</div></div>'+
+    '<div class="statItem"><div class="lbl">총 주문건수'+chip(cur.orders, prv&&prv.orders, false)+'</div><div class="val tabular">'+fmtNum(cur.orders)+'</div></div>';
+
+  // ---- 전체 추이 차트: 매출 vs 공헌이익 (월별 합계, 부드러운 곡선 + 호버 툴팁) ----
+  const revSeries = months.map(m=>totalsFor(m).revenue);
+  const cmSeries = months.map(m=>totalsFor(m).contribution);
+  mountTrendChart(months, revSeries, cmSeries);
 
   // ---- group by channel(+account+sub) ----
   const groupMap = new Map();
@@ -1214,34 +1375,33 @@ function renderTrends(rows){
   const byChannel = {};
   groups.forEach(g=>{ (byChannel[g.channel] = byChannel[g.channel]||[]).push(g); });
 
-  // ---- 회계 인사이트 (low-noise, computed from real deltas only) ----
+  // ---- 회계 인사이트 (구체적 수치 + 권장 조치, 저노이즈) ----
   const insights = [];
   if(prv && prv.revenue){
     const rateDeltaP = (cur.rate - prv.rate) * 100;
     if(rateDeltaP <= -3){
-      insights.push({level:"bad", title:"전체 공헌이익율 하락", desc:"전월 대비 "+Math.abs(rateDeltaP).toFixed(1)+"%p 하락했습니다 ("+fmtPct(prv.rate)+" → "+fmtPct(cur.rate)+"). 원가·수수료·물류비 변동을 점검해보세요."});
+      insights.push({level:"bad", title:"전체 공헌이익율 하락", desc:"전월 대비 "+Math.abs(rateDeltaP).toFixed(1)+"%p 하락했습니다 ("+fmtPct(prv.rate)+" → "+fmtPct(cur.rate)+").", action:"원가·수수료·물류비 중 어느 항목이 늘었는지 아래 채널별 상세에서 확인해보세요."});
     } else if(rateDeltaP >= 3){
       insights.push({level:"good", title:"전체 공헌이익율 개선", desc:"전월 대비 "+rateDeltaP.toFixed(1)+"%p 상승했습니다 ("+fmtPct(prv.rate)+" → "+fmtPct(cur.rate)+")."});
     }
     const logiShareCur = cur.revenue ? cur.logistics/cur.revenue : 0;
     const logiSharePrv = prv.revenue ? prv.logistics/prv.revenue : 0;
     if((logiShareCur-logiSharePrv)*100 >= 2){
-      insights.push({level:"warn", title:"물류·부자재비 비중 상승", desc:"매출 대비 물류/부자재비 비중이 "+((logiShareCur-logiSharePrv)*100).toFixed(1)+"%p 상승했습니다 ("+fmtPct(logiSharePrv)+" → "+fmtPct(logiShareCur)+")."});
+      insights.push({level:"warn", title:"물류·부자재비 비중 상승", desc:"매출 대비 물류/부자재비 비중이 "+((logiShareCur-logiSharePrv)*100).toFixed(1)+"%p 상승했습니다 ("+fmtPct(logiSharePrv)+" → "+fmtPct(logiShareCur)+").", action:"배송비·부자재 단가가 결산 기준과 맞는지 설정 탭에서 확인해보세요."});
     }
   }
   Object.keys(byChannel).forEach(ch=>{
-    const chGroups = byChannel[ch];
     const curCh = totalsFor(latest, r=>r.channel===ch);
     const prvCh = prev ? totalsFor(prev, r=>r.channel===ch) : null;
     if(!curCh.revenue) return;
     if(curCh.rate < 0.03){
-      insights.push({level:"bad", title:(CHANNEL_LABEL[ch]||ch)+" 공헌이익율 저조", desc:"이번 달 공헌이익율이 "+fmtPct(curCh.rate)+"로 매우 낮습니다. 해당 채널의 판매가·수수료율·원가 구조를 재검토해보세요."});
+      insights.push({level:"bad", title:(CHANNEL_LABEL[ch]||ch)+" 공헌이익율 저조", desc:"이번 달 공헌이익율이 "+fmtPct(curCh.rate)+"로 매우 낮습니다 (매출 "+fmtKRW(curCh.revenue)+").", action:"이 채널의 대표 SKU 판매가·수수료율·원가 구조를 UPC 가격표 탭에서 점검해보세요."});
     }
     if(prvCh && prvCh.revenue){
       const feeShareCur = curCh.revenue ? curCh.fee/curCh.revenue : 0;
       const feeSharePrv = prvCh.revenue ? prvCh.fee/prvCh.revenue : 0;
       if((feeShareCur-feeSharePrv)*100 >= 2){
-        insights.push({level:"warn", title:(CHANNEL_LABEL[ch]||ch)+" 수수료율 상승", desc:"매출 대비 수수료 비중이 "+fmtPct(feeSharePrv)+" → "+fmtPct(feeShareCur)+"로 상승했습니다. 채널 정책 변경 여부를 확인해보세요."});
+        insights.push({level:"warn", title:(CHANNEL_LABEL[ch]||ch)+" 수수료율 상승", desc:"매출 대비 수수료 비중이 "+fmtPct(feeSharePrv)+" → "+fmtPct(feeShareCur)+"로 상승했습니다.", action:"채널 정책 변경 여부를 확인하고, 필요하면 설정 탭에서 수수료율을 갱신하세요."});
       }
       const revDeltaPct = prvCh.revenue ? (curCh.revenue-prvCh.revenue)/prvCh.revenue*100 : 0;
       if(revDeltaPct <= -30){
@@ -1253,111 +1413,79 @@ function renderTrends(rows){
   insights.sort((a,b)=>levelRank[a.level]-levelRank[b.level]);
   const insightsEl = document.getElementById("trend_insights");
   if(!insights.length){
-    insightsEl.innerHTML = '<div class="insight good"><div class="ttl">특이사항 없음</div><div class="desc">전월 대비 공헌이익율·수수료·물류비 비중에 뚜렷한 이상 변동이 없습니다.</div></div>';
+    insightsEl.innerHTML = '<div class="insight2 good"><div class="icon"><svg viewBox="0 0 24 24">'+INSIGHT_ICON.good+'</svg></div><div class="body"><div class="ttl">특이사항 없음</div><div class="desc">전월 대비 공헌이익율·수수료·물류비 비중에 뚜렷한 이상 변동이 없습니다.</div></div></div>';
   } else {
     insightsEl.innerHTML = insights.slice(0,6).map(i=>
-      '<div class="insight '+i.level+'"><div class="ttl">'+i.title+'</div><div class="desc">'+i.desc+'</div></div>'
+      '<div class="insight2 '+i.level+'"><div class="icon"><svg viewBox="0 0 24 24">'+INSIGHT_ICON[i.level]+'</svg></div><div class="body"><div class="ttl">'+i.title+'</div><div class="desc">'+i.desc+'</div>'+(i.action?'<div class="action">→ '+i.action+'</div>':'')+'</div></div>'
     ).join("");
   }
 
-  // ---- 채널별 카드 ----
-  const chartsEl = document.getElementById("trend_channel_cards");
-  chartsEl.innerHTML = "";
-  Object.keys(byChannel).sort((a,b)=>(CHANNEL_ORDER[a]??9)-(CHANNEL_ORDER[b]??9)).forEach(ch=>{
-    const chGroups = byChannel[ch];
-    const curCh = totalsFor(latest, r=>r.channel===ch);
-    const prvCh = prev ? totalsFor(prev, r=>r.channel===ch) : null;
-    const series = months.map(m => rows.filter(r=>r.channel===ch && r.year_month===m).reduce((s,r)=>s+Number(r.revenue_krw),0));
-
-    const card = document.createElement("div");
-    card.className = "chCard";
-    let subHtml = "";
-    if(chGroups.length > 1){
-      subHtml = '<div class="subtable">' + chGroups.map(g=>{
-        const gCur = g.byMonth[latest];
-        const label = [SUB_LABEL[g.sub_channel], ACCT_LABEL[g.seller_account]].filter(Boolean).join(" · ") || CHANNEL_LABEL[ch]||ch;
-        return '<div><span>'+label+'</span><span class="tabular">'+(gCur?fmtKRW(gCur.revenue_krw):"-")+' <span class="pivot-rate '+rateClass(gCur?gCur.contribution_rate:null)+'">'+(gCur?fmtPct(gCur.contribution_rate):"-")+'</span></span></div>';
-      }).join("") + '</div>';
-    }
-    card.innerHTML =
-      '<div class="chHead"><div><div class="chName">'+(CHANNEL_LABEL[ch]||ch)+'</div><div class="chSub">'+latest.slice(0,7)+' 기준</div></div>'+
-      '<span class="pivot-rate '+rateClass(curCh.rate)+'" style="font-size:12px;padding:3px 9px">'+fmtPct(curCh.rate)+'</span></div>'+
-      '<div class="chRev"><span class="cc-num tabular">'+fmtKRW(curCh.revenue)+'</span> '+deltaHtml(curCh.revenue, prvCh&&prvCh.revenue, false)+'</div>'+
-      subHtml +
-      '<div class="miniChart" id="mini_'+ch+'"></div>';
-    chartsEl.appendChild(card);
-    const miniHost = card.querySelector(".miniChart");
-    miniHost.appendChild(makeMiniChart(series));
-  });
-
-  // ---- pivot matrix (detailed table, kept below the cards) ----
-  const thead = document.querySelector("#trend_pivot thead");
-  const tbody = document.querySelector("#trend_pivot tbody");
-  const tfoot = document.querySelector("#trend_pivot tfoot");
-  thead.innerHTML = '<tr><th style="text-align:left">채널</th>'+months.map(m=>'<th>'+m.slice(0,7)+'</th>').join("")+'<th>합계</th></tr>';
-
+  // ---- 채널별 성과 리스트 (카드 그리드 + 항상 열려있던 매트릭스를 하나로 통합):
+  // 행 하나 = 채널 요약(매출·전월대비·공헌이익율·추이 스파크라인), 클릭하면 월별 상세가 펼쳐짐 ----
   function cellHtml(rowData){
     if(!rowData) return '<td class="pivot-cell tabular muted">-</td>';
     return '<td class="pivot-cell tabular"><span class="pivot-rev">'+fmtKRW(rowData.revenue_krw)+'</span><span class="pivot-rate '+rateClass(rowData.contribution_rate)+'">'+fmtPct(rowData.contribution_rate)+'</span></td>';
   }
-  function summaryCell(group){
-    const vals = months.map(m=>group.byMonth[m]).filter(Boolean);
+  function summaryCell(byMonth){
+    const vals = months.map(m=>byMonth[m]).filter(Boolean);
     if(!vals.length) return '<td class="pivot-cell tabular muted">-</td>';
     const rev = vals.reduce((s,v)=>s+Number(v.revenue_krw),0);
     const cm = vals.reduce((s,v)=>s+Number(v.contribution_krw),0);
     return '<td class="pivot-cell tabular"><span class="pivot-rev">'+fmtKRW(rev)+'</span><span class="pivot-rate '+rateClass(rev?cm/rev:null)+'">'+fmtPct(rev?cm/rev:null)+'</span></td>';
   }
 
-  let bodyHtml = "";
+  const listEl = document.getElementById("trend_channel_list");
+  listEl.innerHTML = "";
   Object.keys(byChannel).sort((a,b)=>(CHANNEL_ORDER[a]??9)-(CHANNEL_ORDER[b]??9)).forEach(ch=>{
     const chGroups = byChannel[ch];
     const multi = chGroups.length > 1;
-    chGroups.forEach(g=>{
-      const label = multi ? (SUB_LABEL[g.sub_channel]||"") + (g.sub_channel&&g.seller_account? " · ":"") + (ACCT_LABEL[g.seller_account]||"") : CHANNEL_LABEL[ch]||ch;
-      bodyHtml += '<tr class="'+(multi?"subrow":"")+'"><td class="rowlabel">'+(label||CHANNEL_LABEL[ch]||ch)+'</td>'+
-        months.map(m=>cellHtml(g.byMonth[m])).join("")+ summaryCell(g) +'</tr>';
-    });
+    const curCh = totalsFor(latest, r=>r.channel===ch);
+    const prvCh = prev ? totalsFor(prev, r=>r.channel===ch) : null;
+    const series = months.map(m => rows.filter(r=>r.channel===ch && r.year_month===m).reduce((s,r)=>s+Number(r.revenue_krw),0));
+    const subNames = multi ? chGroups.map(g=>[SUB_LABEL[g.sub_channel], ACCT_LABEL[g.seller_account]].filter(Boolean).join(" · ")).join(", ") : "";
+
+    const row = document.createElement("div");
+    row.className = "chRow";
+    row.innerHTML =
+      '<div class="chIcon" style="background:'+(CHANNEL_COLOR[ch]||"#888")+'">'+(CHANNEL_ABBR[ch]||(CHANNEL_LABEL[ch]||ch).slice(0,2))+'</div>'+
+      '<div class="chNameWrap"><div class="chName">'+(CHANNEL_LABEL[ch]||ch)+'</div><div class="chSub">'+(multi ? subNames : latest.slice(0,7)+" 기준")+'</div></div>'+
+      '<div class="chRevenue"><div class="v tabular">'+fmtKRW(curCh.revenue)+'</div><div class="d">'+(chip(curCh.revenue, prvCh&&prvCh.revenue, false)||'<span class="muted">전월 데이터 없음</span>')+'</div></div>'+
+      '<span class="chRatePill '+rateClass(curCh.rate)+'">'+fmtPct(curCh.rate)+'</span>'+
+      sparklineSvg(series)+
+      '<svg class="chToggle" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>';
+
+    const detail = document.createElement("div");
+    detail.className = "chDetail";
+    let detailHtml = '<div class="tablewrap"><table><thead><tr><th style="text-align:left">'+(multi?"세부":"채널")+'</th>'+months.map(m=>'<th>'+m.slice(0,7)+'</th>').join("")+'<th>합계</th></tr></thead><tbody>';
     if(multi){
-      const merged = {byMonth:{}};
+      chGroups.forEach(g=>{
+        const label = [SUB_LABEL[g.sub_channel], ACCT_LABEL[g.seller_account]].filter(Boolean).join(" · ") || CHANNEL_LABEL[ch]||ch;
+        detailHtml += '<tr><td class="rowlabel" style="font-weight:300">'+label+'</td>'+months.map(m=>cellHtml(g.byMonth[m])).join("")+summaryCell(g.byMonth)+'</tr>';
+      });
+      const mergedByMonth = {};
       months.forEach(m=>{
         const vals = chGroups.map(g=>g.byMonth[m]).filter(Boolean);
         if(!vals.length) return;
         const rev = vals.reduce((s,v)=>s+Number(v.revenue_krw),0);
         const cm = vals.reduce((s,v)=>s+Number(v.contribution_krw),0);
-        merged.byMonth[m] = {revenue_krw:rev, contribution_rate: rev?cm/rev:null};
+        mergedByMonth[m] = {revenue_krw:rev, contribution_rate: rev?cm/rev:null};
       });
-      bodyHtml += '<tr class="subtotal"><td class="rowlabel">'+(CHANNEL_LABEL[ch]||ch)+' 합계</td>'+
-        months.map(m=>cellHtml(merged.byMonth[m])).join("") + summaryCell(merged) + '</tr>';
+      detailHtml += '<tr class="subtotal"><td class="rowlabel">'+(CHANNEL_LABEL[ch]||ch)+' 합계</td>'+months.map(m=>cellHtml(mergedByMonth[m])).join("")+summaryCell(mergedByMonth)+'</tr>';
+    } else {
+      detailHtml += '<tr><td class="rowlabel">'+(CHANNEL_LABEL[ch]||ch)+'</td>'+months.map(m=>cellHtml(chGroups[0].byMonth[m])).join("")+summaryCell(chGroups[0].byMonth)+'</tr>';
     }
-  });
-  tbody.innerHTML = bodyHtml;
+    detailHtml += '</tbody></table></div>';
+    detail.innerHTML = detailHtml;
 
-  const grand = {byMonth:{}};
-  months.forEach(m=>{
-    const vals = rows.filter(r=>r.year_month===m);
-    const rev = vals.reduce((s,v)=>s+Number(v.revenue_krw),0);
-    const cm = vals.reduce((s,v)=>s+Number(v.contribution_krw),0);
-    grand.byMonth[m] = {revenue_krw:rev, contribution_rate: rev?cm/rev:null};
-  });
-  tfoot.innerHTML = '<tr class="grandtotal"><td class="rowlabel">전체 합계</td>'+
-    months.map(m=>cellHtml(grand.byMonth[m])).join("") + summaryCell(grand) + '</tr>';
-}
+    row.addEventListener("click", ()=>{
+      const willOpen = !detail.classList.contains("show");
+      row.classList.toggle("open", willOpen);
+      detail.classList.toggle("show", willOpen);
+    });
 
-function makeMiniChart(series){
-  const w=240,h=44,pad=4;
-  const max = Math.max(...series, 1);
-  const pts = series.map((v,i)=> [pad + i*((w-2*pad)/(Math.max(series.length-1,1))), h-pad-(v/max)*(h-2*pad)]);
-  const path = pts.map((p,i)=> (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
-  const areaPath = path + ' L'+pts[pts.length-1][0].toFixed(1)+','+(h-pad)+' L'+pts[0][0].toFixed(1)+','+(h-pad)+' Z';
-  const dot = pts.length ? '<circle cx="'+pts[pts.length-1][0].toFixed(1)+'" cy="'+pts[pts.length-1][1].toFixed(1)+'" r="2.5" fill="var(--accent)"></circle>' : "";
-  const div = document.createElement("div");
-  div.innerHTML =
-    '<svg viewBox="0 0 '+w+' '+h+'">'+
-      '<path d="'+areaPath+'" fill="color-mix(in srgb, var(--accent) 14%, transparent)" stroke="none"></path>'+
-      '<path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2"></path>'+
-      dot+
-    '</svg>';
-  return div.firstElementChild;
+    listEl.appendChild(row);
+    listEl.appendChild(detail);
+  });
 }
 
 // ==============================================================================
