@@ -168,6 +168,14 @@ a{color:var(--accent);}
 .section-head h2{font-size:15px; font-weight:600; letter-spacing:-.015em; color:var(--ink);}
 .section-head .hint{font-size:12px; color:var(--muted);}
 .card{background:var(--surface); border:1px solid transparent; border-radius:var(--radius-l); padding:22px; box-shadow:var(--shadow); min-width:0;}
+/* 스크롤을 따라오는 필터 바 — 아래 표를 보다가도 기준을 바로 바꿀 수 있다.
+   페이지 배경을 깔아 뒤 내용이 비치지 않게 하고, 붙었을 때만 아래 선이 생긴다. */
+.filterbar{position:sticky; top:0; z-index:25; background:var(--page); margin:0 -26px 24px;
+  padding:12px 26px; border-bottom:1px solid transparent; transition:border-color .15s ease, box-shadow .15s ease;}
+.filterbar.stuck{border-bottom-color:var(--line-strong); box-shadow:0 6px 12px -12px rgba(16,24,40,.4);}
+.filterbar .row{row-gap:8px;}
+@media (max-width:900px){ .filterbar{position:static; margin:0 0 20px; padding:0;} }
+@media (max-width:640px){ .filterbar{margin:0 0 16px;} }
 .card.tight{padding:15px 17px; border-radius:var(--radius-m);}
 .card.collapsed{padding:15px 20px;}
 .grid{display:grid; gap:14px; min-width:0;}
@@ -426,6 +434,8 @@ svg.chart .gridline{stroke:var(--line);}
               data-title="항공스케줄 &amp; 컷오프" data-sub="항공편 마스터와 컷오프 등록 내역"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20l1.8-6.2 5.9 3.4 1.6-1-5.2-4.6 3.4-4.9a1.7 1.7 0 0 0-2.4-2.3l-4.6 3.6L6.4 3 5 4l3.1 6.1L3.5 13l-.6 2.2 5.4-1 .9 5.4z"/></svg><span>항공스케줄 &amp; 컷오프</span></button>
       <button class="tab-btn" data-tab="accounting" role="tab"
               data-title="회계 &amp; 분석" data-sub="비용 구성과 기간별 상세 내역"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 7h8M8 11h3M8 15h3M15 11v6M12.5 14h5"/></svg><span>회계 &amp; 분석</span></button>
+      <button class="tab-btn" data-tab="invoices" role="tab"
+              data-title="인보이스" data-sub="협력사별 청구 금액과 추이"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l4 4v16l-3-2-3 2-3-2-3 2z"/><path d="M14 2v5h5"/><path d="M9 12h7M9 16h5"/></svg><span>인보이스</span></button>
     </nav>
 
     <div class="side-foot">
@@ -460,6 +470,9 @@ svg.chart .gridline{stroke:var(--line);}
 
   <!-- ============ ACCOUNTING ============ -->
   <div class="view" id="view-accounting"></div>
+
+  <!-- ============ INVOICES ============ -->
+  <div class="view" id="view-invoices"></div>
 
    </div>
   </div>
@@ -591,9 +604,9 @@ const SUPABASE_ROW_ID = "cargodesk";
 const Store = (function(){
   let sb = null;
   let backend = "memory"; // "cloud" | "local" | "memory"
-  const LS_KEYS = {daily:"cargodesk_daily", holidays:"cargodesk_holidays", shipments:"cargodesk_shipments", cargo:"cargodesk_cargo", handling:"cargodesk_handling", handlingSkus:"cargodesk_handlingSkus", settings:"cargodesk_settings"};
-  const local = {daily:{}, holidays:{}, shipments:{}, cargo:{}, handling:{}, handlingSkus:{}, settings:{}};
-  const listeners = {daily:[], holidays:[], shipments:[], cargo:[], handling:[], handlingSkus:[], settings:[]};
+  const LS_KEYS = {daily:"cargodesk_daily", holidays:"cargodesk_holidays", shipments:"cargodesk_shipments", cargo:"cargodesk_cargo", handling:"cargodesk_handling", handlingSkus:"cargodesk_handlingSkus", invoices:"cargodesk_invoices", settings:"cargodesk_settings"};
+  const local = {daily:{}, holidays:{}, shipments:{}, cargo:{}, handling:{}, handlingSkus:{}, invoices:{}, settings:{}};
+  const listeners = {daily:[], holidays:[], shipments:[], cargo:[], handling:[], handlingSkus:[], invoices:[], settings:[]};
 
   function lsLoad(){
     try{
@@ -628,6 +641,7 @@ const Store = (function(){
     local.cargo = d.cargo || {};
     local.handling = d.handling || {};
     local.handlingSkus = d.handlingSkus || {};
+    local.invoices = d.invoices || {};
     local.settings = d.settings || {};
   }
   function applyIncoming(d){
@@ -637,9 +651,10 @@ const Store = (function(){
     local.cargo = (d && d.cargo) || {};
     local.handling = (d && d.handling) || {};
     local.handlingSkus = (d && d.handlingSkus) || {};
+    local.invoices = (d && d.invoices) || {};
     local.settings = (d && d.settings) || {};
     notify("daily"); notify("holidays"); notify("shipments"); notify("cargo");
-    notify("handling"); notify("handlingSkus"); notifySettings();
+    notify("handling"); notify("handlingSkus"); notify("invoices"); notifySettings();
   }
   function subscribeRealtime(){
     sb.channel("cargodesk-sync")
@@ -673,6 +688,7 @@ const Store = (function(){
   function onCargo(cb){ listeners.cargo.push(cb); notify("cargo"); return ()=>{ listeners.cargo = listeners.cargo.filter(f=>f!==cb); }; }
   function onHandling(cb){ listeners.handling.push(cb); notify("handling"); return ()=>{ listeners.handling = listeners.handling.filter(f=>f!==cb); }; }
   function onHandlingSkus(cb){ listeners.handlingSkus.push(cb); notify("handlingSkus"); return ()=>{ listeners.handlingSkus = listeners.handlingSkus.filter(f=>f!==cb); }; }
+  function onInvoices(cb){ listeners.invoices.push(cb); notify("invoices"); return ()=>{ listeners.invoices = listeners.invoices.filter(f=>f!==cb); }; }
   function onSettings(cb){ listeners.settings.push(cb); notifySettings(); return ()=>{ listeners.settings = listeners.settings.filter(f=>f!==cb); }; }
 
   // ---- one-time reads (for seeding checks) ----
@@ -743,6 +759,17 @@ const Store = (function(){
     if(backend==="cloud"){ await rpc("delete_item","handling",id); } else { lsSave("handling"); }
     notify("handling");
   }
+  async function upsertInvoice(rec){
+    const value = {...rec}; delete value.id;
+    local.invoices[rec.id] = value;
+    if(backend==="cloud"){ await rpc("set_item","invoices",rec.id,value); } else { lsSave("invoices"); }
+    notify("invoices");
+  }
+  async function deleteInvoice(id){
+    delete local.invoices[id];
+    if(backend==="cloud"){ await rpc("delete_item","invoices",id); } else { lsSave("invoices"); }
+    notify("invoices");
+  }
   async function saveSettings(patch){
     local.settings = {...local.settings, ...patch};
     if(backend==="cloud"){ await rpc("merge_settings","settings",null,patch); } else { lsSave("settings"); }
@@ -756,16 +783,16 @@ const Store = (function(){
 
   return {
     init, get backend(){ return backend; },
-    onDaily, onHolidays, onShipments, onCargo, onHandling, onHandlingSkus, onSettings,
+    onDaily, onHolidays, onShipments, onCargo, onHandling, onHandlingSkus, onInvoices, onSettings,
     countDaily, countHolidays, countShipments, hasSettings,
     upsertDaily, deleteDaily, upsertHoliday, deleteHoliday,
     addShipment, updateShipment, deleteShipment, upsertCargo, deleteCargo,
-    upsertHandling, deleteHandling, saveSettings, bulkDeleteSample
+    upsertHandling, deleteHandling, upsertInvoice, deleteInvoice, saveSettings, bulkDeleteSample
   };
 })();
 
 /* ---------------------------- app-wide cache ---------------------------- */
-const Cache = { daily:[], holidays:[], shipments:[], cargo:[], handling:[], handlingSkus:[], settings:{} };
+const Cache = { daily:[], holidays:[], shipments:[], cargo:[], handling:[], handlingSkus:[], invoices:[], settings:{} };
 
 function defaultSettings(){
   return {
@@ -983,6 +1010,7 @@ async function boot(){
   Store.onShipments(rows=>{ Cache.shipments = rows.sort((a,b)=> (a.cutoffDate||"")<(b.cutoffDate||"")?-1:1); emit("shipments"); });
   Store.onCargo(rows=>{ Cache.cargo = rows.sort((a,b)=> (a.carrier+a.flightNo) < (b.carrier+b.flightNo) ? -1 : 1); emit("cargo"); });
   Store.onHandling(rows=>{ Cache.handling = rows.sort((a,b)=> a.period < b.period ? 1 : -1); emit("handling"); });
+  Store.onInvoices(rows=>{ Cache.invoices = rows.sort((a,b)=> a.period===b.period ? (a.vendor<b.vendor?-1:1) : (a.period<b.period?1:-1)); emit("invoices"); });
   // 취급주의 SKU 마스터는 [upc, brand, name] 배열로 저장해 용량을 아낀다
   Store.onHandlingSkus(rows=>{
     Cache.handlingSkus = rows.map(r=>{
@@ -1139,6 +1167,18 @@ function niceDomain(lo, hi){
   while(b < hi){ b += step; }
   return {lo:a, hi:b};
 }
+/** 큰 금액 축 눈금을 짧게 — 원화는 억/만, 그 외는 K/M 단위로 줄인다 */
+function compactMoney(sym, v){
+  const a = Math.abs(v);
+  if(sym === "₩"){
+    if(a >= 1e8) return sym + (v/1e8).toFixed(a>=1e9?0:1).replace(/\.0$/,"") + "억";
+    if(a >= 1e4) return sym + Math.round(v/1e4).toLocaleString("en-US") + "만";
+    return sym + Math.round(v).toLocaleString("en-US");
+  }
+  if(a >= 1e6) return sym + (v/1e6).toFixed(a>=1e7?0:1).replace(/\.0$/,"") + "M";
+  if(a >= 1e3) return sym + Math.round(v/1e3).toLocaleString("en-US") + "K";
+  return sym + Math.round(v).toLocaleString("en-US");
+}
 function padLFor(labelStrings){
   const longest = labelStrings.reduce((a,s)=> Math.max(a, String(s).length), 1);
   return Math.max(40, 14 + longest*6.6);
@@ -1232,16 +1272,17 @@ function bandBarChart(container, {data, thresholds, unitLabel, metricKey}){
  * 누적 막대. `subKeys`를 주면 합쳐서 그린 세그먼트를 툴팁에서 세부 항목으로 풀어 보여준다.
  *   subKeys = { packingTotal: [{key:"packingCost", label:"출고비"}, ...] }
  */
-function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabelFn, tipTitleFn, valueFmt, subKeys}){
+function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabelFn, tipTitleFn, valueFmt, axisFmt, subKeys}){
   xLabelFn = xLabelFn || CD.fmtShort;
   tipTitleFn = tipTitleFn || CD.fmtFull;
   valueFmt = valueFmt || (v=>CD.fmtNum(v));
+  axisFmt = axisFmt || valueFmt;     // 축은 툴팁과 달리 짧게 줄여 쓸 수 있다
   subKeys = subKeys || {};
   clear(container);
   const w = container.clientWidth || 640, h = 220;
   const totals = data.map(d=> keys.reduce((s,k)=>s+(d[k]||0),0));
   const maxV = niceMax(Math.max(...totals, 10));
-  const padL=padLFor([0,0.25,0.5,0.75,1].map(f=>valueFmt(maxV*f))), padR=10, padT=14, padB=26;
+  const padL=padLFor([0,0.25,0.5,0.75,1].map(f=>axisFmt(maxV*f))), padR=10, padT=14, padB=26;
   const plotW = w-padL-padR, plotH = h-padT-padB;
   const svg = svgEl("svg",{class:"chart", width:"100%", height:h, viewBox:`0 0 ${w} ${h}`});
   const n = data.length;
@@ -1252,7 +1293,7 @@ function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabe
     const y = padT + plotH*(1-f);
     svg.appendChild(svgEl("line",{class:"gridline", x1:padL, x2:w-padR, y1:y, y2:y, "stroke-width":1}));
     const lbl = svgEl("text",{x:padL-8, y:y+3, "text-anchor":"end", "font-size":"10"});
-    lbl.textContent = CD.fmtNum(maxV*f);
+    lbl.textContent = axisFmt(maxV*f);
     svg.appendChild(lbl);
   });
 
@@ -1346,14 +1387,21 @@ function lineChart(container, {series, labels, yFmt, legend}){
   });
 
   series.forEach(s=>{
-    const pts = s.values.map((v,i)=> [padL+stepX*i, yAt(Number.isFinite(v)?v:dom.lo)]);
-    if(pts.length>1){
-      const linePts = pts.map(p=>p.join(",")).join(" ");
-      svg.appendChild(svgEl("polyline",{points:linePts, fill:"none", stroke:s.color, "stroke-width":1.8, "stroke-linejoin":"round", "stroke-linecap":"round"}));
-    }
+    const pts = s.values.map((v,i)=> Number.isFinite(v) ? [padL+stepX*i, yAt(v)] : null);
+    /* 값이 없는 구간은 선을 끊어 그린다 — 0으로 처리하면 없는 달이 급락처럼 보인다 */
+    let seg = [];
+    const flush = ()=>{
+      if(seg.length>1){
+        svg.appendChild(svgEl("polyline",{points:seg.map(p=>p.join(",")).join(" "), fill:"none", stroke:s.color,
+          "stroke-width":1.8, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+      }
+      seg = [];
+    };
+    pts.forEach(p=>{ if(p) seg.push(p); else flush(); });
+    flush();
     pts.forEach((p,i)=>{
       const v = s.values[i];
-      if(!Number.isFinite(v)) return;
+      if(!p || !Number.isFinite(v)) return;
       const dot = svgEl("circle",{cx:p[0], cy:p[1], r:3, fill:CD.cssVar("--surface"), stroke:s.color, "stroke-width":1.8});
       svg.appendChild(dot);
     });
@@ -1397,7 +1445,7 @@ function lineChart(container, {series, labels, yFmt, legend}){
   }
 }
 
-window.CDCharts = { bandBarChart, stackedBarChart, lineChart, statusColor, niceMax, showTip, hideTip };
+window.CDCharts = { bandBarChart, stackedBarChart, lineChart, statusColor, niceMax, compactMoney, showTip, hideTip };
 })();
 </script>
 
@@ -2797,41 +2845,39 @@ function shell(){
     </div>
 
 
-    <div class="section row between">
-      <div class="row">
-        <div class="seg" id="aGranSeg">
-          <button data-v="day">일별</button>
-          <button data-v="week">주별</button>
-          <button data-v="month" class="active">월별</button>
-          <button data-v="year">연도별</button>
+    <!-- 스크롤해도 따라오는 필터 바 — 아래에서 기준을 바꾸려고 맨 위까지 올라갈 필요가 없다 -->
+    <div class="filterbar" id="aFilterBar">
+      <div class="row between">
+        <div class="row">
+          <div class="seg" id="aGranSeg">
+            <button data-v="day">일별</button>
+            <button data-v="week">주별</button>
+            <button data-v="month" class="active">월별</button>
+            <button data-v="year">연도별</button>
+          </div>
+          <div class="seg" id="aCountrySeg">
+            <button data-v="ALL" class="active">전체</button>
+            <button data-v="KR">한국</button>
+            <button data-v="JP">일본</button>
+          </div>
+          <div class="seg" id="aCurrencySeg">
+            <button data-v="KRW">₩ 원화</button>
+            <button data-v="JPY">¥ 엔화</button>
+            <button data-v="USD">$ 달러</button>
+          </div>
         </div>
-        <div class="seg" id="aCountrySeg">
-          <button data-v="ALL" class="active">전체</button>
-          <button data-v="KR">한국</button>
-          <button data-v="JP">일본</button>
+        <div class="row">
+          <div class="seg" id="aRangeSeg">
+            <button data-v="30">최근 30일</button>
+            <button data-v="90">최근 90일</button>
+            <button data-v="365">최근 1년</button>
+            <button data-v="ytd">올해</button>
+            <button data-v="all">전체</button>
+          </div>
+          <input type="date" id="aStart" class="mono">
+          <span style="color:var(--muted); font-size:12px;">~</span>
+          <input type="date" id="aEnd" class="mono">
         </div>
-        <div class="seg" id="aCurrencySeg">
-          <button data-v="KRW">₩ 원화</button>
-          <button data-v="JPY">¥ 엔화</button>
-          <button data-v="USD">$ 달러</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="section row between">
-      <div class="row">
-        <div class="seg" id="aRangeSeg">
-          <button data-v="30">최근 30일</button>
-          <button data-v="90">최근 90일</button>
-          <button data-v="365">최근 1년</button>
-          <button data-v="ytd">올해</button>
-          <button data-v="all">전체</button>
-        </div>
-      </div>
-      <div class="row">
-        <input type="date" id="aStart" class="mono">
-        <span style="color:var(--muted); font-size:12px;">~</span>
-        <input type="date" id="aEnd" class="mono">
       </div>
     </div>
 
@@ -2976,6 +3022,15 @@ function shell(){
     await CD.Store.saveSettings({ air:{ ...airTiers(), highRateUsd: Number(e.target.value)||0 } });
   });
   syncRangeUi();
+  /* 필터 바가 상단에 붙었을 때만 아래 구분선을 띄운다 */
+  (function(){
+    const bar = document.getElementById("aFilterBar");
+    if(!bar) return;
+    window.addEventListener("scroll", ()=>{
+      if(!root.classList.contains("active")) return;
+      bar.classList.toggle("stuck", bar.getBoundingClientRect().top <= 0.5);
+    }, {passive:true});
+  })();
   built = true;
 }
 
@@ -3632,13 +3687,22 @@ let skuQ = "", skuPage = 0;
 const SKU_PER = 15;
 let lastRows = [], lastCountries = [];      // 엑셀 내보내기가 화면과 같은 값을 쓰도록 보관
 
-const DELTA_DAYS = 30;
+/**
+ * 증감 비교 구간 = 화면에서 고른 기간 그 자체 vs 바로 앞의 같은 길이 구간.
+ * 최근 90일을 고르면 직전 90일과, 올해를 고르면 직전 같은 일수와 비교된다.
+ */
 function deltaWindows(){
-  const end = CD.todayISO();
-  const start = CD.addDays(end, -(DELTA_DAYS-1));
+  const start = aRange.start, end = aRange.end;
+  const days = Math.max(1, Math.round((CD.parseISO(end)-CD.parseISO(start))/86400000) + 1);
   const pEnd = CD.addDays(start, -1);
-  const pStart = CD.addDays(pEnd, -(DELTA_DAYS-1));
-  return { start, end, pStart, pEnd };
+  const pStart = CD.addDays(pEnd, -(days-1));
+  return { start, end, pStart, pEnd, days };
+}
+/** "직전 90일" 처럼 사람이 읽는 구간 이름 */
+function deltaLabel(days){
+  if(days % 365 === 0) return `직전 ${days/365}년`;
+  if(days % 30 === 0 && days >= 30) return `직전 ${days}일`;
+  return `직전 ${days}일`;
 }
 /** 한 구간(시작~종료, 양 끝 포함)의 국가별 수량·비용 합계 (각 국가 현지통화 기준) */
 function rangeAgg(start, end, countries){
@@ -3701,11 +3765,12 @@ function refresh(){
   }
   const cur30 = rangeAgg(dw.start, dw.end, countries);
   const prev30 = rangeAgg(dw.pStart, dw.pEnd, countries);
+  const dLbl = deltaLabel(dw.days);
   function countryStats(c){
     let shipped=0, cost=0;
     rows.forEach(r=>{ const b=r.byCountry[c]; if(b){ shipped+=b.shipped; cost+=bucketCost(b); } });
     const perOrder = shipped>0 ? cost/shipped : 0;
-    // 증감은 최근 30일 건당비용 vs 직전 30일 건당비용
+    // 증감은 선택 기간 건당비용 vs 바로 앞 같은 길이 구간
     let deltaPct = null;
     const nb = cur30[c], pb = prev30[c];
     const nowPO  = nb && nb.shipped>0 ? bucketCost(nb)/nb.shipped : null;
@@ -3732,7 +3797,7 @@ function refresh(){
     const dot = `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>`;
     const wide = oneCountry ? " wide" : "";     // 국가 하나면 아랫줄도 2칸씩 채운다
     cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp0(costDisp)}</div><div class="sub" title="출고비+통관·택배+항공+트럭킹+취급주의">${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)} 합계</div></div>`);
-    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub">${st.deltaPct==null?'<span class="delta">최근 30일 비교 불가</span>':`<span class="delta${dCls}">${flat?"":(st.deltaPct>0?"▲":"▼")}${Math.abs(st.deltaPct).toFixed(1)}%</span><span style="color:var(--muted)">직전 30일 대비</span>`}</div></div>`);
+    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub">${st.deltaPct==null?`<span class="delta">${dLbl} 비교 불가</span>`:`<span class="delta${dCls}">${flat?"":(st.deltaPct>0?"▲":"▼")}${Math.abs(st.deltaPct).toFixed(1)}%</span><span style="color:var(--muted)">${dLbl} 대비</span>`}</div></div>`);
   });
   const aK = document.getElementById("aKpis");
   aK.className = "section grid kpis24";
@@ -3758,7 +3823,7 @@ function refresh(){
   COST_KEYS.forEach(t=>{ typeTotals[t.key] = rows.reduce((sum,r)=> sum + bucketTypeSum(r, t.key), 0); });
   const grandTotal = COST_KEYS.reduce((sum,t)=> sum + typeTotals[t.key], 0);
 
-  /** 30일 창 하나의 특정 비용 항목을 표시 통화로 합산 */
+  /** 비교 창 하나의 특정 비용 항목을 표시 통화로 합산 */
   function winTypeSum(win, key){
     return kpiCountries.reduce((sum,c)=>{
       const b = win[c];
@@ -3766,11 +3831,11 @@ function refresh(){
     }, 0);
   }
   document.getElementById("aCostHint").textContent =
-    `${label} · ${rangeText()} 합계 · ${dispSym()} 기준 · 증감은 최근 30일(${CD.fmtShort(dw.start)}~${CD.fmtShort(dw.end)}) vs 직전 30일`;
+    `${label} · ${rangeText()} 합계 · ${dispSym()} 기준 · 증감은 이 기간 vs ${dLbl}(${CD.fmtShort(dw.pStart)}~${CD.fmtShort(dw.pEnd)})`;
   document.getElementById("aCostKpis").innerHTML = COST_KEYS.map(t=>{
     const total = typeTotals[t.key];
     const share = grandTotal>0 ? total/grandTotal*100 : 0;
-    let d = null;                                   // 최근 30일 vs 직전 30일
+    let d = null;                                   // 선택 기간 vs 직전 동일 길이 구간
     const now = winTypeSum(cur30, t.key);
     const before = winTypeSum(prev30, t.key);
     if(before>0) d = (now-before)/before*100;
@@ -3882,6 +3947,7 @@ function refresh(){
       labelFn:k=> compLabel[k],
       xLabelFn: keyLabel, tipTitleFn: keyLabel,
       valueFmt: v=> fmtDisp(v),
+      axisFmt: v=> Charts.compactMoney(dispSym(), v),
       legend: i===countries.length-1 ? document.getElementById("aCompLegend") : null
     });
   });
@@ -4401,6 +4467,578 @@ CD.on("shipments", refresh);
 CD.on("settings", refresh);
 CD.on("handling", refresh);
 CD.on("tab", t=>{ if(t==="report") refresh(); });
+CD.on("ready", ()=>{ shell(); refresh(); });
+})();
+</script>
+
+<script>
+/* =====================================================================
+   INVOICES TAB — 협력사별 청구 금액 입력과 추이
+   ===================================================================== */
+(function(){
+"use strict";
+const CD = window.CD, Charts = window.CDCharts;
+const root = document.getElementById("view-invoices");
+const overlay = document.getElementById("modalOverlay");
+const modalBody = document.getElementById("modalBody");
+let built = false;
+
+/* ---------- 협력사 마스터 ----------
+   각 업체가 실제로 청구하는 항목과 청구 통화를 미리 묶어 두어
+   입력할 때 항목·통화를 고르는 수고를 없앤다. */
+const VENDORS = [
+  { key:"NYUNNIE", label:"Nyunnie",  currency:"USD", color:"--cost-pack",     items:["packing","handling","trucking"], note:"미국 창고 출고 · 취급주의 · 트럭킹" },
+  { key:"BINEX",   label:"BINEX",    currency:"USD", color:"--cost-air",      items:["air"],                           note:"항공 운송" },
+  { key:"EUNHA",   label:"은하쉬핑",  currency:"KRW", color:"--cost-lastmile", items:["customs"],                       note:"한국 통관 · 택배" },
+  { key:"KPOST",   label:"우체국",    currency:"KRW", color:"--good",          items:["customs"],                       note:"한국 통관 · 택배" },
+  { key:"KOKUSAI", label:"고쿠사이",  currency:"JPY", color:"--cost-handling", items:["customs"],                       note:"일본 통관 · 택배" },
+];
+const V_BY_KEY = {}; VENDORS.forEach(v=> V_BY_KEY[v.key] = v);
+/* 모든 업체에 공통으로 붙을 수 있는 항목 */
+const COMMON_ITEMS = ["credit","fixed","other"];
+const ITEM_LABEL = {
+  packing:"출고비", handling:"취급주의 출고비", trucking:"트럭킹비", air:"항공비",
+  customs:"통관·택배비", credit:"크레딧 (차감)", fixed:"추가 고정비", other:"기타"
+};
+const ITEM_COLOR = {
+  packing:"--cost-pack", handling:"--cost-handling", trucking:"--cost-truck", air:"--cost-air",
+  customs:"--cost-lastmile", credit:"--good", fixed:"--muted", other:"--line-strong"
+};
+const ITEM_KEYS = ["packing","handling","trucking","air","customs","fixed","other","credit"];
+function itemsFor(vk){ const v = V_BY_KEY[vk]; return (v ? v.items : []).concat(COMMON_ITEMS); }
+/** 크레딧은 받는 돈이므로 합계에서 빼야 한다. 입력은 양수로 받는다. */
+function signed(rec){ return (rec.item === "credit" ? -1 : 1) * (Number(rec.amount)||0); }
+
+/* ---------- 통화 ---------- */
+let cur = "KRW";
+try{ cur = localStorage.getItem("cargodesk_dispCurrency") || "KRW"; }catch(e){}
+function fxOf(c){
+  const f = CD.Cache.settings.fx || {};
+  return c==="USD" ? 1 : c==="KRW" ? (f.usdKrw||1300) : (f.usdJpy||150);
+}
+function sym(c){ c = c || cur; return c==="USD" ? "$" : c==="KRW" ? "₩" : "¥"; }
+/** 아무 통화로 적힌 금액을 화면 표시 통화로 환산 */
+function toDisp(amount, fromCur){ return ((amount||0) / fxOf(fromCur||"USD")) * fxOf(cur); }
+function fmtD(v){
+  if(cur==="USD") return "$" + (v||0).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
+  return sym() + CD.fmtNum(v||0);
+}
+function fmtD0(v){ const s = v<0 ? "-" : ""; return s + sym() + Math.round(Math.abs(v||0)).toLocaleString("en-US"); }
+function fmtIn(amount, c){
+  if(c==="USD") return "$" + (amount||0).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
+  return sym(c) + CD.fmtNum(amount||0);
+}
+
+/* ---------- 기간 (월 단위) ---------- */
+function addMonths(p, n){
+  let y = Number(p.slice(0,4)), m = Number(p.slice(5,7)) + n;
+  while(m > 12){ m -= 12; y++; }
+  while(m < 1){ m += 12; y--; }
+  return y + "-" + String(m).padStart(2,"0");
+}
+function thisMonth(){ return CD.todayISO().slice(0,7); }
+function monthsAgo(n){ return addMonths(thisMonth(), -n); }
+const iRange = { start: monthsAgo(5), end: thisMonth() };
+try{
+  const saved = JSON.parse(localStorage.getItem("cargodesk_invRange") || "null");
+  if(saved && saved.start && saved.end){ iRange.start = saved.start; iRange.end = saved.end; }
+}catch(e){}
+function saveRange(){ try{ localStorage.setItem("cargodesk_invRange", JSON.stringify(iRange)); }catch(e){} }
+/** start~end 사이의 YYYY-MM 목록 */
+function monthList(start, end){
+  const out = [];
+  let [y,m] = start.split("-").map(Number);
+  const [ey,em] = end.split("-").map(Number);
+  let guard = 0;
+  while((y < ey || (y===ey && m<=em)) && guard++ < 600){
+    out.push(y + "-" + String(m).padStart(2,"0"));
+    m++; if(m>12){ m=1; y++; }
+  }
+  return out;
+}
+function monthSpan(){ return monthList(iRange.start, iRange.end).length; }
+/** 같은 길이만큼 앞선 직전 구간 */
+function prevRange(){
+  const span = monthSpan();
+  const pEnd = addMonths(iRange.start, -1);
+  return { start: addMonths(pEnd, -(span-1)), end: pEnd, span };
+}
+function earliestPeriod(){
+  let min = null;
+  (CD.Cache.invoices||[]).forEach(r=>{ if(r.period && (!min || r.period < min)) min = r.period; });
+  return min || monthsAgo(11);
+}
+let vendorFilter = "ALL";
+let q = "", page = 0;
+const PER = 15;
+let editingId = null;
+let lastRows = [];
+
+/* ---------- 조회 ---------- */
+function rowsIn(start, end){
+  return (CD.Cache.invoices||[]).filter(r=> r.period && r.period >= start && r.period <= end && V_BY_KEY[r.vendor]);
+}
+/** 기간 합계를 업체별로 (표시 통화 기준) */
+function sumByVendor(start, end){
+  const by = {}; VENDORS.forEach(v=> by[v.key] = 0);
+  rowsIn(start, end).forEach(r=>{ by[r.vendor] += toDisp(signed(r), r.currency); });
+  return by;
+}
+
+/* ---------------------------------------------------------------------
+   껍데기
+   --------------------------------------------------------------------- */
+function shell(){
+  if(built) return;
+  root.innerHTML = `
+    <div class="filterbar" id="iFilterBar">
+      <div class="row between">
+        <div class="row">
+          <div class="seg" id="iPresetSeg">
+            <button data-v="6">최근 6개월</button>
+            <button data-v="12">최근 12개월</button>
+            <button data-v="ytd">올해</button>
+            <button data-v="all">전체</button>
+          </div>
+          <input type="month" id="iStart" class="mono">
+          <span style="color:var(--muted); font-size:12px;">~</span>
+          <input type="month" id="iEnd" class="mono">
+        </div>
+        <div class="row">
+          <select id="iVendorSel" style="min-width:120px;">
+            <option value="ALL">전체 업체</option>
+            ${VENDORS.map(v=>`<option value="${v.key}">${v.label}</option>`).join("")}
+          </select>
+          <div class="seg" id="iCurrencySeg">
+            <button data-v="KRW">₩</button>
+            <button data-v="JPY">¥</button>
+            <button data-v="USD">$</button>
+          </div>
+          <button type="button" class="btn primary" id="iAddBtn">청구 입력</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section grid kpis4" id="iKpis"></div>
+
+    <div class="section">
+      <div class="section-head"><h2>업체별 청구액</h2><span class="hint" id="iVendorHint"></span></div>
+      <div class="grid kpis5" id="iVendorKpis"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>업체별 추이</h2><span class="hint" id="iTrendHint"></span></div>
+      <div class="card">
+        <div id="iTrendChart"></div>
+        <div class="chart-legend" id="iTrendLegend"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>월별 항목 구성</h2><span class="hint">막대에 마우스를 올리면 항목별 금액이 보입니다 · 크레딧 제외</span></div>
+      <div class="card">
+        <div id="iCompChart"></div>
+        <div class="chart-legend" id="iCompLegend"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>청구 내역</h2>
+        <div class="row">
+          <span class="hint" id="iTableHint"></span>
+          <button type="button" class="btn small ghost" id="iExportBtn">엑셀 다운로드</button>
+        </div>
+      </div>
+      <div class="list-tools">
+        <div class="search"><input type="text" id="iQuery" placeholder="업체 · 항목 · 인보이스 번호 · 메모 검색"></div>
+      </div>
+      <div class="table-wrap">
+        <table class="inv-table">
+          <thead><tr>
+            <th class="text">월</th><th class="text">업체</th><th class="text">항목</th>
+            <th>청구 금액</th><th>환산</th>
+            <th class="text">인보이스 번호</th><th class="text">메모</th><th class="text"></th>
+          </tr></thead>
+          <tbody id="iTableBody"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="iPager"></div>
+    </div>
+  `;
+
+  document.getElementById("iPresetSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    const v = b.dataset.v, tm = thisMonth();
+    if(v === "ytd")      { iRange.start = tm.slice(0,4)+"-01"; iRange.end = tm; }
+    else if(v === "all") { iRange.start = earliestPeriod();    iRange.end = tm; }
+    else                 { iRange.start = addMonths(tm, -(Number(v)-1)); iRange.end = tm; }
+    saveRange(); page = 0; refresh();
+  });
+  document.getElementById("iStart").addEventListener("change", e=>{
+    if(!e.target.value) return;
+    iRange.start = e.target.value;
+    if(iRange.start > iRange.end) iRange.end = iRange.start;
+    saveRange(); page = 0; refresh();
+  });
+  document.getElementById("iEnd").addEventListener("change", e=>{
+    if(!e.target.value) return;
+    iRange.end = e.target.value;
+    if(iRange.end < iRange.start) iRange.start = iRange.end;
+    saveRange(); page = 0; refresh();
+  });
+  document.getElementById("iVendorSel").addEventListener("change", e=>{ vendorFilter = e.target.value; page = 0; refresh(); });
+  document.getElementById("iCurrencySeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    cur = b.dataset.v;
+    try{ localStorage.setItem("cargodesk_dispCurrency", cur); }catch(err){}
+    refresh();
+  });
+  document.getElementById("iAddBtn").addEventListener("click", ()=> openForm(null));
+  document.getElementById("iExportBtn").addEventListener("click", exportInvoices);
+  document.getElementById("iQuery").addEventListener("input", e=>{ q = e.target.value; page = 0; renderTable(); });
+
+  /* 붙었을 때만 아래 선이 생기게 */
+  const bar = document.getElementById("iFilterBar");
+  window.addEventListener("scroll", ()=>{
+    if(!root.classList.contains("active")) return;
+    bar.classList.toggle("stuck", bar.getBoundingClientRect().top <= 0.5);
+  }, {passive:true});
+
+  built = true;
+}
+
+function syncControls(){
+  const sEl = document.getElementById("iStart"), eEl = document.getElementById("iEnd");
+  if(sEl) sEl.value = iRange.start;
+  if(eEl) eEl.value = iRange.end;
+  const tm = thisMonth();
+  let active = "";
+  if(iRange.end === tm){
+    const span = monthSpan();
+    if(span === 6) active = "6";
+    else if(span === 12) active = "12";
+    if(iRange.start === tm.slice(0,4)+"-01") active = "ytd";
+    if(iRange.start === earliestPeriod()) active = "all";
+  }
+  document.querySelectorAll("#iPresetSeg button").forEach(b=> b.classList.toggle("active", b.dataset.v === active));
+  document.querySelectorAll("#iCurrencySeg button").forEach(b=> b.classList.toggle("active", b.dataset.v === cur));
+  const vs = document.getElementById("iVendorSel");
+  if(vs) vs.value = vendorFilter;
+}
+
+/* ---------------------------------------------------------------------
+   렌더
+   --------------------------------------------------------------------- */
+function refresh(){
+  if(!built) return;
+  syncControls();
+
+  const vendorsShown = vendorFilter==="ALL" ? VENDORS : VENDORS.filter(v=>v.key===vendorFilter);
+  const vKeys = vendorsShown.map(v=>v.key);
+  const pr = prevRange();
+  const curBy  = sumByVendor(iRange.start, iRange.end);
+  const prevBy = sumByVendor(pr.start, pr.end);
+  const rows = rowsIn(iRange.start, iRange.end).filter(r=> vKeys.indexOf(r.vendor) >= 0);
+
+  const net    = vKeys.reduce((s,k)=> s + curBy[k], 0);
+  const netPrev= vKeys.reduce((s,k)=> s + prevBy[k], 0);
+  const gross  = rows.filter(r=>r.item!=="credit").reduce((s,r)=> s + toDisp(r.amount, r.currency), 0);
+  const credit = rows.filter(r=>r.item==="credit").reduce((s,r)=> s + toDisp(r.amount, r.currency), 0);
+  const span   = monthSpan();
+  const spanTxt = `${span}개월`;
+
+  /* ---- 요약 KPI ---- */
+  const dPct = netPrev>0 ? (net-netPrev)/netPrev*100 : null;
+  const dFlat = dPct!=null && Math.abs(dPct) < 0.05;
+  const dCls = (dPct==null || dFlat) ? "" : (dPct<0 ? " good" : " bad");
+  const dTxt = dPct==null ? `<span class="delta">직전 ${spanTxt} 비교 불가</span>`
+    : `<span class="delta${dCls}">${dFlat?"":(dPct>0?"▲":"▼")}${Math.abs(dPct).toFixed(1)}%</span><span style="color:var(--muted)">직전 ${spanTxt} 대비</span>`;
+  document.getElementById("iKpis").innerHTML = `
+    <div class="kpi"><div class="label">순 청구액</div><div class="value">${fmtD0(net)}</div>
+      <div class="sub">${dTxt}</div></div>
+    <div class="kpi"><div class="label">청구 합계</div><div class="value">${fmtD0(gross)}</div>
+      <div class="sub">크레딧 차감 전 · ${iRange.start}~${iRange.end}</div></div>
+    <div class="kpi"><div class="label">크레딧</div><div class="value">${fmtD0(credit)}</div>
+      <div class="sub">${rows.filter(r=>r.item==="credit").length}건 · 합계에서 차감됨</div></div>
+    <div class="kpi"><div class="label">월 평균</div><div class="value">${fmtD0(span>0?net/span:0)}</div>
+      <div class="sub">${spanTxt} 기준 · 등록 ${CD.fmtNum(rows.length)}건</div></div>
+  `;
+  CD.fitKpi(document.getElementById("iKpis"));
+
+  /* ---- 업체별 카드 ---- */
+  const totalAbs = VENDORS.reduce((s,v)=> s + Math.abs(curBy[v.key]), 0);
+  document.getElementById("iVendorHint").textContent =
+    `${iRange.start} ~ ${iRange.end} · ${sym()} 기준 · 증감은 직전 ${spanTxt}(${pr.start}~${pr.end}) 대비`;
+  document.getElementById("iVendorKpis").innerHTML = VENDORS.map(v=>{
+    const now = curBy[v.key], before = prevBy[v.key];
+    const share = totalAbs>0 ? Math.abs(now)/totalAbs*100 : 0;
+    let d = null;
+    if(before>0) d = (now-before)/before*100;
+    const flat = d!=null && Math.abs(d) < 0.05;
+    const cls = (d==null || flat) ? "" : (d<0 ? " good" : " bad");
+    const txt = d==null ? `<span class="delta">비교 불가</span>`
+      : `<span class="delta${cls}">${flat?"":(d>0?"▲":"▼")}${Math.abs(d).toFixed(1)}%</span>`;
+    const dim = (vendorFilter!=="ALL" && vendorFilter!==v.key) ? ' style="opacity:.45"' : "";
+    return `<div class="kpi"${dim}>
+      <div class="label"><span class="dot" style="background:var(${v.color})"></span>${v.label}</div>
+      <div class="value">${fmtD0(now)}</div>
+      <div class="sub">${txt}<span style="color:var(--muted)">전체의 ${share.toFixed(1)}%</span></div>
+      <div style="height:5px; border-radius:3px; background:var(--surface-2); overflow:hidden;">
+        <div style="height:100%; width:${share}%; background:var(${v.color}); border-radius:3px;"></div>
+      </div>
+    </div>`;
+  }).join("");
+  CD.fitKpi(document.getElementById("iVendorKpis"));
+
+  /* ---- 업체별 추이 ---- */
+  const months = monthList(iRange.start, iRange.end);
+  document.getElementById("iTrendHint").textContent = `${sym()} 환산 · 월별 청구액 (크레딧 차감 반영)`;
+  const byMonthVendor = {};
+  months.forEach(m=>{ byMonthVendor[m] = {}; VENDORS.forEach(v=> byMonthVendor[m][v.key] = null); });
+  rowsIn(iRange.start, iRange.end).forEach(r=>{
+    const slot = byMonthVendor[r.period];
+    if(slot) slot[r.vendor] = (slot[r.vendor]||0) + toDisp(signed(r), r.currency);
+  });
+  Charts.lineChart(document.getElementById("iTrendChart"), {
+    series: vendorsShown.map(v=>({
+      key:v.key, label:v.label, color:CD.cssVar(v.color),
+      // 청구가 없는 달은 NaN — 0으로 두면 없는 달이 급락처럼 보인다
+      values: months.map(m=> byMonthVendor[m][v.key] == null ? NaN : byMonthVendor[m][v.key])
+    })),
+    labels: months.map(CD.monthLabel),
+    yFmt: (v,d)=> Charts.compactMoney(sym(), v),
+    legend: document.getElementById("iTrendLegend")
+  });
+
+  /* ---- 월별 항목 구성 ---- */
+  const compData = months.map(m=>{
+    const o = { date:m };
+    ITEM_KEYS.forEach(k=> o[k] = 0);
+    return o;
+  });
+  const compIdx = {}; months.forEach((m,i)=> compIdx[m] = i);
+  rowsIn(iRange.start, iRange.end).forEach(r=>{
+    if(vKeys.indexOf(r.vendor) < 0) return;
+    const i = compIdx[r.period]; if(i==null) return;
+    // 크레딧은 음수 막대를 만들 수 없으니 구성 차트에서는 제외하고 툴팁 합계에도 빼둔다
+    if(r.item === "credit") return;
+    compData[i][r.item] = (compData[i][r.item]||0) + toDisp(r.amount, r.currency);
+  });
+  const usedKeys = ITEM_KEYS.filter(k=> k!=="credit" && compData.some(d=> (d[k]||0) > 0));
+  Charts.stackedBarChart(document.getElementById("iCompChart"), {
+    data: compData, keys: usedKeys.length ? usedKeys : ["other"],
+    colorFn: k=> CD.cssVar(ITEM_COLOR[k]||"--line-strong"),
+    labelFn: k=> ITEM_LABEL[k]||k,
+    legend: document.getElementById("iCompLegend"),
+    xLabelFn: CD.monthLabel, tipTitleFn: CD.monthLabel,
+    valueFmt: v=> fmtD0(v),
+    axisFmt: v=> Charts.compactMoney(sym(), v)
+  });
+
+  lastRows = rows;
+  renderTable();
+}
+
+function renderTable(){
+  const body = document.getElementById("iTableBody");
+  if(!body) return;
+  const all = lastRows.slice().sort((a,b)=>
+    a.period===b.period ? (a.vendor===b.vendor ? (a.item<b.item?-1:1) : (a.vendor<b.vendor?-1:1)) : (a.period<b.period?1:-1));
+  const filtered = all.filter(r=> CD.matchQuery(q, V_BY_KEY[r.vendor]?V_BY_KEY[r.vendor].label:r.vendor, ITEM_LABEL[r.item]||r.item, r.invoiceNo, r.memo, r.period));
+  const pages = Math.max(1, Math.ceil(filtered.length/PER));
+  if(page >= pages) page = pages-1;
+  if(page < 0) page = 0;
+  const shown = filtered.slice(page*PER, (page+1)*PER);
+  const total = filtered.reduce((s,r)=> s + toDisp(signed(r), r.currency), 0);
+  document.getElementById("iTableHint").textContent =
+    `${CD.fmtNum(filtered.length)}건 · 합계 ${fmtD0(total)}`;
+  CD.renderPager(document.getElementById("iPager"), {
+    total: filtered.length, page, perPage: PER, onGo: n=>{ page = n; renderTable(); }
+  });
+  body.innerHTML = shown.map(r=>{
+    const v = V_BY_KEY[r.vendor] || {label:r.vendor, color:"--muted"};
+    const neg = r.item === "credit";
+    return `<tr>
+      <td class="text mono">${r.period}</td>
+      <td class="text"><span class="dot" style="background:var(${v.color}); display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px;"></span>${v.label}</td>
+      <td class="text">${ITEM_LABEL[r.item]||r.item}</td>
+      <td class="mono"${neg?' style="color:var(--good-ink)"':''}>${neg?"-":""}${fmtIn(r.amount, r.currency)}</td>
+      <td class="mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(toDisp(signed(r), r.currency))}</td>
+      <td class="text mono">${r.invoiceNo||"-"}</td>
+      <td class="text">${r.memo||""}</td>
+      <td class="text"><button class="btn small ghost" data-edit="${r.id}">수정</button> <button class="btn small danger ghost" data-del="${r.id}">삭제</button></td>
+    </tr>`;
+  }).join("") ||
+    `<tr><td colspan="8" class="text empty-note">${all.length ? "검색 결과가 없습니다." : "이 기간에 등록된 청구 내역이 없습니다. 오른쪽 위 <b>청구 입력</b>으로 추가하세요."}</td></tr>`;
+
+  body.querySelectorAll("[data-edit]").forEach(b=>{
+    b.addEventListener("click", ()=>{ const rec = lastRows.find(r=>r.id===b.dataset.edit); if(rec) openForm(rec); });
+  });
+  body.querySelectorAll("[data-del]").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      const rec = lastRows.find(r=>r.id===b.dataset.del);
+      if(!rec) return;
+      if(!confirm(`${rec.period} · ${(V_BY_KEY[rec.vendor]||{}).label} · ${ITEM_LABEL[rec.item]} 청구를 삭제할까요?`)) return;
+      await CD.Store.deleteInvoice(rec.id);
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------
+   입력 모달
+   --------------------------------------------------------------------- */
+function closeForm(){ overlay.hidden = true; modalBody.className = "modal"; modalBody.innerHTML = ""; }
+function invId(vendor, period, item){ return `${vendor}__${period}__${item}`; }
+
+function itemOptions(vendorKey, selected){
+  return itemsFor(vendorKey).map(k=>
+    `<option value="${k}"${k===selected?" selected":""}>${ITEM_LABEL[k]}</option>`).join("");
+}
+
+function openForm(rec){
+  editingId = rec ? rec.id : null;
+  const vk = rec ? rec.vendor : VENDORS[0].key;
+  const v = V_BY_KEY[vk];
+  modalBody.className = "modal";
+  modalBody.innerHTML = `
+    <div class="modal-head">
+      <h3>${rec ? "청구 내역 수정" : "청구 입력"}</h3>
+      <button class="close-x" type="button" id="ivClose">&times;</button>
+    </div>
+    <form id="ivForm">
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="field"><label>업체</label>
+          <select id="ivVendor">${VENDORS.map(x=>`<option value="${x.key}"${x.key===vk?" selected":""}>${x.label}</option>`).join("")}</select>
+        </div>
+        <div class="field"><label>청구 월</label>
+          <input type="month" id="ivPeriod" class="mono" value="${rec ? rec.period : thisMonth()}" required>
+        </div>
+        <div class="field"><label>항목</label>
+          <select id="ivItem">${itemOptions(vk, rec ? rec.item : null)}</select>
+        </div>
+        <div class="field"><label>통화</label>
+          <select id="ivCur">
+            ${["USD","KRW","JPY"].map(c=>`<option value="${c}"${c===(rec?rec.currency:v.currency)?" selected":""}>${c}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>청구 금액</label>
+          <input type="number" step="0.01" min="0" class="num-input" id="ivAmount" value="${rec ? rec.amount : ""}" required>
+        </div>
+        <div class="field"><label>인보이스 번호 (선택)</label>
+          <input type="text" id="ivNo" class="mono" value="${rec ? (rec.invoiceNo||"") : ""}" placeholder="예: BX-2026-0912">
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>메모 (선택)</label>
+        <input type="text" id="ivMemo" value="${rec ? (rec.memo||"").replace(/"/g,"&quot;") : ""}" placeholder="예: 8월분 정산, 일부 할인 반영">
+      </div>
+      <div class="help" id="ivHelp" style="margin-top:8px;"></div>
+      <div class="modal-foot" style="margin-top:16px;">
+        ${rec ? `<button type="button" class="btn danger ghost" id="ivDelete" style="margin-right:auto;">삭제</button>` : ``}
+        <button type="button" class="btn ghost" id="ivCancel">취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </div>
+    </form>
+  `;
+  overlay.hidden = false;
+
+  const vendorEl = document.getElementById("ivVendor");
+  const itemEl = document.getElementById("ivItem");
+  const curEl = document.getElementById("ivCur");
+  const helpEl = document.getElementById("ivHelp");
+  function syncHelp(){
+    const vv = V_BY_KEY[vendorEl.value];
+    const it = itemEl.value;
+    helpEl.innerHTML = it === "credit"
+      ? `크레딧은 <b>받을 금액을 양수로</b> 입력하세요. 합계에서 자동으로 차감됩니다.`
+      : `${vv.label} · ${vv.note} · 기본 청구 통화 ${vv.currency}`;
+  }
+  vendorEl.addEventListener("change", ()=>{
+    const vv = V_BY_KEY[vendorEl.value];
+    itemEl.innerHTML = itemOptions(vendorEl.value, null);
+    curEl.value = vv.currency;
+    syncHelp();
+  });
+  itemEl.addEventListener("change", syncHelp);
+  syncHelp();
+
+  document.getElementById("ivClose").addEventListener("click", closeForm);
+  document.getElementById("ivCancel").addEventListener("click", closeForm);
+  const delBtn = document.getElementById("ivDelete");
+  if(delBtn) delBtn.addEventListener("click", async ()=>{
+    if(!confirm("이 청구 내역을 삭제할까요?")) return;
+    await CD.Store.deleteInvoice(editingId);
+    closeForm();
+  });
+
+  document.getElementById("ivForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const vendor = vendorEl.value;
+    const period = document.getElementById("ivPeriod").value;
+    const item = itemEl.value;
+    const amount = Number(document.getElementById("ivAmount").value) || 0;
+    if(!period){ alert("청구 월을 선택하세요."); return; }
+    const id = invId(vendor, period, item);
+    const other = (CD.Cache.invoices||[]).find(r=> r.id === id && r.id !== editingId);
+    if(other && !confirm(`${period} · ${V_BY_KEY[vendor].label} · ${ITEM_LABEL[item]} 청구가 이미 있습니다. 덮어쓸까요?`)) return;
+    await CD.Store.upsertInvoice({
+      id, vendor, period, item, amount,
+      currency: curEl.value,
+      invoiceNo: document.getElementById("ivNo").value.trim(),
+      memo: document.getElementById("ivMemo").value.trim()
+    });
+    if(editingId && editingId !== id) await CD.Store.deleteInvoice(editingId);
+    closeForm();
+  });
+}
+
+/* ---------------------------------------------------------------------
+   엑셀 내보내기
+   --------------------------------------------------------------------- */
+const XLSX_CDN = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+function loadXlsx(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement("script");
+    s.src = XLSX_CDN;
+    s.onload = ()=> resolve(window.XLSX);
+    s.onerror = ()=> reject(new Error("엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요."));
+    document.head.appendChild(s);
+  });
+}
+async function exportInvoices(){
+  try{
+    const XLSX = await loadXlsx();
+    const rows = lastRows.slice().sort((a,b)=> a.period===b.period ? (a.vendor<b.vendor?-1:1) : (a.period<b.period?-1:1));
+    const aoa = [["청구 월","업체","항목","통화","청구 금액","환산("+cur+")","인보이스 번호","메모"]];
+    rows.forEach(r=>{
+      aoa.push([
+        r.period,
+        (V_BY_KEY[r.vendor]||{}).label || r.vendor,
+        ITEM_LABEL[r.item] || r.item,
+        r.currency,
+        signed(r),
+        Number(toDisp(signed(r), r.currency).toFixed(2)),
+        r.invoiceNo || "",
+        r.memo || ""
+      ]);
+    });
+    const total = rows.reduce((s,r)=> s + toDisp(signed(r), r.currency), 0);
+    aoa.push([]);
+    aoa.push(["합계","","","","", Number(total.toFixed(2)), "", ""]);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{wch:10},{wch:12},{wch:16},{wch:7},{wch:14},{wch:14},{wch:18},{wch:26}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "인보이스");
+    XLSX.writeFile(wb, `인보이스_${iRange.start}_${iRange.end}_${cur}.xlsx`);
+  }catch(err){
+    alert(String(err.message||err));
+  }
+}
+
+CD.on("invoices", refresh);
+CD.on("settings", refresh);
+CD.on("tab", t=>{ if(t==="invoices") refresh(); });
 CD.on("ready", ()=>{ shell(); refresh(); });
 })();
 </script>
