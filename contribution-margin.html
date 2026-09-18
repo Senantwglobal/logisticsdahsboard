@@ -1198,7 +1198,9 @@ async function parseSettlementFile(){
     // 대부분의 행에서 걸려 실효성이 없어 경고로 띄우지 않는다.
     const parsed = parsedRaw.map(r=>{
       const mapping = channelMap.get(r.raw_label);
-      const contribution_rate = r.revenue_krw ? r.contribution_krw_file / r.revenue_krw : null;
+      // contribution_rate은 DB에서 NOT NULL이라 매출이 0인 행(빈 매출 셀 등)에서 null이 되면
+      // 저장 자체가 실패함(실제로 이 버그로 결산 저장이 막혀있었음) — 매출 0이면 0으로 고정.
+      const contribution_rate = r.revenue_krw ? r.contribution_krw_file / r.revenue_krw : 0;
       if(!mapping) unmapped.add(r.raw_label);
       return Object.assign({}, r, {
         channel: mapping ? mapping.channel : null,
