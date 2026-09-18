@@ -4028,6 +4028,9 @@ function refresh(){
     const trs = [];
     const sum = {picked:0,packed:0,shipped:0,bookings:0,pallet:0,weight:0,
                  packingCost:0,lastMileCost:0,airCost:0,truckingCost:0,handlingCost:0,total:0};
+    /* 합계 행은 각 줄을 화면에 찍힌 자릿수로 끊어서 더한다.
+       원값을 더해 한 번만 반올림하면 열을 세로로 더했을 때 합계와 몇 단위씩 어긋난다. */
+    const dsum = {packingCost:0,lastMileCost:0,airCost:0,truckingCost:0,handlingCost:0,total:0};
     for(let i = ordered.length-1; i >= 0; i--){    // 표시는 최신 → 오래된
       const b = ordered[i].byCountry[c]; if(!b) continue;
       const prev = i>0 ? ordered[i-1].byCountry[c] : null;
@@ -4039,6 +4042,12 @@ function refresh(){
       ["picked","packed","shipped","bookings","pallet","weight",
        "packingCost","lastMileCost","airCost","truckingCost","handlingCost"].forEach(k=> sum[k] += (b[k]||0));
       sum.total += total;
+      dsum.packingCost  += Math.round(toDisp(b.packingCost, c));
+      dsum.lastMileCost += Math.round(toDisp(b.lastMileCost, c));
+      dsum.airCost      += Math.round(toDisp(b.airCost, c));
+      dsum.truckingCost += Math.round(toDisp(b.truckingCost||0, c));
+      dsum.handlingCost += Math.round(toDisp(b.handlingCost||0, c));
+      dsum.total        += Math.round(totalDisp);
       trs.push(`<tr>
         <td class="text stick">${keyLabel(ordered[i].key)}</td>
         <td class="num dim">${CD.fmtNum(b.picked)}</td>
@@ -4069,19 +4078,19 @@ function refresh(){
         <td></td>
         <td class="num gsep">${CD.fmtNum(sum.bookings)}건 · ${CD.fmtNum(sum.pallet)}PLT</td>
         <td class="num">${CD.fmtNum(sum.weight)}</td>
-        <td class="num gsep">${fmtDisp0(toDisp(sum.packingCost, c))}</td>
-        <td class="num">${fmtDisp0(toDisp(sum.lastMileCost, c))}</td>
-        <td class="num">${fmtDisp0(toDisp(sum.airCost, c))}</td>
-        <td class="num">${fmtDisp0(toDisp(sum.truckingCost, c))}</td>
-        <td class="num">${fmtDisp0(toDisp(sum.handlingCost, c))}</td>
-        <td class="num">${fmtDisp0(toDisp(sum.total, c))}</td>
+        <td class="num gsep">${fmtDisp0(dsum.packingCost)}</td>
+        <td class="num">${fmtDisp0(dsum.lastMileCost)}</td>
+        <td class="num">${fmtDisp0(dsum.airCost)}</td>
+        <td class="num">${fmtDisp0(dsum.truckingCost)}</td>
+        <td class="num">${fmtDisp0(dsum.handlingCost)}</td>
+        <td class="num">${fmtDisp0(dsum.total)}</td>
         <td class="num gsep">${fmtDisp(toDisp(sumPo, c))}</td>
         <td></td>
       </tr></tfoot>` : "";
     return `<div class="card" style="margin-bottom:14px;">
       <div class="row between" style="margin-bottom:10px;">
         <span class="badge ${c.toLowerCase()}">${CD.COUNTRY_LABEL[c]}</span>
-        <span class="hint">출고 ${CD.fmtNum(sum.shipped)}건 · 물류비 ${fmtDisp0(toDisp(sum.total, c))} · 건당 ${fmtDisp(toDisp(sumPo, c))}</span>
+        <span class="hint">출고 ${CD.fmtNum(sum.shipped)}건 · 물류비 ${fmtDisp0(dsum.total)} · 건당 ${fmtDisp(toDisp(sumPo, c))}</span>
       </div>
       <div class="table-wrap">
         <table class="detail">
@@ -4576,11 +4585,25 @@ function fxOf(c){
 }
 function sym(c){ c = c || cur; return c==="USD" ? "$" : c==="KRW" ? "₩" : "¥"; }
 function toDisp(amount, fromCur){ return ((amount||0) / fxOf(fromCur||"USD")) * fxOf(cur); }
-function fmtD0(v){ const s = v<0 ? "-" : ""; return s + sym() + Math.round(Math.abs(v||0)).toLocaleString("en-US"); }
-function fmtIn(amount, c){
-  if(c==="USD") return "$" + (amount||0).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
-  return sym(c) + CD.fmtNum(amount||0);
+/* 인보이스는 실제 청구액이라 화면에서 반올림하지 않는다.
+   달러는 센트까지, 원·엔은 소수 단위가 없는 통화라 정수로 끊는다. */
+function dispDec(c){ return (c||cur) === "USD" ? 2 : 0; }
+function fmtD0(v){
+  const d = dispDec();
+  return (v<0?"-":"") + sym() + Math.abs(v||0).toLocaleString("en-US",{minimumFractionDigits:d, maximumFractionDigits:d});
 }
+function fmtIn(amount, c){
+  const a = Number(amount)||0;
+  // 원·엔이라도 소수가 입력돼 있으면 그대로 보여준다 (몰래 반올림하지 않는다)
+  const d = c==="USD" ? 2 : (Math.abs(a - Math.round(a)) > 0.004 ? 2 : 0);
+  return (a<0?"-":"") + sym(c) + Math.abs(a).toLocaleString("en-US",{minimumFractionDigits:d, maximumFractionDigits:d});
+}
+/** 표시 통화로 환산하고 화면에 보이는 자릿수까지만 남긴다 — 줄 합계가 총계와 정확히 맞도록 */
+function roundDisp(v){ const p = Math.pow(10, dispDec()); return Math.round((v||0)*p)/p; }
+/** 한 건의 환산액 (크레딧은 음수) */
+function dispAmt(rec){ return roundDisp(toDisp(signed(rec), rec.currency)); }
+/** 한 건의 환산액 (부호 없이, 크레딧 차감 전) */
+function dispGross(rec){ return roundDisp(toDisp(rec.amount, rec.currency)); }
 
 /* ---------- 기간 (월 단위) ---------- */
 function addMonths(p, n){
@@ -4687,7 +4710,7 @@ function allRows(start, end){
 }
 function sumByVendor(start, end){
   const by = {}; VENDORS.forEach(v=> by[v.key] = 0);
-  allRows(start, end).forEach(r=>{ by[r.vendor] += toDisp(signed(r), r.currency); });
+  allRows(start, end).forEach(r=>{ by[r.vendor] += dispAmt(r); });
   return by;
 }
 
@@ -4856,8 +4879,8 @@ function refresh(){
 
   const net    = vKeys.reduce((s,k)=> s + curBy[k], 0);
   const netPrev= vKeys.reduce((s,k)=> s + prevBy[k], 0);
-  const gross  = rows.filter(r=>r.item!=="credit").reduce((s,r)=> s + toDisp(r.amount, r.currency), 0);
-  const credit = rows.filter(r=>r.item==="credit").reduce((s,r)=> s + toDisp(r.amount, r.currency), 0);
+  const gross  = rows.filter(r=>r.item!=="credit").reduce((s,r)=> s + dispGross(r), 0);
+  const credit = rows.filter(r=>r.item==="credit").reduce((s,r)=> s + dispGross(r), 0);
   const span   = monthSpan();
   const spanTxt = `${span}개월`;
 
@@ -4913,7 +4936,7 @@ function refresh(){
   rows.forEach(r=>{
     if(!byMonth[r.period]) return;
     const k = oneVendor ? r.item : r.vendor;
-    byMonth[r.period][k] = (byMonth[r.period][k]||0) + toDisp(signed(r), r.currency);
+    byMonth[r.period][k] = (byMonth[r.period][k]||0) + dispAmt(r);
   });
   let series;
   if(oneVendor){
@@ -4946,7 +4969,7 @@ function refresh(){
   rows.forEach(r=>{
     if(r.item === "credit") return;
     const i = compIdx[r.period]; if(i == null) return;
-    compData[i][r.item] = (compData[i][r.item]||0) + toDisp(r.amount, r.currency);
+    compData[i][r.item] = (compData[i][r.item]||0) + dispGross(r);
   });
   const usedKeys = ITEM_ORDER.filter(k=> compData.some(d=> (d[k]||0) > 0));
   Charts.stackedBarChart(document.getElementById("iCompChart"), {
@@ -4965,8 +4988,8 @@ function refresh(){
     itemSec.hidden = false;
     const prevRows = allRows(pr.start, pr.end).filter(r=> r.vendor === oneVendor.key);
     const nowByItem = {}, prevByItem = {};
-    rows.forEach(r=>{ nowByItem[r.item] = (nowByItem[r.item]||0) + toDisp(signed(r), r.currency); });
-    prevRows.forEach(r=>{ prevByItem[r.item] = (prevByItem[r.item]||0) + toDisp(signed(r), r.currency); });
+    rows.forEach(r=>{ nowByItem[r.item] = (nowByItem[r.item]||0) + dispAmt(r); });
+    prevRows.forEach(r=>{ prevByItem[r.item] = (prevByItem[r.item]||0) + dispAmt(r); });
     const keys = ITEM_ORDER.concat(["credit"]).filter(k=> nowByItem[k] != null || prevByItem[k] != null);
     const itemTotal = keys.reduce((s,k)=> s + Math.abs(nowByItem[k]||0), 0);
     document.getElementById("iItemTitle").textContent = `${oneVendor.label} 항목별 합계`;
@@ -5014,7 +5037,7 @@ function renderTable(){
   if(page >= pages) page = pages-1;
   if(page < 0) page = 0;
   const shown = filtered.slice(page*PER, (page+1)*PER);
-  const total = filtered.reduce((s,r)=> s + toDisp(signed(r), r.currency), 0);
+  const total = filtered.reduce((s,r)=> s + dispAmt(r), 0);
   document.getElementById("iTableHint").textContent = `${CD.fmtNum(filtered.length)}건 · 합계 ${fmtD0(total)}`;
   CD.renderPager(document.getElementById("iPager"), {
     total: filtered.length, page, perPage: PER, onGo: n=>{ page = n; renderTable(); }
@@ -5027,7 +5050,7 @@ function renderTable(){
       <td class="text"><span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(${v.color}); margin-right:6px;"></span>${v.label}</td>
       <td class="text">${ITEM_LABEL[r.item]||r.item}${r.auto?`<span class="auto-tag">자동</span>`:""}</td>
       <td class="mono"${neg?' style="color:var(--good-ink)"':''}>${neg?"-":""}${fmtIn(r.amount, r.currency)}</td>
-      <td class="mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(toDisp(signed(r), r.currency))}</td>
+      <td class="mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(r))}</td>
       <td class="text mono">${r.invoiceNo||"-"}</td>
       <td class="text" style="${r.auto?"color:var(--muted)":""}">${r.memo||""}</td>
       <td class="text">
@@ -5074,7 +5097,7 @@ function openForm(rec){
   editingId = (rec && !isAuto) ? rec.id : null;
   const vk = rec ? rec.vendor : VENDORS[0].key;
   const v = V_BY_KEY[vk];
-  const amt = rec ? (isAuto ? Math.round((rec.amount||0)*100)/100 : rec.amount) : "";
+  const amt = rec ? (isAuto ? Math.round((rec.amount||0)*100)/100 : rec.amount) : "";   // 자동값은 센트까지 채워 준다
   modalBody.className = "modal";
   modalBody.innerHTML = `
     <div class="modal-head">
@@ -5270,12 +5293,12 @@ async function exportInvoices(){
         r.auto ? "자동 계산" : "직접 입력",
         r.currency,
         Number(signed(r).toFixed(2)),
-        Number(toDisp(signed(r), r.currency).toFixed(2)),
+        dispAmt(r),
         r.invoiceNo || "",
         r.memo || ""
       ]);
     });
-    const total = rows.reduce((s,r)=> s + toDisp(signed(r), r.currency), 0);
+    const total = rows.reduce((s,r)=> s + dispAmt(r), 0);
     aoa.push([]);
     aoa.push(["합계","","","","","", Number(total.toFixed(2)), "", ""]);
     const ws = XLSX.utils.aoa_to_sheet(aoa);
