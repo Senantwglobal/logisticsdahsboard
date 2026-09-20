@@ -276,6 +276,40 @@ td .btn.danger.ghost:hover{color:var(--critical-ink); background:var(--critical-
 /* 대시보드 데이터로 계산된 줄임을 표시 */
 .auto-tag{display:inline-block; margin-left:6px; font-size:10px; line-height:1.5; padding:1px 6px;
   border-radius:6px; background:var(--surface-3); color:var(--muted); vertical-align:middle; white-space:nowrap;}
+
+/* ---- 인보이스 입력: 한 장에 여러 항목을 줄로 쌓는다 ---- */
+.line-table{border-radius:var(--radius-m); background:var(--surface-2); padding:10px 12px 12px;}
+.line-head, .line-row-edit{display:grid; grid-template-columns:minmax(120px,1.1fr) minmax(90px,.9fr) minmax(120px,1.4fr) 34px; gap:8px; align-items:center;}
+.line-head{font-size:11px; color:var(--muted); padding:0 2px 7px;}
+.line-row-edit{margin-bottom:7px;}
+.line-row-edit:last-child{margin-bottom:0;}
+.line-row-edit input, .line-row-edit select{width:100%;}
+.line-row-edit .num-input{text-align:right;}
+.line-row-edit .btn{width:34px; padding:0; height:34px;}
+/* 줄 삭제 ✕ 는 평소엔 회색, 올릴 때만 빨강 */
+.line-row-edit .btn.danger.ghost{color:var(--muted);}
+.line-row-edit .btn.danger.ghost:hover:not(:disabled){color:var(--critical-ink); background:var(--critical-soft);}
+.line-row-edit .btn:disabled{opacity:.35; cursor:default;}
+.line-total{margin-top:12px; padding:10px 12px; border-radius:var(--radius-s); background:var(--surface-3);
+  font-size:12.5px; color:var(--ink-2);}
+.line-total b{font-size:14.5px; color:var(--ink); font-weight:600;}
+@media (max-width:620px){
+  .line-head{display:none;}
+  .line-row-edit{grid-template-columns:1fr 1fr; grid-auto-rows:auto; row-gap:6px;}
+  .line-row-edit input[data-f="memo"]{grid-column:1 / span 2;}
+}
+
+/* ---- 인보이스 목록: 인보이스 한 줄을 눌러 항목을 펼친다 ---- */
+tr.doc-row{cursor:pointer;}
+tr.doc-row:hover{background:var(--surface-2);}
+tr.doc-row.open{background:var(--surface-2);}
+tr.doc-row .twisty{display:inline-block; width:12px; color:var(--muted); font-size:10px;}
+tr.line-row td{background:var(--surface-2); border-bottom:1px solid var(--line); font-size:12px; padding-top:7px; padding-bottom:7px;}
+/* 펼쳐진 항목 줄이 어느 인보이스에 딸린 건지 세로선으로 묶어 준다 */
+tr.line-row td:first-child{box-shadow:inset -2px 0 0 var(--line-strong);}
+tr.line-row:last-of-type td{border-bottom:1px solid var(--line-strong);}
+tr.grp-head td{background:var(--surface-3); font-size:12px; padding-top:9px; padding-bottom:9px;
+  border-bottom:1px solid var(--line-strong);}
 .btn.on{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
 .btn.on:hover{background:var(--accent); filter:brightness(1.06);}
 td.offday{color:var(--critical-ink);}
@@ -4529,9 +4563,9 @@ CD.on("ready", ()=>{ shell(); refresh(); });
 
 <script>
 /* =====================================================================
-   INVOICES TAB — 협력사별 청구 금액과 추이
-   · Nyunnie는 항목별 직접 입력
-   · BINEX / 은하쉬핑 / 고쿠사이는 대시보드 데이터로 자동 계산 (직접 입력으로 덮어쓸 수 있음)
+   INVOICES TAB — 협력사별 청구 인보이스와 추이
+   · 한 인보이스에 여러 항목(라인)을 담는다
+   · Nyunnie는 직접 입력, BINEX / 은하쉬핑 / 고쿠사이는 대시보드 데이터로 자동 계산
    ===================================================================== */
 (function(){
 "use strict";
@@ -4562,19 +4596,16 @@ const ITEM_LABEL = {
   packing:"출고비", handling:"취급주의 포장비", trucking:"트럭킹비", storage:"보관비",
   disposal:"폐기비", supplies:"부자재", other:"기타비용",
   air:"항공비", customs:"통관·택배비", credit:"크레딧",
-  fixed:"추가 고정비"   // 예전 데이터 호환용 — 새로 고를 수는 없다
+  fixed:"추가 고정비"   // 예전 데이터 호환용
 };
 const ITEM_COLOR = {
   packing:"--cost-pack", handling:"--cost-handling", trucking:"--cost-truck", storage:"--cost-air",
   disposal:"--cost-lastmile", supplies:"--good", other:"--muted",
   air:"--cost-air", customs:"--cost-lastmile", credit:"--good", fixed:"--ink-2"
 };
-/* 차트에서 쌓는 순서 */
 const ITEM_ORDER = ["packing","handling","trucking","storage","disposal","supplies","air","customs","fixed","other"];
-/** 이 업체에서 고를 수 있는 항목 (크레딧은 전용 버튼으로만 넣는다) */
 function itemsFor(vk){ const v = V_BY_KEY[vk]; return v ? v.items.slice() : []; }
-/** 크레딧은 받는 돈이므로 합계에서 뺀다. 입력은 양수. */
-function signed(rec){ return (rec.item === "credit" ? -1 : 1) * (Number(rec.amount)||0); }
+function signedAmt(item, amount){ return (item === "credit" ? -1 : 1) * (Number(amount)||0); }
 
 /* ---------- 통화 ---------- */
 let cur = "KRW";
@@ -4585,8 +4616,6 @@ function fxOf(c){
 }
 function sym(c){ c = c || cur; return c==="USD" ? "$" : c==="KRW" ? "₩" : "¥"; }
 function toDisp(amount, fromCur){ return ((amount||0) / fxOf(fromCur||"USD")) * fxOf(cur); }
-/* 인보이스는 실제 청구액이라 화면에서 반올림하지 않는다.
-   달러는 센트까지, 원·엔은 소수 단위가 없는 통화라 정수로 끊는다. */
 function dispDec(c){ return (c||cur) === "USD" ? 2 : 0; }
 function fmtD0(v){
   const d = dispDec();
@@ -4594,16 +4623,14 @@ function fmtD0(v){
 }
 function fmtIn(amount, c){
   const a = Number(amount)||0;
-  // 원·엔이라도 소수가 입력돼 있으면 그대로 보여준다 (몰래 반올림하지 않는다)
   const d = c==="USD" ? 2 : (Math.abs(a - Math.round(a)) > 0.004 ? 2 : 0);
   return (a<0?"-":"") + sym(c) + Math.abs(a).toLocaleString("en-US",{minimumFractionDigits:d, maximumFractionDigits:d});
 }
-/** 표시 통화로 환산하고 화면에 보이는 자릿수까지만 남긴다 — 줄 합계가 총계와 정확히 맞도록 */
 function roundDisp(v){ const p = Math.pow(10, dispDec()); return Math.round((v||0)*p)/p; }
-/** 한 건의 환산액 (크레딧은 음수) */
-function dispAmt(rec){ return roundDisp(toDisp(signed(rec), rec.currency)); }
-/** 한 건의 환산액 (부호 없이, 크레딧 차감 전) */
-function dispGross(rec){ return roundDisp(toDisp(rec.amount, rec.currency)); }
+/** 한 라인의 환산액 (크레딧은 음수) */
+function dispAmt(L){ return roundDisp(toDisp(signedAmt(L.item, L.amount), L.currency)); }
+/** 한 라인의 환산액 (부호 없이) */
+function dispGross(L){ return roundDisp(toDisp(L.amount, L.currency)); }
 
 /* ---------- 기간 (월 단위) ---------- */
 function addMonths(p, n){
@@ -4645,13 +4672,32 @@ function earliestPeriod(){
   return min || monthsAgo(11);
 }
 let vendorFilter = "ALL";
+let viewMode = "inv";          // inv | date | item
+try{ viewMode = localStorage.getItem("cargodesk_invView") || "inv"; }catch(e){}
 let q = "", page = 0;
-const PER = 15;
+const PER = 12;
 let editingId = null;
-let lastRows = [];
+let lastLines = [], lastDocs = [];
+const openDocs = {};           // 인보이스별 보기에서 펼친 항목
 
 /* ---------------------------------------------------------------------
-   자동 계산 — 대시보드에 쌓인 실제 데이터에서 그 달의 합계를 뽑는다
+   저장 형태 정규화
+   한 인보이스 = { id, vendor, invoiceNo, date, period, currency, memo, lines:[{item,amount,memo}] }
+   예전에 저장된 한 줄짜리 기록도 라인 하나짜리 인보이스로 읽는다.
+   --------------------------------------------------------------------- */
+function asDoc(rec){
+  if(Array.isArray(rec.lines)) return rec;
+  return { id:rec.id, vendor:rec.vendor, invoiceNo:rec.invoiceNo||"", date:rec.date||"",
+           period:rec.period, currency:rec.currency, memo:"",
+           lines:[{ item:rec.item, amount:rec.amount, memo:rec.memo||"" }] };
+}
+function docTotal(doc){ return doc.lines.reduce((s,l)=> s + signedAmt(l.item, l.amount), 0); }
+function docDispTotal(doc){
+  return doc.lines.reduce((s,l)=> s + roundDisp(toDisp(signedAmt(l.item, l.amount), doc.currency)), 0);
+}
+
+/* ---------------------------------------------------------------------
+   자동 계산
    --------------------------------------------------------------------- */
 function autoAmount(vendorKey, period){
   const v = V_BY_KEY[vendorKey];
@@ -4661,7 +4707,7 @@ function autoAmount(vendorKey, period){
     (CD.Cache.shipments||[]).forEach(s=>{
       if((s.cutoffDate||"").slice(0,7) === period) sum += CD.airCostUsd(s);
     });
-    return sum;                                  // USD
+    return sum;
   }
   if(v.auto.item === "customs"){
     const c = v.auto.country;
@@ -4670,11 +4716,10 @@ function autoAmount(vendorKey, period){
     (CD.Cache.daily||[]).forEach(r=>{
       if(r.country === c && (r.date||"").slice(0,7) === period) ea += (r.shipped||0);
     });
-    return ea * rate;                            // 그 나라 현지 통화
+    return ea * rate;
   }
   return null;
 }
-/** 자동 계산 근거 한 줄 */
 function autoBasis(vendorKey, period){
   const v = V_BY_KEY[vendorKey];
   if(!v || v.mode !== "auto") return "";
@@ -4689,28 +4734,43 @@ function autoBasis(vendorKey, period){
   (CD.Cache.daily||[]).forEach(r=>{ if(r.country === c && (r.date||"").slice(0,7) === period) ea += (r.shipped||0); });
   return `출고 ${CD.fmtNum(ea)}건 × ${fmtIn(rate, v.currency)}`;
 }
-/** 직접 입력한 건 + 자동 계산된 건을 한 목록으로 (직접 입력이 자동을 덮는다) */
-function allRows(start, end){
-  const manual = (CD.Cache.invoices||[]).filter(r=>
-    r.period && r.period >= start && r.period <= end && V_BY_KEY[r.vendor]);
+
+/** 기간 안의 인보이스 문서 목록 (직접 입력 + 자동 계산) */
+function docsIn(start, end){
+  const manual = (CD.Cache.invoices||[])
+    .filter(r=> r.period && r.period >= start && r.period <= end && V_BY_KEY[r.vendor])
+    .map(asDoc)
+    .map(d=> ({...d, auto:false}));
   const taken = {};
-  manual.forEach(r=> taken[r.vendor+"|"+r.period+"|"+r.item] = true);
-  const out = manual.map(r=> ({...r, auto:false}));
+  manual.forEach(d=> d.lines.forEach(l=> taken[d.vendor+"|"+d.period+"|"+l.item] = true));
+  const out = manual.slice();
   monthList(start, end).forEach(m=>{
     VENDORS.forEach(v=>{
       if(v.mode !== "auto") return;
-      if(taken[v.key+"|"+m+"|"+v.auto.item]) return;   // 직접 입력이 있으면 자동은 숨긴다
+      if(taken[v.key+"|"+m+"|"+v.auto.item]) return;
       const amt = autoAmount(v.key, m);
       if(amt == null || amt <= 0) return;
-      out.push({ id:`${v.key}__${m}__${v.auto.item}`, vendor:v.key, period:m, item:v.auto.item,
-                 amount:amt, currency:v.currency, invoiceNo:"", memo:autoBasis(v.key, m), auto:true });
+      out.push({ id:`auto__${v.key}__${m}`, vendor:v.key, invoiceNo:"", date:"", period:m,
+                 currency:v.currency, memo:autoBasis(v.key, m), auto:true,
+                 lines:[{ item:v.auto.item, amount:amt, memo:autoBasis(v.key, m) }] });
     });
+  });
+  return out;
+}
+/** 문서를 라인 단위로 펼친다 — 카드·차트·집계는 전부 이 목록을 본다 */
+function linesIn(start, end){
+  const out = [];
+  docsIn(start, end).forEach(d=>{
+    d.lines.forEach((l,i)=> out.push({
+      docId:d.id, idx:i, vendor:d.vendor, period:d.period, date:d.date||"", invoiceNo:d.invoiceNo||"",
+      currency:d.currency, item:l.item, amount:l.amount, memo:l.memo||"", auto:!!d.auto
+    }));
   });
   return out;
 }
 function sumByVendor(start, end){
   const by = {}; VENDORS.forEach(v=> by[v.key] = 0);
-  allRows(start, end).forEach(r=>{ by[r.vendor] += dispAmt(r); });
+  linesIn(start, end).forEach(L=>{ by[L.vendor] += dispAmt(L); });
   return by;
 }
 
@@ -4744,7 +4804,7 @@ function shell(){
             <button data-v="USD">$</button>
           </div>
           <button type="button" class="btn credit" id="iCreditBtn">크레딧 입력</button>
-          <button type="button" class="btn primary" id="iAddBtn">청구 입력</button>
+          <button type="button" class="btn primary" id="iAddBtn">인보이스 입력</button>
         </div>
       </div>
     </div>
@@ -4786,17 +4846,17 @@ function shell(){
         </div>
       </div>
       <div class="list-tools">
-        <div class="search"><input type="text" id="iQuery" placeholder="업체 · 항목 · 인보이스 번호 · 메모 검색"></div>
+        <div class="seg" id="iViewSeg">
+          <button data-v="inv">인보이스별</button>
+          <button data-v="date">날짜별</button>
+          <button data-v="item">항목별</button>
+        </div>
+        <div class="search"><input type="text" id="iQuery" placeholder="업체 · 항목 · 인보이스 번호 · 날짜 · 메모 검색"></div>
+        <span class="spacer"></span>
+        <button type="button" class="btn small ghost" id="iExpandBtn">모두 펼치기</button>
       </div>
       <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th class="text">월</th><th class="text">업체</th><th class="text">항목</th>
-            <th>청구 금액</th><th>환산</th>
-            <th class="text">인보이스 번호</th><th class="text">메모 · 근거</th><th class="text"></th>
-          </tr></thead>
-          <tbody id="iTableBody"></tbody>
-        </table>
+        <table id="iTable"><thead id="iTableHead"></thead><tbody id="iTableBody"></tbody></table>
       </div>
       <div class="pager" id="iPager"></div>
     </div>
@@ -4829,6 +4889,18 @@ function shell(){
     try{ localStorage.setItem("cargodesk_dispCurrency", cur); }catch(err){}
     refresh();
   });
+  document.getElementById("iViewSeg").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    viewMode = b.dataset.v; page = 0;
+    try{ localStorage.setItem("cargodesk_invView", viewMode); }catch(err){}
+    [...b.parentElement.children].forEach(c=>c.classList.toggle("active", c===b));
+    renderTable();
+  });
+  document.getElementById("iExpandBtn").addEventListener("click", ()=>{
+    const anyClosed = lastDocs.some(d=> !openDocs[d.id]);
+    lastDocs.forEach(d=> openDocs[d.id] = anyClosed);
+    renderTable();
+  });
   document.getElementById("iAddBtn").addEventListener("click", ()=> openForm(null));
   document.getElementById("iCreditBtn").addEventListener("click", ()=> openCredit(null));
   document.getElementById("iExportBtn").addEventListener("click", exportInvoices);
@@ -4858,12 +4930,13 @@ function syncControls(){
   }
   document.querySelectorAll("#iPresetSeg button").forEach(b=> b.classList.toggle("active", b.dataset.v === active));
   document.querySelectorAll("#iCurrencySeg button").forEach(b=> b.classList.toggle("active", b.dataset.v === cur));
+  document.querySelectorAll("#iViewSeg button").forEach(b=> b.classList.toggle("active", b.dataset.v === viewMode));
   const vs = document.getElementById("iVendorSel");
   if(vs) vs.value = vendorFilter;
 }
 
 /* ---------------------------------------------------------------------
-   렌더
+   렌더 — 카드와 차트
    --------------------------------------------------------------------- */
 function refresh(){
   if(!built) return;
@@ -4874,13 +4947,14 @@ function refresh(){
   const pr = prevRange();
   const curBy  = sumByVendor(iRange.start, iRange.end);
   const prevBy = sumByVendor(pr.start, pr.end);
-  const rows = allRows(iRange.start, iRange.end).filter(r=> vKeys.indexOf(r.vendor) >= 0);
+  const docs  = docsIn(iRange.start, iRange.end).filter(d=> vKeys.indexOf(d.vendor) >= 0);
+  const lines = linesIn(iRange.start, iRange.end).filter(L=> vKeys.indexOf(L.vendor) >= 0);
   const months = monthList(iRange.start, iRange.end);
 
   const net    = vKeys.reduce((s,k)=> s + curBy[k], 0);
   const netPrev= vKeys.reduce((s,k)=> s + prevBy[k], 0);
-  const gross  = rows.filter(r=>r.item!=="credit").reduce((s,r)=> s + dispGross(r), 0);
-  const credit = rows.filter(r=>r.item==="credit").reduce((s,r)=> s + dispGross(r), 0);
+  const gross  = lines.filter(L=>L.item!=="credit").reduce((s,L)=> s + dispGross(L), 0);
+  const credit = lines.filter(L=>L.item==="credit").reduce((s,L)=> s + dispGross(L), 0);
   const span   = monthSpan();
   const spanTxt = `${span}개월`;
 
@@ -4890,16 +4964,16 @@ function refresh(){
   const dCls = (dPct==null || dFlat) ? "" : (dPct<0 ? " good" : " bad");
   const dTxt = dPct==null ? `<span class="delta">직전 ${spanTxt} 비교 불가</span>`
     : `<span class="delta${dCls}">${dFlat?"":(dPct>0?"▲":"▼")}${Math.abs(dPct).toFixed(1)}%</span><span style="color:var(--muted)">직전 ${spanTxt} 대비</span>`;
-  const autoN = rows.filter(r=>r.auto).length;
+  const autoN = docs.filter(d=>d.auto).length;
   document.getElementById("iKpis").innerHTML = `
     <div class="kpi"><div class="label">순 청구액${oneVendor?` · ${oneVendor.label}`:""}</div><div class="value">${fmtD0(net)}</div>
       <div class="sub">${dTxt}</div></div>
     <div class="kpi"><div class="label">청구 합계</div><div class="value">${fmtD0(gross)}</div>
       <div class="sub">크레딧 차감 전 · ${iRange.start}~${iRange.end}</div></div>
     <div class="kpi"><div class="label">크레딧</div><div class="value">${fmtD0(credit)}</div>
-      <div class="sub">${rows.filter(r=>r.item==="credit").length}건 · 합계에서 차감됨</div></div>
+      <div class="sub">${lines.filter(L=>L.item==="credit").length}건 · 합계에서 차감됨</div></div>
     <div class="kpi"><div class="label">월 평균</div><div class="value">${fmtD0(span>0?net/span:0)}</div>
-      <div class="sub">${spanTxt} 기준 · ${CD.fmtNum(rows.length)}건 (자동 ${CD.fmtNum(autoN)})</div></div>
+      <div class="sub">인보이스 ${CD.fmtNum(docs.length)}건 (자동 ${CD.fmtNum(autoN)}) · 항목 ${CD.fmtNum(lines.length)}줄</div></div>
   `;
   CD.fitKpi(document.getElementById("iKpis"));
 
@@ -4929,14 +5003,13 @@ function refresh(){
   }).join("");
   CD.fitKpi(document.getElementById("iVendorKpis"));
 
-  /* ---- 추이 ----
-     전체를 보면 업체별 선, 한 업체를 고르면 그 업체의 항목별 선으로 바뀐다 */
+  /* ---- 추이 ---- */
   const byMonth = {};
   months.forEach(m=>{ byMonth[m] = {}; });
-  rows.forEach(r=>{
-    if(!byMonth[r.period]) return;
-    const k = oneVendor ? r.item : r.vendor;
-    byMonth[r.period][k] = (byMonth[r.period][k]||0) + dispAmt(r);
+  lines.forEach(L=>{
+    if(!byMonth[L.period]) return;
+    const k = oneVendor ? L.item : L.vendor;
+    byMonth[L.period][k] = (byMonth[L.period][k]||0) + dispAmt(L);
   });
   let series;
   if(oneVendor){
@@ -4963,13 +5036,13 @@ function refresh(){
     legend: document.getElementById("iTrendLegend")
   });
 
-  /* ---- 월별 항목 구성 (크레딧 제외) ---- */
+  /* ---- 월별 항목 구성 ---- */
   const compIdx = {}; months.forEach((m,i)=> compIdx[m] = i);
   const compData = months.map(m=>{ const o = {date:m}; ITEM_ORDER.forEach(k=> o[k] = 0); return o; });
-  rows.forEach(r=>{
-    if(r.item === "credit") return;
-    const i = compIdx[r.period]; if(i == null) return;
-    compData[i][r.item] = (compData[i][r.item]||0) + dispGross(r);
+  lines.forEach(L=>{
+    if(L.item === "credit") return;
+    const i = compIdx[L.period]; if(i == null) return;
+    compData[i][L.item] = (compData[i][L.item]||0) + dispGross(L);
   });
   const usedKeys = ITEM_ORDER.filter(k=> compData.some(d=> (d[k]||0) > 0));
   Charts.stackedBarChart(document.getElementById("iCompChart"), {
@@ -4986,16 +5059,17 @@ function refresh(){
   const itemSec = document.getElementById("iItemSection");
   if(oneVendor){
     itemSec.hidden = false;
-    const prevRows = allRows(pr.start, pr.end).filter(r=> r.vendor === oneVendor.key);
+    const prevLines = linesIn(pr.start, pr.end).filter(L=> L.vendor === oneVendor.key);
     const nowByItem = {}, prevByItem = {};
-    rows.forEach(r=>{ nowByItem[r.item] = (nowByItem[r.item]||0) + dispAmt(r); });
-    prevRows.forEach(r=>{ prevByItem[r.item] = (prevByItem[r.item]||0) + dispAmt(r); });
+    lines.forEach(L=>{ nowByItem[L.item] = (nowByItem[L.item]||0) + dispAmt(L); });
+    prevLines.forEach(L=>{ prevByItem[L.item] = (prevByItem[L.item]||0) + dispAmt(L); });
     const keys = ITEM_ORDER.concat(["credit"]).filter(k=> nowByItem[k] != null || prevByItem[k] != null);
     const itemTotal = keys.reduce((s,k)=> s + Math.abs(nowByItem[k]||0), 0);
     document.getElementById("iItemTitle").textContent = `${oneVendor.label} 항목별 합계`;
     document.getElementById("iItemHint").textContent =
       `${iRange.start} ~ ${iRange.end} · ${sym()} 기준 · 증감은 직전 ${spanTxt} 대비`;
-    document.getElementById("iItemKpis").innerHTML = keys.map(k=>{
+    const host = document.getElementById("iItemKpis");
+    host.innerHTML = keys.map(k=>{
       const now = nowByItem[k]||0, before = prevByItem[k]||0;
       const share = itemTotal>0 ? Math.abs(now)/itemTotal*100 : 0;
       let d = null; if(before>0) d = (now-before)/before*100;
@@ -5012,127 +5086,296 @@ function refresh(){
         </div>
       </div>`;
     }).join("") || `<div class="card"><div class="empty-note">이 기간에 ${oneVendor.label} 청구 내역이 없습니다.</div></div>`;
-    // 4칸 격자에서 마지막 줄이 비면 회색 칸이 남는다 — 빈 카드로 채워 면을 맞춘다
     if(keys.length){
       const fill = (4 - (keys.length % 4)) % 4;
-      for(let i=0;i<fill;i++) document.getElementById("iItemKpis").insertAdjacentHTML("beforeend", `<div class="kpi"></div>`);
+      for(let i=0;i<fill;i++) host.insertAdjacentHTML("beforeend", `<div class="kpi"></div>`);
     }
-    CD.fitKpi(document.getElementById("iItemKpis"));
+    CD.fitKpi(host);
   }else{
     itemSec.hidden = true;
   }
 
-  lastRows = rows;
+  lastDocs = docs;
+  lastLines = lines;
   renderTable();
 }
 
+/* ---------------------------------------------------------------------
+   렌더 — 청구 내역 표 (인보이스별 / 날짜별 / 항목별)
+   --------------------------------------------------------------------- */
+function vLabel(k){ return (V_BY_KEY[k]||{}).label || k; }
+function vDot(k){ return `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(${(V_BY_KEY[k]||{}).color||"--muted"}); margin-right:6px;"></span>`; }
+/** 최신순 정렬 키. 날짜가 없는 건(자동 계산 등)은 같은 달 안에서 날짜 있는 건 뒤로 */
+function sortKey(d){ return (d.date || (d.period+"-00")) + "|" + d.vendor; }
+function docMatches(d){
+  if(!q) return true;
+  const fields = [vLabel(d.vendor), d.invoiceNo, d.date, d.period, d.memo]
+    .concat(d.lines.map(l=> ITEM_LABEL[l.item]||l.item))
+    .concat(d.lines.map(l=> l.memo||""));
+  return CD.matchQuery.apply(null, [q].concat(fields));
+}
+
 function renderTable(){
+  const head = document.getElementById("iTableHead");
   const body = document.getElementById("iTableBody");
   if(!body) return;
-  const all = lastRows.slice().sort((a,b)=>
-    a.period===b.period ? (a.vendor===b.vendor ? (ITEM_ORDER.indexOf(a.item)-ITEM_ORDER.indexOf(b.item)) : (a.vendor<b.vendor?-1:1)) : (a.period<b.period?1:-1));
-  const filtered = all.filter(r=> CD.matchQuery(q,
-    (V_BY_KEY[r.vendor]||{}).label || r.vendor, ITEM_LABEL[r.item]||r.item, r.invoiceNo, r.memo, r.period));
-  const pages = Math.max(1, Math.ceil(filtered.length/PER));
+  document.getElementById("iExpandBtn").hidden = (viewMode === "item");
+
+  const docs = lastDocs.filter(docMatches).sort((a,b)=> sortKey(a) < sortKey(b) ? 1 : -1);
+  const total = docs.reduce((s,d)=> s + docDispTotal(d), 0);
+  const lineCount = docs.reduce((s,d)=> s + d.lines.length, 0);
+  document.getElementById("iTableHint").textContent =
+    `인보이스 ${CD.fmtNum(docs.length)}건 · 항목 ${CD.fmtNum(lineCount)}줄 · 합계 ${fmtD0(total)}`;
+
+  if(viewMode === "item") renderItemView(head, body, docs);
+  else if(viewMode === "date") renderDateView(head, body, docs);
+  else renderInvoiceView(head, body, docs);
+  wireRowActions(body);
+}
+
+/** 행 하나 = 인보이스 하나. 클릭하면 라인이 펼쳐진다. */
+function renderInvoiceView(head, body, docs){
+  head.innerHTML = `<tr>
+    <th class="text" style="width:34px;"></th>
+    <th class="text">인보이스 날짜</th><th class="text">업체</th><th class="text">인보이스 번호</th>
+    <th class="text">귀속 월</th><th class="num">항목</th><th class="num">합계</th><th class="text"></th>
+  </tr>`;
+  const pages = Math.max(1, Math.ceil(docs.length/PER));
   if(page >= pages) page = pages-1;
   if(page < 0) page = 0;
-  const shown = filtered.slice(page*PER, (page+1)*PER);
-  const total = filtered.reduce((s,r)=> s + dispAmt(r), 0);
-  document.getElementById("iTableHint").textContent = `${CD.fmtNum(filtered.length)}건 · 합계 ${fmtD0(total)}`;
+  const shown = docs.slice(page*PER, (page+1)*PER);
   CD.renderPager(document.getElementById("iPager"), {
-    total: filtered.length, page, perPage: PER, onGo: n=>{ page = n; renderTable(); }
+    total: docs.length, page, perPage: PER, onGo: n=>{ page = n; renderTable(); }
   });
-  body.innerHTML = shown.map(r=>{
-    const v = V_BY_KEY[r.vendor] || {label:r.vendor, color:"--muted"};
-    const neg = r.item === "credit";
-    return `<tr>
-      <td class="text mono">${r.period}</td>
-      <td class="text"><span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(${v.color}); margin-right:6px;"></span>${v.label}</td>
-      <td class="text">${ITEM_LABEL[r.item]||r.item}${r.auto?`<span class="auto-tag">자동</span>`:""}</td>
-      <td class="mono"${neg?' style="color:var(--good-ink)"':''}>${neg?"-":""}${fmtIn(r.amount, r.currency)}</td>
-      <td class="mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(r))}</td>
-      <td class="text mono">${r.invoiceNo||"-"}</td>
-      <td class="text" style="${r.auto?"color:var(--muted)":""}">${r.memo||""}</td>
+  body.innerHTML = shown.map(d=>{
+    const open = !!openDocs[d.id];
+    const t = docDispTotal(d);
+    const main = `<tr class="doc-row${open?" open":""}" data-doc="${d.id}">
+      <td class="text"><span class="twisty">${open?"▾":"▸"}</span></td>
+      <td class="text mono">${d.date || `<span style="color:var(--muted)">-</span>`}</td>
+      <td class="text">${vDot(d.vendor)}${vLabel(d.vendor)}${d.auto?`<span class="auto-tag">자동</span>`:""}</td>
+      <td class="text mono">${d.invoiceNo || `<span style="color:var(--muted)">-</span>`}</td>
+      <td class="text mono">${d.period}</td>
+      <td class="num">${d.lines.length}개</td>
+      <td class="num key" style="font-weight:600;${t<0?"color:var(--good-ink);":""}">${fmtD0(t)}</td>
       <td class="text">
-        <button class="btn small ghost" data-edit="${r.id}">${r.auto?"직접 입력":"수정"}</button>
-        ${r.auto?"":`<button class="btn small danger ghost" data-del="${r.id}">삭제</button>`}
+        <button class="btn small ghost" data-edit="${d.id}">${d.auto?"직접 입력":"수정"}</button>
+        ${d.auto?"":`<button class="btn small danger ghost" data-del="${d.id}">삭제</button>`}
+      </td>
+    </tr>`;
+    if(!open) return main;
+    const sub = d.lines.map(l=>{
+      const L = {...l, currency:d.currency};
+      const neg = l.item === "credit";
+      return `<tr class="line-row">
+        <td></td><td></td>
+        <td class="text" colspan="2" style="padding-left:14px;">
+          <span style="display:inline-block; width:6px; height:6px; border-radius:2px; background:var(${ITEM_COLOR[l.item]||"--muted"}); margin-right:7px;"></span>
+          ${ITEM_LABEL[l.item]||l.item}</td>
+        <td class="text" style="color:var(--muted)">${l.memo||""}</td>
+        <td class="num mono" style="color:var(--muted)">${fmtIn(l.amount, d.currency)}</td>
+        <td class="num mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(L))}</td>
+        <td></td>
+      </tr>`;
+    }).join("");
+    return main + sub;
+  }).join("") ||
+    `<tr><td colspan="8" class="text empty-note">${lastDocs.length ? "검색 결과가 없습니다." : "이 기간에 청구 내역이 없습니다. 오른쪽 위 <b>인보이스 입력</b>으로 추가하세요."}</td></tr>`;
+}
+
+/** 날짜로 묶고 날짜마다 소계를 붙인다 */
+function renderDateView(head, body, docs){
+  head.innerHTML = `<tr>
+    <th class="text" style="width:34px;"></th>
+    <th class="text">날짜 · 업체</th><th class="text">인보이스 번호</th><th class="text">귀속 월</th>
+    <th class="num">항목</th><th class="num">합계</th><th class="text"></th>
+  </tr>`;
+  const groups = [];
+  const byDate = {};
+  docs.forEach(d=>{
+    const key = d.date || `${d.period} (날짜 미입력)`;
+    if(!byDate[key]){ byDate[key] = {key, date:d.date||"", docs:[]}; groups.push(byDate[key]); }
+    byDate[key].docs.push(d);
+  });
+  const pages = Math.max(1, Math.ceil(groups.length/PER));
+  if(page >= pages) page = pages-1;
+  if(page < 0) page = 0;
+  const shown = groups.slice(page*PER, (page+1)*PER);
+  CD.renderPager(document.getElementById("iPager"), {
+    total: groups.length, page, perPage: PER, onGo: n=>{ page = n; renderTable(); }
+  });
+  body.innerHTML = shown.map(g=>{
+    const gt = g.docs.reduce((s,d)=> s + docDispTotal(d), 0);
+    const header = `<tr class="grp-head">
+      <td class="text" colspan="4"><b>${g.key}</b> <span style="color:var(--muted)">· 인보이스 ${g.docs.length}건</span></td>
+      <td class="num" style="color:var(--muted)">${g.docs.reduce((s,d)=>s+d.lines.length,0)}개</td>
+      <td class="num" style="font-weight:600;">${fmtD0(gt)}</td>
+      <td></td>
+    </tr>`;
+    const rows = g.docs.map(d=>{
+      const open = !!openDocs[d.id];
+      const t = docDispTotal(d);
+      const main = `<tr class="doc-row${open?" open":""}" data-doc="${d.id}">
+        <td class="text"><span class="twisty">${open?"▾":"▸"}</span></td>
+        <td class="text">${vDot(d.vendor)}${vLabel(d.vendor)}${d.auto?`<span class="auto-tag">자동</span>`:""}</td>
+        <td class="text mono">${d.invoiceNo || `<span style="color:var(--muted)">-</span>`}</td>
+        <td class="text mono">${d.period}</td>
+        <td class="num">${d.lines.length}개</td>
+        <td class="num mono"${t<0?' style="color:var(--good-ink)"':''}>${fmtD0(t)}</td>
+        <td class="text">
+          <button class="btn small ghost" data-edit="${d.id}">${d.auto?"직접 입력":"수정"}</button>
+          ${d.auto?"":`<button class="btn small danger ghost" data-del="${d.id}">삭제</button>`}
+        </td>
+      </tr>`;
+      if(!open) return main;
+      return main + d.lines.map(l=>{
+        const L = {...l, currency:d.currency};
+        const neg = l.item === "credit";
+        return `<tr class="line-row">
+          <td></td>
+          <td class="text" style="padding-left:20px;">
+            <span style="display:inline-block; width:6px; height:6px; border-radius:2px; background:var(${ITEM_COLOR[l.item]||"--muted"}); margin-right:7px;"></span>
+            ${ITEM_LABEL[l.item]||l.item}</td>
+          <td class="text" colspan="2" style="color:var(--muted)">${l.memo||""}</td>
+          <td class="num mono" style="color:var(--muted)">${fmtIn(l.amount, d.currency)}</td>
+          <td class="num mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(L))}</td>
+          <td></td>
+        </tr>`;
+      }).join("");
+    }).join("");
+    return header + rows;
+  }).join("") ||
+    `<tr><td colspan="7" class="text empty-note">${lastDocs.length ? "검색 결과가 없습니다." : "이 기간에 청구 내역이 없습니다."}</td></tr>`;
+}
+
+/** 한 줄 = 한 항목 (예전 방식) */
+function renderItemView(head, body, docs){
+  head.innerHTML = `<tr>
+    <th class="text">날짜</th><th class="text">귀속 월</th><th class="text">업체</th><th class="text">항목</th>
+    <th class="num">청구 금액</th><th class="num">환산</th>
+    <th class="text">인보이스 번호</th><th class="text">메모 · 근거</th><th class="text"></th>
+  </tr>`;
+  const rows = [];
+  docs.forEach(d=> d.lines.forEach(l=> rows.push({doc:d, line:l})));
+  const pages = Math.max(1, Math.ceil(rows.length/15));
+  if(page >= pages) page = pages-1;
+  if(page < 0) page = 0;
+  const shown = rows.slice(page*15, (page+1)*15);
+  CD.renderPager(document.getElementById("iPager"), {
+    total: rows.length, page, perPage: 15, onGo: n=>{ page = n; renderTable(); }
+  });
+  body.innerHTML = shown.map(({doc:d, line:l})=>{
+    const L = {...l, currency:d.currency};
+    const neg = l.item === "credit";
+    return `<tr>
+      <td class="text mono">${d.date || `<span style="color:var(--muted)">-</span>`}</td>
+      <td class="text mono">${d.period}</td>
+      <td class="text">${vDot(d.vendor)}${vLabel(d.vendor)}</td>
+      <td class="text">${ITEM_LABEL[l.item]||l.item}${d.auto?`<span class="auto-tag">자동</span>`:""}</td>
+      <td class="num mono"${neg?' style="color:var(--good-ink)"':''}>${neg?"-":""}${fmtIn(l.amount, d.currency)}</td>
+      <td class="num mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(L))}</td>
+      <td class="text mono">${d.invoiceNo||"-"}</td>
+      <td class="text" style="${d.auto?"color:var(--muted)":""}">${l.memo||d.memo||""}</td>
+      <td class="text">
+        <button class="btn small ghost" data-edit="${d.id}">${d.auto?"직접 입력":"수정"}</button>
+        ${d.auto?"":`<button class="btn small danger ghost" data-del="${d.id}">삭제</button>`}
       </td>
     </tr>`;
   }).join("") ||
-    `<tr><td colspan="8" class="text empty-note">${all.length ? "검색 결과가 없습니다." : "이 기간에 청구 내역이 없습니다. 오른쪽 위 <b>청구 입력</b>으로 추가하세요."}</td></tr>`;
+    `<tr><td colspan="9" class="text empty-note">${lastDocs.length ? "검색 결과가 없습니다." : "이 기간에 청구 내역이 없습니다."}</td></tr>`;
+}
 
+function wireRowActions(body){
+  body.querySelectorAll("tr.doc-row").forEach(tr=>{
+    tr.addEventListener("click", e=>{
+      if(e.target.closest("button")) return;
+      const id = tr.dataset.doc;
+      openDocs[id] = !openDocs[id];
+      renderTable();
+    });
+  });
   body.querySelectorAll("[data-edit]").forEach(b=>{
-    b.addEventListener("click", ()=>{
-      const rec = lastRows.find(r=>r.id===b.dataset.edit);
-      if(!rec) return;
-      if(rec.item === "credit") openCredit(rec); else openForm(rec);
+    b.addEventListener("click", e=>{
+      e.stopPropagation();
+      const d = lastDocs.find(x=>x.id===b.dataset.edit);
+      if(!d) return;
+      if(!d.auto && d.lines.length===1 && d.lines[0].item==="credit") openCredit(d);
+      else openForm(d);
     });
   });
   body.querySelectorAll("[data-del]").forEach(b=>{
-    b.addEventListener("click", async ()=>{
-      const rec = lastRows.find(r=>r.id===b.dataset.del);
-      if(!rec) return;
-      const auto = (V_BY_KEY[rec.vendor]||{}).mode === "auto";
-      const extra = auto ? "\n삭제하면 자동 계산 금액으로 되돌아갑니다." : "";
-      if(!confirm(`${rec.period} · ${(V_BY_KEY[rec.vendor]||{}).label} · ${ITEM_LABEL[rec.item]} 을(를) 삭제할까요?${extra}`)) return;
-      await CD.Store.deleteInvoice(rec.id);
+    b.addEventListener("click", async e=>{
+      e.stopPropagation();
+      const d = lastDocs.find(x=>x.id===b.dataset.del);
+      if(!d) return;
+      const what = d.invoiceNo ? `인보이스 ${d.invoiceNo}` : `${d.period} · ${vLabel(d.vendor)}`;
+      if(!confirm(`${what} (항목 ${d.lines.length}개) 를 삭제할까요?`)) return;
+      await CD.Store.deleteInvoice(d.id);
     });
   });
 }
 
 /* ---------------------------------------------------------------------
-   청구 입력 모달
+   인보이스 입력 모달 — 한 장에 여러 항목
    --------------------------------------------------------------------- */
 function closeForm(){ overlay.hidden = true; modalBody.className = "modal"; modalBody.innerHTML = ""; }
-function invId(vendor, period, item){ return `${vendor}__${period}__${item}`; }
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 function itemOptions(vendorKey, selected){
   return itemsFor(vendorKey).map(k=>
     `<option value="${k}"${k===selected?" selected":""}>${ITEM_LABEL[k]}</option>`).join("");
 }
 
-function openForm(rec){
-  // 자동 계산 행에서 "직접 입력"을 누르면 그 금액을 채운 새 입력으로 연다
-  const isAuto = !!(rec && rec.auto);
-  editingId = (rec && !isAuto) ? rec.id : null;
-  const vk = rec ? rec.vendor : VENDORS[0].key;
+function openForm(doc){
+  const isAuto = !!(doc && doc.auto);
+  editingId = (doc && !isAuto) ? doc.id : null;
+  const vk = doc ? doc.vendor : VENDORS[0].key;
   const v = V_BY_KEY[vk];
-  const amt = rec ? (isAuto ? Math.round((rec.amount||0)*100)/100 : rec.amount) : "";   // 자동값은 센트까지 채워 준다
-  modalBody.className = "modal";
+  // 자동 계산 건을 덮어쓸 땐 그 금액을 첫 줄에 채워 준다
+  let lines = doc ? doc.lines.map(l=>({ item:l.item, amount: isAuto ? Math.round((l.amount||0)*100)/100 : l.amount, memo:l.memo||"" }))
+                  : [{ item:itemsFor(vk)[0], amount:"", memo:"" }];
+  modalBody.className = "modal wide";
   modalBody.innerHTML = `
     <div class="modal-head">
-      <h3>${rec ? (isAuto ? "자동 계산 금액 덮어쓰기" : "청구 내역 수정") : "청구 입력"}</h3>
+      <h3>${doc ? (isAuto ? "자동 계산 덮어쓰기" : "인보이스 수정") : "인보이스 입력"}</h3>
       <button class="close-x" type="button" id="ivClose">&times;</button>
     </div>
     <form id="ivForm">
-      <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;">
         <div class="field"><label>업체</label>
           <select id="ivVendor">${VENDORS.map(x=>`<option value="${x.key}"${x.key===vk?" selected":""}>${x.label}</option>`).join("")}</select>
         </div>
-        <div class="field"><label>청구 월</label>
-          <input type="month" id="ivPeriod" class="mono" value="${rec ? rec.period : thisMonth()}" required>
+        <div class="field"><label>인보이스 날짜</label>
+          <input type="date" id="ivDate" class="mono" value="${doc && !isAuto ? esc(doc.date) : CD.todayISO()}">
         </div>
-        <div class="field"><label>항목</label>
-          <select id="ivItem">${itemOptions(vk, rec ? rec.item : null)}</select>
+        <div class="field"><label>귀속 월 (집계 기준)</label>
+          <input type="month" id="ivPeriod" class="mono" value="${doc ? doc.period : thisMonth()}" required>
         </div>
         <div class="field"><label>통화</label>
           <select id="ivCur">
-            ${["USD","KRW","JPY"].map(c=>`<option value="${c}"${c===(rec?rec.currency:v.currency)?" selected":""}>${c}</option>`).join("")}
+            ${["USD","KRW","JPY"].map(c=>`<option value="${c}"${c===(doc?doc.currency:v.currency)?" selected":""}>${c}</option>`).join("")}
           </select>
         </div>
-        <div class="field"><label>청구 금액</label>
-          <input type="number" step="0.01" min="0" class="num-input" id="ivAmount" value="${amt}" required>
-        </div>
-        <div class="field"><label>인보이스 번호 (선택)</label>
-          <input type="text" id="ivNo" class="mono" value="${rec && !isAuto ? esc(rec.invoiceNo) : ""}" placeholder="예: NSI-0825WA-OPLE">
-        </div>
       </div>
-      <div class="field" style="margin-top:12px;"><label>메모 (선택)</label>
-        <input type="text" id="ivMemo" value="${rec && !isAuto ? esc(rec.memo) : ""}" placeholder="예: 8월분 정산, 일부 할인 반영">
+      <div class="field" style="margin-top:12px;"><label>인보이스 번호</label>
+        <input type="text" id="ivNo" class="mono" value="${doc && !isAuto ? esc(doc.invoiceNo) : ""}" placeholder="예: NSI-0825WA-OPLE">
       </div>
-      <div class="help" id="ivHelp" style="margin-top:8px;"></div>
+
+      <div class="row between" style="margin:18px 0 8px;">
+        <b style="font-size:12.5px;">청구 항목</b>
+        <button type="button" class="btn small ghost" id="ivAddLine">+ 항목 추가</button>
+      </div>
+      <div class="line-table">
+        <div class="line-head"><span>항목</span><span>금액</span><span>비고 (선택)</span><span></span></div>
+        <div id="ivLines"></div>
+      </div>
+      <div class="row between line-total">
+        <span>인보이스 합계</span>
+        <b id="ivTotal" class="mono">-</b>
+      </div>
+
+      <div class="help" id="ivHelp" style="margin-top:10px;"></div>
       <div class="modal-foot" style="margin-top:16px;">
-        ${editingId ? `<button type="button" class="btn danger ghost" id="ivDelete" style="margin-right:auto;">삭제</button>` : ``}
+        ${editingId ? `<button type="button" class="btn danger ghost" id="ivDelete" style="margin-right:auto;">인보이스 삭제</button>` : ``}
         <button type="button" class="btn ghost" id="ivCancel">취소</button>
         <button type="submit" class="btn primary">저장</button>
       </div>
@@ -5141,57 +5384,105 @@ function openForm(rec){
   overlay.hidden = false;
 
   const vendorEl = document.getElementById("ivVendor");
-  const itemEl = document.getElementById("ivItem");
   const curEl = document.getElementById("ivCur");
-  const helpEl = document.getElementById("ivHelp");
   const periodEl = document.getElementById("ivPeriod");
+  const dateEl = document.getElementById("ivDate");
+  const linesEl = document.getElementById("ivLines");
+  const helpEl = document.getElementById("ivHelp");
+
+  function drawLines(){
+    linesEl.innerHTML = lines.map((l,i)=>`
+      <div class="line-row-edit" data-i="${i}">
+        <select data-f="item">${itemOptions(vendorEl.value, l.item)}</select>
+        <input type="number" step="0.01" min="0" class="num-input mono" data-f="amount" value="${l.amount===""?"":l.amount}" placeholder="0.00">
+        <input type="text" data-f="memo" value="${esc(l.memo)}" placeholder="">
+        <button type="button" class="btn small danger ghost" data-rm="${i}" ${lines.length<=1?"disabled":""}>✕</button>
+      </div>`).join("");
+    linesEl.querySelectorAll(".line-row-edit").forEach(row=>{
+      const i = Number(row.dataset.i);
+      row.querySelectorAll("[data-f]").forEach(el=>{
+        el.addEventListener("input", ()=>{
+          lines[i][el.dataset.f] = el.dataset.f==="amount" ? (el.value===""?"":Number(el.value)) : el.value;
+          if(el.dataset.f==="amount") drawTotal();
+        });
+        el.addEventListener("change", ()=>{
+          lines[i][el.dataset.f] = el.dataset.f==="amount" ? (el.value===""?"":Number(el.value)) : el.value;
+          drawTotal(); syncHelp();
+        });
+      });
+      row.querySelector("[data-rm]").addEventListener("click", ()=>{
+        if(lines.length<=1) return;
+        lines.splice(i,1); drawLines(); drawTotal();
+      });
+    });
+    drawTotal();
+  }
+  function drawTotal(){
+    const t = lines.reduce((s,l)=> s + (Number(l.amount)||0), 0);
+    document.getElementById("ivTotal").textContent = fmtIn(t, curEl.value);
+  }
   function syncHelp(){
     const vv = V_BY_KEY[vendorEl.value];
-    const auto = vv.mode === "auto" && itemEl.value === vv.auto.item;
-    if(auto){
+    const autoItem = vv.mode === "auto" ? vv.auto.item : null;
+    if(autoItem && lines.some(l=> l.item === autoItem)){
       const a = autoAmount(vv.key, periodEl.value);
-      helpEl.innerHTML = `${vv.note}. 지금 데이터 기준 자동 계산액은 <b>${a==null?"-":fmtIn(Math.round(a*100)/100, vv.currency)}</b>`
-        + ` (${autoBasis(vv.key, periodEl.value) || "데이터 없음"}). 여기에 저장하면 <b>실제 청구액이 자동 계산을 대신합니다.</b>`;
+      helpEl.innerHTML = `${vv.note}. <b>${periodEl.value}</b> 자동 계산액은 <b>${a==null?"-":fmtIn(Math.round(a*100)/100, vv.currency)}</b>`
+        + ` (${autoBasis(vv.key, periodEl.value) || "데이터 없음"}). 저장하면 <b>실제 청구액이 자동 계산을 대신합니다.</b>`;
     }else{
-      helpEl.innerHTML = `${vv.label} · ${vv.note} · 기본 청구 통화 ${vv.currency}`;
+      helpEl.innerHTML = `${vv.label} · ${vv.note} · 기본 청구 통화 ${vv.currency} · <b>귀속 월</b>이 카드·차트 집계 기준입니다.`;
     }
   }
+
   vendorEl.addEventListener("change", ()=>{
     const vv = V_BY_KEY[vendorEl.value];
-    itemEl.innerHTML = itemOptions(vendorEl.value, null);
+    const allow = itemsFor(vv.key);
+    lines = lines.map(l=> allow.indexOf(l.item)>=0 ? l : {...l, item:allow[0]});
     curEl.value = vv.currency;
+    drawLines(); syncHelp();
+  });
+  curEl.addEventListener("change", drawTotal);
+  // 날짜를 고르면 귀속 월을 같이 맞춰 준다 (직접 바꿀 수 있다)
+  dateEl.addEventListener("change", ()=>{
+    if(dateEl.value && !doc) periodEl.value = dateEl.value.slice(0,7);
     syncHelp();
   });
-  itemEl.addEventListener("change", syncHelp);
   periodEl.addEventListener("change", syncHelp);
-  syncHelp();
-
+  document.getElementById("ivAddLine").addEventListener("click", ()=>{
+    const used = lines.map(l=>l.item);
+    const next = itemsFor(vendorEl.value).find(k=> used.indexOf(k)<0) || itemsFor(vendorEl.value)[0];
+    lines.push({ item:next, amount:"", memo:"" });
+    drawLines();
+  });
   document.getElementById("ivClose").addEventListener("click", closeForm);
   document.getElementById("ivCancel").addEventListener("click", closeForm);
   const delBtn = document.getElementById("ivDelete");
   if(delBtn) delBtn.addEventListener("click", async ()=>{
-    if(!confirm("이 청구 내역을 삭제할까요?")) return;
+    if(!confirm("이 인보이스를 통째로 삭제할까요?")) return;
     await CD.Store.deleteInvoice(editingId);
     closeForm();
   });
 
+  drawLines(); syncHelp();
+
   document.getElementById("ivForm").addEventListener("submit", async e=>{
     e.preventDefault();
-    const vendor = vendorEl.value;
     const period = periodEl.value;
-    const item = itemEl.value;
-    if(!period){ alert("청구 월을 선택하세요."); return; }
-    const id = invId(vendor, period, item);
-    const exists = (CD.Cache.invoices||[]).some(r=> r.id === id && r.id !== editingId);
-    if(exists && !confirm(`${period} · ${V_BY_KEY[vendor].label} · ${ITEM_LABEL[item]} 청구가 이미 있습니다. 덮어쓸까요?`)) return;
+    if(!period){ alert("귀속 월을 선택하세요."); return; }
+    const clean = lines.filter(l=> l.item && (Number(l.amount)||0) !== 0)
+                       .map(l=> ({ item:l.item, amount:Number(l.amount)||0, memo:(l.memo||"").trim() }));
+    if(!clean.length){ alert("금액이 있는 항목을 최소 한 줄 입력하세요."); return; }
+    const dup = clean.map(l=>l.item).filter((k,i,a)=> a.indexOf(k)!==i);
+    if(dup.length && !confirm(`같은 항목이 두 번 들어 있습니다 (${dup.map(k=>ITEM_LABEL[k]).join(", ")}). 그대로 저장할까요?`)) return;
     await CD.Store.upsertInvoice({
-      id, vendor, period, item,
-      amount: Number(document.getElementById("ivAmount").value) || 0,
-      currency: curEl.value,
+      id: editingId || CD.uid("iv"),
+      vendor: vendorEl.value,
       invoiceNo: document.getElementById("ivNo").value.trim(),
-      memo: document.getElementById("ivMemo").value.trim()
+      date: dateEl.value || "",
+      period,
+      currency: curEl.value,
+      memo: "",
+      lines: clean
     });
-    if(editingId && editingId !== id) await CD.Store.deleteInvoice(editingId);
     closeForm();
   });
 }
@@ -5199,14 +5490,15 @@ function openForm(rec){
 /* ---------------------------------------------------------------------
    크레딧 입력 (전용)
    --------------------------------------------------------------------- */
-function openCredit(rec){
-  editingId = rec ? rec.id : null;
-  const vk = rec ? rec.vendor : VENDORS[0].key;
+function openCredit(doc){
+  editingId = doc ? doc.id : null;
+  const vk = doc ? doc.vendor : VENDORS[0].key;
   const v = V_BY_KEY[vk];
+  const line = doc ? doc.lines[0] : {amount:"", memo:""};
   modalBody.className = "modal";
   modalBody.innerHTML = `
     <div class="modal-head">
-      <h3><span class="credit-chip">크레딧</span> ${rec ? "수정" : "입력"}</h3>
+      <h3><span class="credit-chip">크레딧</span> ${doc ? "수정" : "입력"}</h3>
       <button class="close-x" type="button" id="cvClose">&times;</button>
     </div>
     <form id="cvForm">
@@ -5215,23 +5507,31 @@ function openCredit(rec){
           <select id="cvVendor">${VENDORS.map(x=>`<option value="${x.key}"${x.key===vk?" selected":""}>${x.label}</option>`).join("")}</select>
         </div>
         <div class="field"><label>반영 월</label>
-          <input type="month" id="cvPeriod" class="mono" value="${rec ? rec.period : thisMonth()}" required>
+          <input type="month" id="cvPeriod" class="mono" value="${doc ? doc.period : thisMonth()}" required>
         </div>
         <div class="field"><label>크레딧 금액</label>
-          <input type="number" step="0.01" min="0" class="num-input" id="cvAmount" value="${rec ? rec.amount : ""}" required>
+          <input type="number" step="0.01" min="0" class="num-input" id="cvAmount" value="${line.amount}" required>
         </div>
         <div class="field"><label>통화</label>
           <select id="cvCur">
-            ${["USD","KRW","JPY"].map(c=>`<option value="${c}"${c===(rec?rec.currency:v.currency)?" selected":""}>${c}</option>`).join("")}
+            ${["USD","KRW","JPY"].map(c=>`<option value="${c}"${c===(doc?doc.currency:v.currency)?" selected":""}>${c}</option>`).join("")}
           </select>
         </div>
       </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+        <div class="field"><label>크레딧 날짜 (선택)</label>
+          <input type="date" id="cvDate" class="mono" value="${doc ? esc(doc.date) : ""}">
+        </div>
+        <div class="field"><label>관련 인보이스 번호 (선택)</label>
+          <input type="text" id="cvNo" class="mono" value="${doc ? esc(doc.invoiceNo) : ""}">
+        </div>
+      </div>
       <div class="field" style="margin-top:12px;"><label>사유 · 메모 (선택)</label>
-        <input type="text" id="cvMemo" value="${rec ? esc(rec.memo) : ""}" placeholder="예: 파손 보상, 중복 청구 반환">
+        <input type="text" id="cvMemo" value="${esc(line.memo)}" placeholder="예: 파손 보상, 중복 청구 반환">
       </div>
       <div class="help" style="margin-top:8px;">받을 금액을 <b>양수로</b> 입력하세요. 선택한 <b>반영 월</b>의 그 업체 청구액에서 자동으로 차감됩니다.</div>
       <div class="modal-foot" style="margin-top:16px;">
-        ${rec ? `<button type="button" class="btn danger ghost" id="cvDelete" style="margin-right:auto;">삭제</button>` : ``}
+        ${doc ? `<button type="button" class="btn danger ghost" id="cvDelete" style="margin-right:auto;">삭제</button>` : ``}
         <button type="button" class="btn ghost" id="cvCancel">취소</button>
         <button type="submit" class="btn credit">크레딧 저장</button>
       </div>
@@ -5251,23 +5551,25 @@ function openCredit(rec){
   });
   document.getElementById("cvForm").addEventListener("submit", async e=>{
     e.preventDefault();
-    const vendor = vendorEl.value;
     const period = document.getElementById("cvPeriod").value;
     if(!period){ alert("반영 월을 선택하세요."); return; }
-    // 한 달에 크레딧이 여러 건일 수 있으므로 고유 id를 붙인다
-    const id = editingId || `${vendor}__${period}__credit__${CD.uid("c").slice(2)}`;
     await CD.Store.upsertInvoice({
-      id, vendor, period, item:"credit",
-      amount: Number(document.getElementById("cvAmount").value) || 0,
-      currency: curEl.value, invoiceNo:"",
-      memo: document.getElementById("cvMemo").value.trim()
+      id: editingId || CD.uid("cr"),
+      vendor: vendorEl.value,
+      invoiceNo: document.getElementById("cvNo").value.trim(),
+      date: document.getElementById("cvDate").value || "",
+      period,
+      currency: curEl.value,
+      memo: "",
+      lines: [{ item:"credit", amount:Number(document.getElementById("cvAmount").value)||0,
+                memo: document.getElementById("cvMemo").value.trim() }]
     });
     closeForm();
   });
 }
 
 /* ---------------------------------------------------------------------
-   엑셀 내보내기
+   엑셀 내보내기 — 인보이스 요약 + 항목 상세 두 시트
    --------------------------------------------------------------------- */
 const XLSX_CDN = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
 function loadXlsx(){
@@ -5283,28 +5585,31 @@ function loadXlsx(){
 async function exportInvoices(){
   try{
     const XLSX = await loadXlsx();
-    const rows = lastRows.slice().sort((a,b)=> a.period===b.period ? (a.vendor<b.vendor?-1:1) : (a.period<b.period?-1:1));
-    const aoa = [["청구 월","업체","항목","입력 방식","통화","청구 금액","환산("+cur+")","인보이스 번호","메모 · 근거"]];
-    rows.forEach(r=>{
-      aoa.push([
-        r.period,
-        (V_BY_KEY[r.vendor]||{}).label || r.vendor,
-        ITEM_LABEL[r.item] || r.item,
-        r.auto ? "자동 계산" : "직접 입력",
-        r.currency,
-        Number(signed(r).toFixed(2)),
-        dispAmt(r),
-        r.invoiceNo || "",
-        r.memo || ""
-      ]);
-    });
-    const total = rows.reduce((s,r)=> s + dispAmt(r), 0);
-    aoa.push([]);
-    aoa.push(["합계","","","","","", Number(total.toFixed(2)), "", ""]);
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{wch:10},{wch:12},{wch:16},{wch:10},{wch:7},{wch:14},{wch:14},{wch:20},{wch:26}];
+    const docs = lastDocs.slice().sort((a,b)=> sortKey(a) < sortKey(b) ? -1 : 1);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "인보이스");
+
+    const sum = [["인보이스 날짜","귀속 월","업체","인보이스 번호","입력 방식","통화","항목 수","청구 금액","환산("+cur+")"]];
+    docs.forEach(d=> sum.push([ d.date||"", d.period, vLabel(d.vendor), d.invoiceNo||"",
+      d.auto?"자동 계산":"직접 입력", d.currency, d.lines.length,
+      Number(docTotal(d).toFixed(2)), docDispTotal(d) ]));
+    const sTotal = docs.reduce((s,d)=> s + docDispTotal(d), 0);
+    sum.push([]); sum.push(["합계","","","","","","","", Number(sTotal.toFixed(2))]);
+    const ws1 = XLSX.utils.aoa_to_sheet(sum);
+    ws1["!cols"] = [{wch:13},{wch:10},{wch:12},{wch:20},{wch:11},{wch:7},{wch:8},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws1, "인보이스");
+
+    const det = [["인보이스 날짜","귀속 월","업체","인보이스 번호","항목","입력 방식","통화","청구 금액","환산("+cur+")","비고"]];
+    docs.forEach(d=> d.lines.forEach(l=>{
+      const L = {...l, currency:d.currency};
+      det.push([ d.date||"", d.period, vLabel(d.vendor), d.invoiceNo||"", ITEM_LABEL[l.item]||l.item,
+        d.auto?"자동 계산":"직접 입력", d.currency,
+        Number(signedAmt(l.item, l.amount).toFixed(2)), dispAmt(L), l.memo||"" ]);
+    }));
+    det.push([]); det.push(["합계","","","","","","","", Number(sTotal.toFixed(2)),""]);
+    const ws2 = XLSX.utils.aoa_to_sheet(det);
+    ws2["!cols"] = [{wch:13},{wch:10},{wch:12},{wch:20},{wch:16},{wch:11},{wch:7},{wch:14},{wch:14},{wch:24}];
+    XLSX.utils.book_append_sheet(wb, ws2, "항목 상세");
+
     const vTxt = vendorFilter==="ALL" ? "전체" : V_BY_KEY[vendorFilter].label;
     XLSX.writeFile(wb, `인보이스_${vTxt}_${iRange.start}_${iRange.end}_${cur}.xlsx`);
   }catch(err){
@@ -5320,6 +5625,7 @@ CD.on("tab", t=>{ if(t==="invoices") refresh(); });
 CD.on("ready", ()=>{ shell(); refresh(); });
 })();
 </script>
+
 
 
 </body>
