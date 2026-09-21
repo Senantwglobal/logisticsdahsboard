@@ -403,6 +403,8 @@ table.detail tfoot td{background:var(--surface-2); font-weight:600; color:var(--
 .chart-legend .item{display:flex; align-items:center; gap:6px;}
 .chart-legend .swatch{width:10px; height:10px; border-radius:3px; flex:none;}
 .chart-legend .swatch.line{width:14px; height:2px; border-radius:2px;}
+/* 보조축(출고 건수)은 점선으로 구분 */
+.chart-legend .swatch.line.dashed{width:14px; height:0; border-radius:0;}
 svg.chart text{font-family:var(--font-ui); fill:var(--muted);}
 svg.chart .axisline{stroke:var(--line-strong);}
 svg.chart .gridline{stroke:var(--line);}
@@ -1442,17 +1444,33 @@ function stackedBarChart(container, {data, keys, colorFn, labelFn, legend, xLabe
 }
 
 /* ---------------- multi-line trend chart (accounting) ---------------- */
-function lineChart(container, {series, labels, yFmt, legend}){
-  // series: [{key,label,color,values:[num...]}], labels: x-axis category labels (same length as values)
+/**
+ * 꺾은선. `axis:"right"` 인 계열은 오른쪽 축(단위가 다른 값, 예: 출고 건수)에 그린다.
+ * `dash:true` 면 점선으로 — 금액선과 성격이 다른 보조선을 구분하기 위함.
+ * @param {Function} [y2Fmt] 오른쪽 축 눈금 표기
+ */
+function lineChart(container, {series, labels, yFmt, y2Fmt, legend, tipFoot}){
   clear(container);
   const w = container.clientWidth || 640, h = 240;
-  const allVals = series.flatMap(s=>s.values).filter(v=>Number.isFinite(v));
+  const left  = series.filter(s=> s.axis !== "right");
+  const right = series.filter(s=> s.axis === "right");
+  const vals = list => list.flatMap(s=>s.values).filter(v=>Number.isFinite(v));
+  const allVals = vals(left.length ? left : series);
   const dom = allVals.length ? niceDomain(Math.min(...allVals), Math.max(...allVals)) : {lo:0, hi:10};
   const span = (dom.hi-dom.lo) || 1;
   const yAt = v => padT + plotH*(1 - (v-dom.lo)/span);
   const tickStep = span/4;
   const yDec = tickStep >= 10 ? 0 : tickStep >= 1 ? 1 : 2;
-  const padL=padLFor([0,0.25,0.5,0.75,1].map(f=>yFmt(dom.lo+span*f, yDec))), padR=16, padT=16, padB=28;
+  /* 오른쪽 축 — 건수처럼 단위가 다른 값을 같은 그림에 겹쳐 본다 */
+  const rVals = vals(right);
+  const hasR = right.length && rVals.length;
+  const dom2 = hasR ? niceDomain(Math.min(...rVals), Math.max(...rVals)) : {lo:0, hi:10};
+  const span2 = (dom2.hi-dom2.lo) || 1;
+  const y2At = v => padT + plotH*(1 - (v-dom2.lo)/span2);
+  y2Fmt = y2Fmt || (v=> CD.fmtNum(v));
+  const padL=padLFor([0,0.25,0.5,0.75,1].map(f=>yFmt(dom.lo+span*f, yDec)));
+  const padR= hasR ? padLFor([0,0.25,0.5,0.75,1].map(f=>y2Fmt(dom2.lo+span2*f))) : 16;
+  const padT=16, padB=28;
   const plotW = w-padL-padR, plotH = h-padT-padB;
   const svg = svgEl("svg",{class:"chart", width:"100%", height:h, viewBox:`0 0 ${w} ${h}`});
   const n = labels.length;
@@ -1464,6 +1482,11 @@ function lineChart(container, {series, labels, yFmt, legend}){
     const lbl = svgEl("text",{x:padL-8, y:y+3, "text-anchor":"end", "font-size":"10"});
     lbl.textContent = yFmt(dom.lo+span*f, yDec);
     svg.appendChild(lbl);
+    if(hasR){
+      const r = svgEl("text",{x:w-padR+8, y:y+3, "text-anchor":"start", "font-size":"10", fill:CD.cssVar("--muted")});
+      r.textContent = y2Fmt(dom2.lo+span2*f);
+      svg.appendChild(r);
+    }
   });
 
   const xTickEvery = Math.max(1, Math.ceil(n/10));
@@ -1475,13 +1498,16 @@ function lineChart(container, {series, labels, yFmt, legend}){
   });
 
   series.forEach(s=>{
-    const pts = s.values.map((v,i)=> Number.isFinite(v) ? [padL+stepX*i, yAt(v)] : null);
+    const at = s.axis === "right" ? y2At : yAt;
+    const pts = s.values.map((v,i)=> Number.isFinite(v) ? [padL+stepX*i, at(v)] : null);
     /* 값이 없는 구간은 선을 끊어 그린다 — 0으로 처리하면 없는 달이 급락처럼 보인다 */
     let seg = [];
     const flush = ()=>{
       if(seg.length>1){
-        svg.appendChild(svgEl("polyline",{points:seg.map(p=>p.join(",")).join(" "), fill:"none", stroke:s.color,
-          "stroke-width":1.8, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+        const pl = svgEl("polyline",{points:seg.map(p=>p.join(",")).join(" "), fill:"none", stroke:s.color,
+          "stroke-width":s.dash?1.6:1.8, "stroke-linejoin":"round", "stroke-linecap":"round"});
+        if(s.dash) pl.setAttribute("stroke-dasharray","5 4");
+        svg.appendChild(pl);
       }
       seg = [];
     };
@@ -1490,7 +1516,8 @@ function lineChart(container, {series, labels, yFmt, legend}){
     pts.forEach((p,i)=>{
       const v = s.values[i];
       if(!p || !Number.isFinite(v)) return;
-      const dot = svgEl("circle",{cx:p[0], cy:p[1], r:3, fill:CD.cssVar("--surface"), stroke:s.color, "stroke-width":1.8});
+      if(s.dash && n > 14) return;                 // 보조선은 점이 많으면 점을 생략해 가볍게
+      const dot = svgEl("circle",{cx:p[0], cy:p[1], r:s.dash?2.4:3, fill:CD.cssVar("--surface"), stroke:s.color, "stroke-width":1.8});
       svg.appendChild(dot);
     });
   });
@@ -1507,14 +1534,21 @@ function lineChart(container, {series, labels, yFmt, legend}){
                                  stroke:CD.cssVar("--line-strong"), "stroke-width":1, opacity:0 });
     band.addEventListener("mousemove", e=>{
       guide.setAttribute("opacity", 1);
-      const rows = series.map(s=>{
+      const line1 = s=>{
         const v = s.values[i];
-        const fmt = s.fmt || yFmt;
+        const fmt = s.fmt || (s.axis==="right" ? y2Fmt : yFmt);
         return `<div style="display:flex; justify-content:space-between; gap:16px;">`
-             + `<span style="opacity:.75"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:6px;"></span>${s.label}</span>`
+             + `<span style="opacity:.75"><span style="display:inline-block;width:8px;height:8px;border-radius:${s.dash?"2px":"50%"};background:${s.color};margin-right:6px;"></span>${s.label}</span>`
              + `<span style="font-weight:600">${Number.isFinite(v)?fmt(v):"-"}</span></div>`;
-      }).join("");
-      showTip(e, `<b>${lb}</b><div style="margin-top:5px;">${rows}</div>`);
+      };
+      let rows = left.map(line1).join("");
+      if(right.length){
+        rows += `<div style="margin-top:5px; padding-top:5px; border-top:1px solid rgba(255,255,255,.18);">`
+              + right.map(line1).join("") + `</div>`;
+      }
+      const foot = tipFoot ? tipFoot(i) : "";
+      showTip(e, `<b>${lb}</b><div style="margin-top:5px;">${rows}</div>`
+        + (foot ? `<div style="margin-top:5px; padding-top:5px; border-top:1px solid rgba(255,255,255,.18); opacity:.85;">${foot}</div>` : ""));
     });
     band.addEventListener("mouseleave", ()=>{ guide.setAttribute("opacity", 0); hideTip(); });
     svg.appendChild(guide);
@@ -1527,7 +1561,7 @@ function lineChart(container, {series, labels, yFmt, legend}){
     clear(legend);
     series.forEach(s=>{
       const item = document.createElement("div"); item.className="item";
-      item.innerHTML = `<span class="swatch line" style="background:${s.color}"></span>${s.label}`;
+      item.innerHTML = `<span class="swatch line${s.dash?" dashed":""}" style="${s.dash?`background:none; border-top:2px dashed ${s.color};`:`background:${s.color}`}"></span>${s.label}`;
       legend.appendChild(item);
     });
   }
@@ -4783,6 +4817,18 @@ function linesIn(start, end){
   });
   return out;
 }
+/** 그 업체가 대응하는 국가의 월별 출고 건수 (국가가 없는 업체는 한국+일본 합계) */
+function shippedByMonth(vendorKey, months){
+  const v = vendorKey ? V_BY_KEY[vendorKey] : null;
+  const c = v && v.auto && v.auto.country ? v.auto.country : null;
+  const by = {}; months.forEach(m=> by[m] = 0);
+  (CD.Cache.daily||[]).forEach(r=>{
+    if(c && r.country !== c) return;
+    const m = (r.date||"").slice(0,7);
+    if(by[m] != null) by[m] += (r.shipped||0);
+  });
+  return { by, country:c };
+}
 function sumByVendor(start, end){
   const by = {}; VENDORS.forEach(v=> by[v.key] = 0);
   linesIn(start, end).forEach(L=>{ by[L.vendor] += dispAmt(L); });
@@ -5034,24 +5080,47 @@ function refresh(){
     const used = ITEM_ORDER.concat(DEDUCT_ITEMS).filter(k=> months.some(m=> byMonth[m][k] != null));
     series = used.map(k=>({
       key:k, label:ITEM_LABEL[k]||k, color:CD.cssVar(ITEM_COLOR[k]||"--muted"),
-      values: months.map(m=> byMonth[m][k] == null ? NaN : byMonth[m][k])
+      values: months.map(m=> byMonth[m][k] == null ? NaN : byMonth[m][k]),
+      fmt: v=> fmtD0(v)                       // 축 눈금은 축약, 툴팁은 정확한 금액
     }));
     document.getElementById("iTrendTitle").textContent = `${oneVendor.label} 항목별 추이`;
     document.getElementById("iCompTitle").textContent = `${oneVendor.label} 월별 항목 구성`;
   }else{
     series = VENDORS.map(v=>({
       key:v.key, label:v.label, color:CD.cssVar(v.color),
-      values: months.map(m=> byMonth[m][v.key] == null ? NaN : byMonth[m][v.key])
+      values: months.map(m=> byMonth[m][v.key] == null ? NaN : byMonth[m][v.key]),
+      fmt: v=> fmtD0(v)
     }));
     document.getElementById("iTrendTitle").textContent = "업체별 추이";
     document.getElementById("iCompTitle").textContent = "월별 항목 구성";
   }
+  /* 출고 건수를 오른쪽 축에 겹쳐 그린다 — 비용이 물량에 비례해 움직이는지 보기 위함 */
+  const shp = shippedByMonth(oneVendor ? oneVendor.key : null, months);
+  const shpVals = months.map(m=> shp.by[m] || 0);
+  const hasShp = shpVals.some(v=> v > 0);
+  if(hasShp){
+    series = series.concat([{
+      key:"__shipped", label:`출고 건수${shp.country?` (${CD.COUNTRY_LABEL[shp.country]})`:""}`,
+      color:CD.cssVar("--ink-2"), axis:"right", dash:true, values:shpVals,
+      fmt: v=> CD.fmtNum(v)+"건"
+    }]);
+  }
+  const shpTotal = shpVals.reduce((a,b)=>a+b,0);
   document.getElementById("iTrendHint").textContent =
-    `${sym()} 환산 · 월별 청구액 (크레딧 차감 반영)${oneVendor?` · ${oneVendor.note}`:""}`;
+    `왼쪽 축 ${sym()} 청구액 · 오른쪽 축 출고 건수${hasShp&&shpTotal>0?` · 기간 건당 ${fmtD0(net/shpTotal)}`:""}`;
+  const monthNet = {};
+  months.forEach(m=>{ monthNet[m] = Object.keys(byMonth[m]).reduce((t,k)=> t + byMonth[m][k], 0); });
   Charts.lineChart(document.getElementById("iTrendChart"), {
     series, labels: months.map(CD.monthLabel),
     yFmt: v=> Charts.compactMoney(sym(), v),
-    legend: document.getElementById("iTrendLegend")
+    y2Fmt: v=> CD.fmtNum(v),
+    legend: document.getElementById("iTrendLegend"),
+    // 물량 대비 단가가 그 달에 올랐는지 바로 보이도록
+    tipFoot: hasShp ? (i=>{
+      const m = months[i], q = shp.by[m] || 0;
+      if(!q) return "";
+      return `<span style="opacity:.75">출고 건당</span> <b>${fmtD0(monthNet[m]/q)}</b>`;
+    }) : null
   });
 
   /* ---- 월별 항목 구성 ---- */
