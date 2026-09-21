@@ -290,9 +290,17 @@ td .btn.danger.ghost:hover{color:var(--critical-ink); background:var(--critical-
 .line-row-edit .btn.danger.ghost{color:var(--muted);}
 .line-row-edit .btn.danger.ghost:hover:not(:disabled){color:var(--critical-ink); background:var(--critical-soft);}
 .line-row-edit .btn:disabled{opacity:.35; cursor:default;}
-.line-total{margin-top:12px; padding:10px 12px; border-radius:var(--radius-s); background:var(--surface-3);
-  font-size:12.5px; color:var(--ink-2);}
-.line-total b{font-size:14.5px; color:var(--ink); font-weight:600;}
+.line-total{margin-top:12px; padding:11px 13px; border-radius:var(--radius-s); background:var(--surface-3);
+  font-size:12.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:6px;}
+.line-total .row{width:100%;}
+.line-total .net{padding-top:8px; border-top:1px solid var(--line-strong); margin-top:2px;}
+.line-total b{font-size:15px; color:var(--ink); font-weight:600;}
+.line-total .minus{color:var(--good-ink);}
+/* 할인 블록은 청구 항목과 구분되게 한 톤 더 옅게 */
+.line-table.disc{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--line);}
+.line-table.disc .line-head, .line-row-edit.disc{grid-template-columns:minmax(150px,1.6fr) minmax(90px,.9fr) 34px;}
+.line-row-edit.disc .num-input{color:var(--good-ink);}
+.disc-empty{font-size:11.5px; color:var(--muted); padding:4px 2px 2px;}
 @media (max-width:620px){
   .line-head{display:none;}
   .line-row-edit{grid-template-columns:1fr 1fr; grid-auto-rows:auto; row-gap:6px;}
@@ -4595,17 +4603,24 @@ const V_BY_KEY = {}; VENDORS.forEach(v=> V_BY_KEY[v.key] = v);
 const ITEM_LABEL = {
   packing:"출고비", handling:"취급주의 포장비", trucking:"트럭킹비", storage:"보관비",
   disposal:"폐기비", supplies:"부자재", other:"기타비용",
-  air:"항공비", customs:"통관·택배비", credit:"크레딧",
+  air:"항공비", customs:"통관·택배비",
+  discount:"할인", credit:"크레딧",
   fixed:"추가 고정비"   // 예전 데이터 호환용
 };
 const ITEM_COLOR = {
   packing:"--cost-pack", handling:"--cost-handling", trucking:"--cost-truck", storage:"--cost-air",
   disposal:"--cost-lastmile", supplies:"--good", other:"--muted",
-  air:"--cost-air", customs:"--cost-lastmile", credit:"--good", fixed:"--ink-2"
+  air:"--cost-air", customs:"--cost-lastmile",
+  discount:"--good-ink", credit:"--ink-2", fixed:"--muted"
 };
 const ITEM_ORDER = ["packing","handling","trucking","storage","disposal","supplies","air","customs","fixed","other"];
+/* 청구를 깎는 줄들 — 합계에서 빼고, 누적 막대(구성)에서는 제외한다.
+   · 할인(discount) = 그 인보이스 안에서 깎인 금액. 인보이스 합계에 바로 반영된다.
+   · 크레딧(credit) = 인보이스와 별개로 그 달에 돌려받는 금액. */
+const DEDUCT_ITEMS = ["discount","credit"];
+function isDeduct(item){ return DEDUCT_ITEMS.indexOf(item) >= 0; }
 function itemsFor(vk){ const v = V_BY_KEY[vk]; return v ? v.items.slice() : []; }
-function signedAmt(item, amount){ return (item === "credit" ? -1 : 1) * (Number(amount)||0); }
+function signedAmt(item, amount){ return (isDeduct(item) ? -1 : 1) * (Number(amount)||0); }
 
 /* ---------- 통화 ---------- */
 let cur = "KRW";
@@ -4809,7 +4824,7 @@ function shell(){
       </div>
     </div>
 
-    <div class="section grid kpis4" id="iKpis"></div>
+    <div class="section grid kpis5" id="iKpis"></div>
 
     <div class="section">
       <div class="section-head"><h2>업체별 청구액</h2><span class="hint" id="iVendorHint"></span></div>
@@ -4953,8 +4968,9 @@ function refresh(){
 
   const net    = vKeys.reduce((s,k)=> s + curBy[k], 0);
   const netPrev= vKeys.reduce((s,k)=> s + prevBy[k], 0);
-  const gross  = lines.filter(L=>L.item!=="credit").reduce((s,L)=> s + dispGross(L), 0);
-  const credit = lines.filter(L=>L.item==="credit").reduce((s,L)=> s + dispGross(L), 0);
+  const gross    = lines.filter(L=> !isDeduct(L.item)).reduce((s,L)=> s + dispGross(L), 0);
+  const discount = lines.filter(L=> L.item==="discount").reduce((s,L)=> s + dispGross(L), 0);
+  const credit   = lines.filter(L=> L.item==="credit").reduce((s,L)=> s + dispGross(L), 0);
   const span   = monthSpan();
   const spanTxt = `${span}개월`;
 
@@ -4969,9 +4985,11 @@ function refresh(){
     <div class="kpi"><div class="label">순 청구액${oneVendor?` · ${oneVendor.label}`:""}</div><div class="value">${fmtD0(net)}</div>
       <div class="sub">${dTxt}</div></div>
     <div class="kpi"><div class="label">청구 합계</div><div class="value">${fmtD0(gross)}</div>
-      <div class="sub">크레딧 차감 전 · ${iRange.start}~${iRange.end}</div></div>
+      <div class="sub">할인·크레딧 차감 전 · ${iRange.start}~${iRange.end}</div></div>
+    <div class="kpi"><div class="label">할인</div><div class="value">${fmtD0(discount)}</div>
+      <div class="sub">${lines.filter(L=>L.item==="discount").length}건 · 인보이스에서 차감</div></div>
     <div class="kpi"><div class="label">크레딧</div><div class="value">${fmtD0(credit)}</div>
-      <div class="sub">${lines.filter(L=>L.item==="credit").length}건 · 합계에서 차감됨</div></div>
+      <div class="sub">${lines.filter(L=>L.item==="credit").length}건 · 별도 차감</div></div>
     <div class="kpi"><div class="label">월 평균</div><div class="value">${fmtD0(span>0?net/span:0)}</div>
       <div class="sub">인보이스 ${CD.fmtNum(docs.length)}건 (자동 ${CD.fmtNum(autoN)}) · 항목 ${CD.fmtNum(lines.length)}줄</div></div>
   `;
@@ -5013,7 +5031,7 @@ function refresh(){
   });
   let series;
   if(oneVendor){
-    const used = ITEM_ORDER.concat(["credit"]).filter(k=> months.some(m=> byMonth[m][k] != null));
+    const used = ITEM_ORDER.concat(DEDUCT_ITEMS).filter(k=> months.some(m=> byMonth[m][k] != null));
     series = used.map(k=>({
       key:k, label:ITEM_LABEL[k]||k, color:CD.cssVar(ITEM_COLOR[k]||"--muted"),
       values: months.map(m=> byMonth[m][k] == null ? NaN : byMonth[m][k])
@@ -5040,7 +5058,7 @@ function refresh(){
   const compIdx = {}; months.forEach((m,i)=> compIdx[m] = i);
   const compData = months.map(m=>{ const o = {date:m}; ITEM_ORDER.forEach(k=> o[k] = 0); return o; });
   lines.forEach(L=>{
-    if(L.item === "credit") return;
+    if(isDeduct(L.item)) return;
     const i = compIdx[L.period]; if(i == null) return;
     compData[i][L.item] = (compData[i][L.item]||0) + dispGross(L);
   });
@@ -5063,7 +5081,7 @@ function refresh(){
     const nowByItem = {}, prevByItem = {};
     lines.forEach(L=>{ nowByItem[L.item] = (nowByItem[L.item]||0) + dispAmt(L); });
     prevLines.forEach(L=>{ prevByItem[L.item] = (prevByItem[L.item]||0) + dispAmt(L); });
-    const keys = ITEM_ORDER.concat(["credit"]).filter(k=> nowByItem[k] != null || prevByItem[k] != null);
+    const keys = ITEM_ORDER.concat(DEDUCT_ITEMS).filter(k=> nowByItem[k] != null || prevByItem[k] != null);
     const itemTotal = keys.reduce((s,k)=> s + Math.abs(nowByItem[k]||0), 0);
     document.getElementById("iItemTitle").textContent = `${oneVendor.label} 항목별 합계`;
     document.getElementById("iItemHint").textContent =
@@ -5080,7 +5098,7 @@ function refresh(){
       return `<div class="kpi">
         <div class="label"><span class="dot" style="background:var(${ITEM_COLOR[k]||"--muted"})"></span>${ITEM_LABEL[k]||k}</div>
         <div class="value">${fmtD0(now)}</div>
-        <div class="sub">${txt}<span style="color:var(--muted)">${k==="credit"?"차감":`전체의 ${share.toFixed(1)}%`}</span></div>
+        <div class="sub">${txt}<span style="color:var(--muted)">${isDeduct(k)?"차감":`전체의 ${share.toFixed(1)}%`}</span></div>
         <div style="height:5px; border-radius:3px; background:var(--surface-2); overflow:hidden;">
           <div style="height:100%; width:${share}%; background:var(${ITEM_COLOR[k]||"--muted"}); border-radius:3px;"></div>
         </div>
@@ -5166,14 +5184,14 @@ function renderInvoiceView(head, body, docs){
     if(!open) return main;
     const sub = d.lines.map(l=>{
       const L = {...l, currency:d.currency};
-      const neg = l.item === "credit";
+      const neg = isDeduct(l.item);
       return `<tr class="line-row">
         <td></td><td></td>
         <td class="text" colspan="2" style="padding-left:14px;">
           <span style="display:inline-block; width:6px; height:6px; border-radius:2px; background:var(${ITEM_COLOR[l.item]||"--muted"}); margin-right:7px;"></span>
           ${ITEM_LABEL[l.item]||l.item}</td>
         <td class="text" style="color:var(--muted)">${l.memo||""}</td>
-        <td class="num mono" style="color:var(--muted)">${fmtIn(l.amount, d.currency)}</td>
+        <td class="num mono" style="color:var(--muted)">${neg?"-":""}${fmtIn(l.amount, d.currency)}</td>
         <td class="num mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(L))}</td>
         <td></td>
       </tr>`;
@@ -5230,14 +5248,14 @@ function renderDateView(head, body, docs){
       if(!open) return main;
       return main + d.lines.map(l=>{
         const L = {...l, currency:d.currency};
-        const neg = l.item === "credit";
+        const neg = isDeduct(l.item);
         return `<tr class="line-row">
           <td></td>
           <td class="text" style="padding-left:20px;">
             <span style="display:inline-block; width:6px; height:6px; border-radius:2px; background:var(${ITEM_COLOR[l.item]||"--muted"}); margin-right:7px;"></span>
             ${ITEM_LABEL[l.item]||l.item}</td>
           <td class="text" colspan="2" style="color:var(--muted)">${l.memo||""}</td>
-          <td class="num mono" style="color:var(--muted)">${fmtIn(l.amount, d.currency)}</td>
+          <td class="num mono" style="color:var(--muted)">${neg?"-":""}${fmtIn(l.amount, d.currency)}</td>
           <td class="num mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(L))}</td>
           <td></td>
         </tr>`;
@@ -5266,7 +5284,7 @@ function renderItemView(head, body, docs){
   });
   body.innerHTML = shown.map(({doc:d, line:l})=>{
     const L = {...l, currency:d.currency};
-    const neg = l.item === "credit";
+    const neg = isDeduct(l.item);
     return `<tr>
       <td class="text mono">${d.date || `<span style="color:var(--muted)">-</span>`}</td>
       <td class="text mono">${d.period}</td>
@@ -5331,8 +5349,12 @@ function openForm(doc){
   const vk = doc ? doc.vendor : VENDORS[0].key;
   const v = V_BY_KEY[vk];
   // 자동 계산 건을 덮어쓸 땐 그 금액을 첫 줄에 채워 준다
-  let lines = doc ? doc.lines.map(l=>({ item:l.item, amount: isAuto ? Math.round((l.amount||0)*100)/100 : l.amount, memo:l.memo||"" }))
+  const all = doc ? doc.lines.map(l=>({ item:l.item, amount: isAuto ? Math.round((l.amount||0)*100)/100 : l.amount, memo:l.memo||"" }))
                   : [{ item:itemsFor(vk)[0], amount:"", memo:"" }];
+  // 청구 줄과 할인 줄을 따로 편집한다 (저장할 때 다시 합친다)
+  let lines = all.filter(l=> l.item !== "discount");
+  let discs = all.filter(l=> l.item === "discount").map(l=>({ amount:l.amount, memo:l.memo||"" }));
+  if(!lines.length) lines = [{ item:itemsFor(vk)[0], amount:"", memo:"" }];
   modalBody.className = "modal wide";
   modalBody.innerHTML = `
     <div class="modal-head">
@@ -5368,9 +5390,21 @@ function openForm(doc){
         <div class="line-head"><span>항목</span><span>금액</span><span>비고 (선택)</span><span></span></div>
         <div id="ivLines"></div>
       </div>
-      <div class="row between line-total">
-        <span>인보이스 합계</span>
-        <b id="ivTotal" class="mono">-</b>
+
+      <div class="row between" style="margin:18px 0 8px;">
+        <b style="font-size:12.5px;">디스카운트 · 할인</b>
+        <button type="button" class="btn small ghost" id="ivAddDisc">+ 할인 추가</button>
+      </div>
+      <div class="line-table disc" id="ivDiscBox">
+        <div class="line-head"><span>할인 사유</span><span>할인 금액</span><span></span></div>
+        <div id="ivDiscs"></div>
+        <div class="disc-empty" id="ivDiscEmpty">이 인보이스에서 깎인 금액이 있으면 추가하세요. 합계에서 바로 빠집니다.</div>
+      </div>
+
+      <div class="line-total">
+        <div class="row between"><span>청구 합계</span><span class="mono" id="ivGross">-</span></div>
+        <div class="row between" id="ivDiscRow" hidden><span>할인</span><span class="mono minus" id="ivDisc">-</span></div>
+        <div class="row between net"><span>인보이스 합계</span><b id="ivTotal" class="mono">-</b></div>
       </div>
 
       <div class="help" id="ivHelp" style="margin-top:10px;"></div>
@@ -5388,6 +5422,7 @@ function openForm(doc){
   const periodEl = document.getElementById("ivPeriod");
   const dateEl = document.getElementById("ivDate");
   const linesEl = document.getElementById("ivLines");
+  const discsEl = document.getElementById("ivDiscs");
   const helpEl = document.getElementById("ivHelp");
 
   function drawLines(){
@@ -5417,9 +5452,32 @@ function openForm(doc){
     });
     drawTotal();
   }
+  function drawDiscs(){
+    discsEl.innerHTML = discs.map((d,i)=>`
+      <div class="line-row-edit disc" data-d="${i}">
+        <input type="text" data-f="memo" value="${esc(d.memo)}" placeholder="예: 볼륨 할인, 장기 계약 할인">
+        <input type="number" step="0.01" min="0" class="num-input mono" data-f="amount" value="${d.amount===""?"":d.amount}" placeholder="0.00">
+        <button type="button" class="btn small danger ghost" data-drm="${i}">✕</button>
+      </div>`).join("");
+    document.getElementById("ivDiscEmpty").hidden = discs.length > 0;
+    discsEl.querySelectorAll(".line-row-edit").forEach(row=>{
+      const i = Number(row.dataset.d);
+      row.querySelectorAll("[data-f]").forEach(el=>{
+        const set = ()=>{ discs[i][el.dataset.f] = el.dataset.f==="amount" ? (el.value===""?"":Number(el.value)) : el.value; drawTotal(); };
+        el.addEventListener("input", set);
+        el.addEventListener("change", set);
+      });
+      row.querySelector("[data-drm]").addEventListener("click", ()=>{ discs.splice(i,1); drawDiscs(); drawTotal(); });
+    });
+    drawTotal();
+  }
   function drawTotal(){
-    const t = lines.reduce((s,l)=> s + (Number(l.amount)||0), 0);
-    document.getElementById("ivTotal").textContent = fmtIn(t, curEl.value);
+    const g = lines.reduce((s,l)=> s + (Number(l.amount)||0), 0);
+    const d = discs.reduce((s,x)=> s + (Number(x.amount)||0), 0);
+    document.getElementById("ivGross").textContent = fmtIn(g, curEl.value);
+    document.getElementById("ivDiscRow").hidden = !discs.length;
+    document.getElementById("ivDisc").textContent = "-" + fmtIn(d, curEl.value);
+    document.getElementById("ivTotal").textContent = fmtIn(g - d, curEl.value);
   }
   function syncHelp(){
     const vv = V_BY_KEY[vendorEl.value];
@@ -5440,13 +5498,19 @@ function openForm(doc){
     curEl.value = vv.currency;
     drawLines(); syncHelp();
   });
-  curEl.addEventListener("change", drawTotal);
+  curEl.addEventListener("change", drawTotal);   // 할인·합계 표기 통화 동기화
   // 날짜를 고르면 귀속 월을 같이 맞춰 준다 (직접 바꿀 수 있다)
   dateEl.addEventListener("change", ()=>{
     if(dateEl.value && !doc) periodEl.value = dateEl.value.slice(0,7);
     syncHelp();
   });
   periodEl.addEventListener("change", syncHelp);
+  document.getElementById("ivAddDisc").addEventListener("click", ()=>{
+    discs.push({ amount:"", memo:"" });
+    drawDiscs();
+    const last = discsEl.querySelector(".line-row-edit:last-child input");
+    if(last) last.focus();
+  });
   document.getElementById("ivAddLine").addEventListener("click", ()=>{
     const used = lines.map(l=>l.item);
     const next = itemsFor(vendorEl.value).find(k=> used.indexOf(k)<0) || itemsFor(vendorEl.value)[0];
@@ -5462,7 +5526,7 @@ function openForm(doc){
     closeForm();
   });
 
-  drawLines(); syncHelp();
+  drawLines(); drawDiscs(); syncHelp();
 
   document.getElementById("ivForm").addEventListener("submit", async e=>{
     e.preventDefault();
@@ -5471,7 +5535,10 @@ function openForm(doc){
     const clean = lines.filter(l=> l.item && (Number(l.amount)||0) !== 0)
                        .map(l=> ({ item:l.item, amount:Number(l.amount)||0, memo:(l.memo||"").trim() }));
     if(!clean.length){ alert("금액이 있는 항목을 최소 한 줄 입력하세요."); return; }
-    const dup = clean.map(l=>l.item).filter((k,i,a)=> a.indexOf(k)!==i);
+    // 할인 줄도 같은 목록에 담는다 (item:"discount") — 합계에서 자동으로 빠진다
+    discs.filter(d=> (Number(d.amount)||0) !== 0)
+         .forEach(d=> clean.push({ item:"discount", amount:Number(d.amount)||0, memo:(d.memo||"").trim() }));
+    const dup = clean.filter(l=> l.item!=="discount").map(l=>l.item).filter((k,i,a)=> a.indexOf(k)!==i);
     if(dup.length && !confirm(`같은 항목이 두 번 들어 있습니다 (${dup.map(k=>ITEM_LABEL[k]).join(", ")}). 그대로 저장할까요?`)) return;
     await CD.Store.upsertInvoice({
       id: editingId || CD.uid("iv"),
