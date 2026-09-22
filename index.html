@@ -20,22 +20,23 @@
    ============================= */
 :root{
   color-scheme: light;
-  --page:#f7f8fa; --surface:#ffffff; --surface-2:#f9fafb; --surface-3:#f2f4f7;
-  --ink:#101828; --ink-2:#475467; --muted:#98a2b3;
-  --line:#f0f1f4; --line-strong:#e4e7ec; --border:rgba(16,24,40,0.06);
-  --side:#ffffff; --side-ink:#6b6e80; --side-ink-active:#2F61D5;
-  --accent:#2F61D5; --accent-ink:#ffffff; --accent-soft:#eaeffb; --accent-soft-line:#c8d6f5;
-  --kr:#2F61D5; --kr-ink:#2F61D5; --kr-soft:#eaeffb;
-  --jp:#7540EE; --jp-ink:#7540EE; --jp-soft:#f1ecfd;
-  --us:#3FB6DC; --us-ink:#1d7f9f; --us-soft:#ecf8fc;
-  --good:#2DC76D; --good-ink:#1b8b4a; --good-soft:#eaf9f0;
-  --warning:#FFC800; --warning-ink:#8f7000; --warning-soft:#fff9e6;
-  --serious:#FF7052; --serious-ink:#c7452a; --serious-soft:#fff1ee;
-  --critical:#FF7052; --critical-ink:#c7452a; --critical-soft:#fff1ee;
-  --cost-pack:#2F61D5; --cost-lastmile:#3FB6DC; --cost-air:#7540EE; --cost-truck:#FFC800; --cost-handling:#FF7052;
-  --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.03);
-  --shadow-lift: 0 4px 10px rgba(16,24,40,.06), 0 24px 50px -28px rgba(16,24,40,.25);
-  --radius-s:8px; --radius-m:12px; --radius-l:16px;
+  /* 배경은 아주 옅은 청회색, 카드는 흰 면 + 보이는 헤어라인 — 카드 경계가 분명한 대시보드 결 */
+  --page:#f4f6fa; --surface:#ffffff; --surface-2:#f7f9fc; --surface-3:#eef2f8;
+  --ink:#111827; --ink-2:#4b5563; --muted:#98a2b3;
+  --line:#e9edf4; --line-strong:#dde3ed; --border:#e5e9f0;
+  --side:#ffffff; --side-ink:#5b6472; --side-ink-active:#2563eb;
+  --accent:#2563eb; --accent-ink:#ffffff; --accent-soft:#eef4ff; --accent-soft-line:#cfdffd;
+  --kr:#2563eb; --kr-ink:#1d4ed8; --kr-soft:#eef4ff;
+  --jp:#7c5cf5; --jp-ink:#6136e8; --jp-soft:#f1edfe;
+  --us:#3aa8d8; --us-ink:#1d7f9f; --us-soft:#ecf7fc;
+  --good:#16a34a; --good-ink:#15803d; --good-soft:#e9f7ee;
+  --warning:#f0a400; --warning-ink:#a16207; --warning-soft:#fdf6e3;
+  --serious:#ef4444; --serious-ink:#b91c1c; --serious-soft:#fdeeee;
+  --critical:#ef4444; --critical-ink:#b91c1c; --critical-soft:#fdeeee;
+  --cost-pack:#2563eb; --cost-lastmile:#3aa8d8; --cost-air:#7c5cf5; --cost-truck:#f0a400; --cost-handling:#ef4444;
+  --shadow: 0 1px 2px rgba(17,24,39,.03);
+  --shadow-lift: 0 4px 12px rgba(17,24,39,.07), 0 24px 48px -28px rgba(17,24,39,.22);
+  --radius-s:8px; --radius-m:10px; --radius-l:14px;
   --font-ui:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   /* numbers use the same 산돌고딕(Pretendard/Apple SD Gothic Neo) face as everything else —
      kept as a separate token only so number cells can still opt into tabular (evenly spaced) figures */
@@ -44,40 +45,40 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --page:#111214; --surface:#1a1b1e; --surface-2:#212226; --surface-3:#2b2d32;
-    --ink:#f2f4f7; --ink-2:#98a2b3; --muted:#667085;
-    --line:#292a2f; --line-strong:#383a41; --border:rgba(255,255,255,0.10);
-    --side:#1a1b1e; --side-ink:#9497a3; --side-ink-active:#8fabf2;
-    --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#22293d; --accent-soft-line:#32405c;
-    --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#212739;
-    --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#27223a;
-    --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1d2c34;
-    --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#1a3025;
-    --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#33301c;
-    --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
-    --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
-    --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5; --cost-truck:#e8b93f; --cost-handling:#f08267;
-    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
-  --shadow-lift: 0 2px 8px rgba(0,0,0,.45), 0 22px 46px -24px rgba(0,0,0,.7);
+    --page:#0f1420; --surface:#171d2b; --surface-2:#1d2433; --surface-3:#262e40;
+    --ink:#eef2f8; --ink-2:#9aa6b8; --muted:#6b7688;
+    --line:#242c3c; --line-strong:#303a4e; --border:#2a3346;
+    --side:#141a27; --side-ink:#94a1b5; --side-ink-active:#7ea4ff;
+    --accent:#3b7dff; --accent-ink:#ffffff; --accent-soft:#1b2947; --accent-soft-line:#2c4373;
+    --kr:#5b90ff; --kr-ink:#8fb3ff; --kr-soft:#1b2947;
+    --jp:#9f83f7; --jp-ink:#b7a1fa; --jp-soft:#26203c;
+    --us:#57bde4; --us-ink:#7fd0ef; --us-soft:#152b36;
+    --good:#34d17f; --good-ink:#5ede9b; --good-soft:#12301f;
+    --warning:#f5c14b; --warning-ink:#f8d277; --warning-soft:#332a16;
+    --serious:#f87171; --serious-ink:#fb9494; --serious-soft:#361d20;
+    --critical:#f87171; --critical-ink:#fb9494; --critical-soft:#361d20;
+    --cost-pack:#5b90ff; --cost-lastmile:#57bde4; --cost-air:#9f83f7; --cost-truck:#f5c14b; --cost-handling:#f87171;
+    --shadow: 0 1px 2px rgba(0,0,0,.30);
+  --shadow-lift: 0 4px 12px rgba(0,0,0,.45), 0 22px 46px -24px rgba(0,0,0,.7);
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --page:#111214; --surface:#1a1b1e; --surface-2:#212226; --surface-3:#2b2d32;
-  --ink:#f2f4f7; --ink-2:#98a2b3; --muted:#667085;
-  --line:#292a2f; --line-strong:#383a41; --border:rgba(255,255,255,0.10);
-  --side:#1a1b1e; --side-ink:#9497a3; --side-ink-active:#8fabf2;
-  --accent:#5b87e8; --accent-ink:#ffffff; --accent-soft:#22293d; --accent-soft-line:#32405c;
-  --kr:#6e93ee; --kr-ink:#8fabf2; --kr-soft:#212739;
-  --jp:#a585f5; --jp-ink:#b79bf7; --jp-soft:#27223a;
-  --us:#6fcbe8; --us-ink:#8bd7ef; --us-soft:#1d2c34;
-  --good:#4fd98c; --good-ink:#6ee0a2; --good-soft:#1a3025;
-  --warning:#ffd84d; --warning-ink:#ffe27a; --warning-soft:#33301c;
-  --serious:#ff8f76; --serious-ink:#ffa993; --serious-soft:#372623;
-  --critical:#ff8f76; --critical-ink:#ffa993; --critical-soft:#372623;
-  --cost-pack:#6e93ee; --cost-lastmile:#6fcbe8; --cost-air:#a585f5; --cost-truck:#e8b93f; --cost-handling:#f08267;
-  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
-  --shadow-lift: 0 2px 8px rgba(0,0,0,.45), 0 22px 46px -24px rgba(0,0,0,.7);
+  --page:#0f1420; --surface:#171d2b; --surface-2:#1d2433; --surface-3:#262e40;
+  --ink:#eef2f8; --ink-2:#9aa6b8; --muted:#6b7688;
+  --line:#242c3c; --line-strong:#303a4e; --border:#2a3346;
+  --side:#141a27; --side-ink:#94a1b5; --side-ink-active:#7ea4ff;
+  --accent:#3b7dff; --accent-ink:#ffffff; --accent-soft:#1b2947; --accent-soft-line:#2c4373;
+  --kr:#5b90ff; --kr-ink:#8fb3ff; --kr-soft:#1b2947;
+  --jp:#9f83f7; --jp-ink:#b7a1fa; --jp-soft:#26203c;
+  --us:#57bde4; --us-ink:#7fd0ef; --us-soft:#152b36;
+  --good:#34d17f; --good-ink:#5ede9b; --good-soft:#12301f;
+  --warning:#f5c14b; --warning-ink:#f8d277; --warning-soft:#332a16;
+  --serious:#f87171; --serious-ink:#fb9494; --serious-soft:#361d20;
+  --critical:#f87171; --critical-ink:#fb9494; --critical-soft:#361d20;
+  --cost-pack:#5b90ff; --cost-lastmile:#57bde4; --cost-air:#9f83f7; --cost-truck:#f5c14b; --cost-handling:#f87171;
+  --shadow: 0 1px 2px rgba(0,0,0,.30);
+  --shadow-lift: 0 4px 12px rgba(0,0,0,.45), 0 22px 46px -24px rgba(0,0,0,.7);
 }
 
 /* ============================= BASE ============================= */
@@ -98,21 +99,23 @@ a{color:var(--accent);}
 /* ============================= APP SHELL ============================= */
 .app{display:flex; align-items:flex-start; gap:0; min-height:100vh;}
 .sidebar{position:sticky; top:0; align-self:stretch; flex:none; width:238px; min-height:100vh;
-  background:var(--side); border-right:1px solid var(--line); padding:20px 14px 22px;
-  display:flex; flex-direction:column; gap:22px; z-index:30;}
+  background:var(--side); border-right:1px solid var(--border); padding:18px 12px 20px;
+  display:flex; flex-direction:column; gap:20px; z-index:30;}
 .side-brand{display:flex; align-items:center; gap:10px; padding:2px 6px 0;}
 .side-nav{display:flex; flex-direction:column; gap:3px;}
-.side-foot{margin-top:auto; padding:14px 8px 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px;}
+/* 레퍼런스 하단 카드처럼 — 상태 표시를 옅은 면 위에 얹는다 */
+.side-foot{margin-top:auto; padding:11px 12px; border:1px solid var(--border); border-radius:var(--radius-m);
+  background:var(--surface-2); display:flex; flex-direction:column; gap:8px;}
 .main{flex:1 1 auto; min-width:0; padding:0 26px 72px;}
 .main-inner{max-width:1180px; margin:0 auto;}
 .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px;
   padding:20px 0 18px; margin-bottom:6px;}
 .page-title{display:flex; flex-direction:column; gap:3px; min-width:0;}
-.page-title h1{font-size:22px; font-weight:700; letter-spacing:-.03em;}
+.page-title h1{font-size:23px; font-weight:700; letter-spacing:-.035em;}
 .page-title .tag{font-size:12.5px; color:var(--muted);}
 .topbar-right{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted);}
-.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--muted); background:var(--surface);
-  border:1px solid transparent; padding:7px 12px; border-radius:var(--radius-s); box-shadow:var(--shadow);}
+.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2); background:var(--surface);
+  border:1px solid var(--border); padding:7px 12px; border-radius:var(--radius-m); box-shadow:var(--shadow);}
 
 .brand-mark{width:32px; height:32px; border-radius:var(--radius-s); background:var(--ink); color:var(--surface); display:flex;
   align-items:center; justify-content:center; flex:none; font-size:13px; font-weight:800; padding:0;
@@ -130,11 +133,13 @@ a{color:var(--accent);}
 .tabs{display:flex; flex-direction:column; gap:3px;}
 .tab-btn{appearance:none; background:none; border:none; width:100%; text-align:left;
   padding:10px 12px; font-size:13.5px; font-weight:300; color:var(--side-ink); cursor:pointer;
-  border-radius:var(--radius-s); display:flex; align-items:center; gap:11px; white-space:nowrap;
+  border-radius:var(--radius-m); display:flex; align-items:center; gap:11px; white-space:nowrap; position:relative;
   transition:background .14s ease, color .14s ease;}
 .tab-btn svg{width:18px; height:18px; flex:none; stroke-width:1.7;}
 .tab-btn:hover{background:var(--surface-2); color:var(--ink);}
 .tab-btn.active{background:var(--accent-soft); color:var(--side-ink-active); font-weight:600;}
+.tab-btn.active::before{content:""; position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:3px; height:18px; border-radius:0 3px 3px 0; background:var(--accent);}
 .tab-btn.active svg{stroke-width:2;}
 .view{display:none;}
 .view.active{display:block; animation:fadein .2s ease;}
@@ -152,7 +157,7 @@ a{color:var(--accent);}
   .tabs{flex-direction:row; gap:4px; overflow-x:auto; padding-bottom:2px;}
   .tab-btn{width:auto; padding:8px 13px; font-size:12.5px;}
   .tab-btn svg{display:none;}
-  .side-foot{margin-top:0; border-top:none; padding:0 2px; flex-direction:row; align-items:center; gap:12px;}
+  .side-foot{margin-top:0; border:none; background:none; padding:0 2px; flex-direction:row; align-items:center; gap:12px;}
   .main{padding:0 16px 56px;}
   .topbar{padding:16px 0 12px;}
   .page-title h1{font-size:18px;}
@@ -165,9 +170,9 @@ a{color:var(--accent);}
 .stack{display:flex; flex-direction:column; gap:4px;}
 .section{margin-bottom:28px;}
 .section-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:13px; flex-wrap:wrap;}
-.section-head h2{font-size:15px; font-weight:600; letter-spacing:-.015em; color:var(--ink);}
+.section-head h2{font-size:15.5px; font-weight:600; letter-spacing:-.02em; color:var(--ink);}
 .section-head .hint{font-size:12px; color:var(--muted);}
-.card{background:var(--surface); border:1px solid transparent; border-radius:var(--radius-l); padding:22px; box-shadow:var(--shadow); min-width:0;}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:20px; box-shadow:var(--shadow); min-width:0;}
 /* 스크롤을 따라오는 필터 바 — 아래 표를 보다가도 기준을 바로 바꿀 수 있다.
    페이지 배경을 깔아 뒤 내용이 비치지 않게 하고, 붙었을 때만 아래 선이 생긴다. */
 .filterbar{position:sticky; top:0; z-index:25; background:var(--page); margin:0 -26px 24px;
@@ -176,9 +181,9 @@ a{color:var(--accent);}
 .filterbar .row{row-gap:8px;}
 @media (max-width:900px){ .filterbar{position:static; margin:0 0 20px; padding:0;} }
 @media (max-width:640px){ .filterbar{margin:0 0 16px;} }
-.card.tight{padding:15px 17px; border-radius:var(--radius-m);}
+.card.tight{padding:14px 16px; border-radius:var(--radius-m);}
 .card.collapsed{padding:15px 20px;}
-.grid{display:grid; gap:14px; min-width:0;}
+.grid{display:grid; gap:16px; min-width:0;}
 .grid > *{min-width:0;}
 .grid.kpis{grid-template-columns:repeat(6,1fr);}
 @media (max-width:1240px){.grid.kpis{grid-template-columns:repeat(3,1fr);}}
@@ -212,34 +217,43 @@ a{color:var(--accent);}
 @media (max-width:960px){.grid.settings3{grid-template-columns:1fr;}}
 
 /* ============================= KPI TILES ============================= */
-.kpi{background:var(--surface); border:1px solid transparent; border-radius:var(--radius-m); padding:20px 22px; display:flex; flex-direction:column; gap:9px; justify-content:space-between; min-height:112px;}
-.kpi .label{font-size:12.5px; color:var(--muted); letter-spacing:0; display:flex; align-items:center; gap:6px; line-height:1.35;}
-/* 레퍼런스 대시보드들은 KPI 숫자만 굵다 — 라벨·본문은 그대로 Light 유지 */
-.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:28px; font-weight:600; letter-spacing:-.03em; line-height:1.15; color:var(--ink); white-space:nowrap; overflow:hidden; min-width:0;}
-.kpi .sub{font-size:11.5px; color:var(--muted); line-height:1.45;}
+.kpi{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:16px 18px;
+  display:flex; flex-direction:column; gap:7px; justify-content:flex-start; min-height:112px; box-shadow:var(--shadow);}
+.kpi .label{font-size:12.5px; color:var(--ink-2); letter-spacing:0; display:flex; align-items:center; gap:7px; line-height:1.35;}
+/* 값은 굵게, 라벨·보조는 가볍게 — 레퍼런스의 3단 위계 */
+.kpi .value{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:27px; font-weight:700; letter-spacing:-.035em; line-height:1.2; color:var(--ink); white-space:nowrap; overflow:hidden; min-width:0; margin-top:1px;}
+.kpi .sub{font-size:11.5px; color:var(--muted); line-height:1.45; margin-top:auto;}
+/* 아이콘 타일 — 레퍼런스처럼 옅은 색면 위 아이콘 */
+.kpi .ico{width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center;
+  flex:none; background:var(--accent-soft); color:var(--accent); margin-bottom:2px;}
+.kpi .ico svg{width:17px; height:17px; stroke-width:1.9;}
+.kpi .ico.g{background:var(--good-soft); color:var(--good-ink);}
+.kpi .ico.p{background:var(--jp-soft); color:var(--jp-ink);}
+.kpi .ico.w{background:var(--warning-soft); color:var(--warning-ink);}
+.kpi .ico.r{background:var(--critical-soft); color:var(--critical-ink);}
+.kpi .ico.c{background:var(--us-soft); color:var(--us-ink);}
+.kpi-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
 
-/* 여러 장을 한 카드로 묶고 1px 간격만 남겨 칸막이처럼 보이게 한다 (어느 폭에서 줄바꿈해도 선이 맞는다) */
-.grid.kpis, .grid.kpis3, .grid.kpis4, .grid.kpis5, .grid.kpis24{
-  gap:1px; background:var(--line); border:1px solid transparent; border-radius:var(--radius-l);
-  overflow:hidden; box-shadow:var(--shadow);}
-.grid.kpis > .kpi, .grid.kpis3 > .kpi, .grid.kpis4 > .kpi, .grid.kpis5 > .kpi, .grid.kpis24 > .kpi{
-  border:none; border-radius:0; box-shadow:none;}
+/* 레퍼런스처럼 KPI는 낱장 카드로 떨어뜨린다 */
+.grid.kpis, .grid.kpis3, .grid.kpis4, .grid.kpis5, .grid.kpis24{gap:16px;}
+.grid.kpis > .kpi:empty, .grid.kpis4 > .kpi:empty, .grid.kpis5 > .kpi:empty{border:none; background:none; box-shadow:none;}
 .kpi .sub.up{color:var(--good-ink);} .kpi .sub.down{color:var(--critical-ink);}
-.kpi .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+.kpi .dot{width:9px; height:9px; border-radius:3px; flex:none;}
 /* 증감은 글자색 대신 알약으로 — 참고 대시보드들의 "Last month +24%" 패턴 */
-.delta{display:inline-flex; align-items:center; gap:3px; font-size:11px; padding:3px 8px; border-radius:8px;
-  background:var(--surface-2); color:var(--ink-2); font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1.4;}
-.delta.good{background:var(--good-soft); color:var(--good-ink);}
-.delta.bad{background:var(--critical-soft); color:var(--critical-ink);}
+/* 증감은 색면 알약 대신 화살표 + 색 글자 — 레퍼런스의 "↑ 12.5% vs last 30 days" 패턴 */
+.delta{display:inline-flex; align-items:center; gap:3px; font-size:12px; font-weight:600;
+  color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1.4;}
+.delta.good{color:var(--good-ink);}
+.delta.bad{color:var(--critical-ink);}
 .kpi .sub{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
 
 /* ============================= FORM ELEMENTS ============================= */
 .field{display:flex; flex-direction:column; gap:5px; min-width:0;}
 .field label{font-size:11.5px; color:var(--ink-2); font-weight:300;}
 .field > input, .field > select, .field > textarea{width:100%;}
-input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); padding:9px 11px; outline:none; box-sizing:border-box; transition:border-color .12s ease, box-shadow .12s ease;}
+input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-m); padding:9px 12px; outline:none; box-sizing:border-box; transition:border-color .12s ease, box-shadow .12s ease;}
 input.mono, .num-input{font-family:var(--font-mono);}
-input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft-line);}
 input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
 /* kill the tiny native ▲▼ steppers on every field (number/date/time) — these are all typed-in.
    NOTE: do NOT set `appearance:textfield` on the input itself; recent Chrome treats it as
@@ -254,11 +268,11 @@ input[type=number]{-moz-appearance:textfield;}
 select{cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:30px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%2398a2b3' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 10px center;}
-.btn{appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:300; padding:8px 15px; border-radius:var(--radius-s); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; transition:background .12s ease, border-color .12s ease, filter .12s ease;}
-.btn:hover{background:var(--surface-2); border-color:var(--line-strong);}
+.btn{appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2); font-size:12.5px; font-weight:500; padding:8px 14px; border-radius:var(--radius-m); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; transition:background .12s ease, border-color .12s ease, filter .12s ease;}
+.btn:hover{background:var(--surface-2); border-color:var(--line-strong); color:var(--ink);}
 .btn:active{transform:translateY(1px);}
 .btn:focus-visible, .tab-btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
-.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600;}
 .btn.primary:hover{filter:brightness(1.06); background:var(--accent);}
 .btn.ghost{border-color:transparent; background:none;}
 .btn.ghost:hover{background:var(--surface-2);}
@@ -325,13 +339,13 @@ td.offday{color:var(--critical-ink);}
 .btn.icon{width:34px; height:34px; padding:0; font-size:16px; line-height:1; color:var(--ink-2); border-radius:var(--radius-s);}
 .btn.icon:hover{color:var(--ink);}
 .btn svg{width:14px; height:14px;}
-.seg{display:inline-flex; border:1px solid transparent; border-radius:10px; overflow:hidden; background:var(--surface-2); padding:3px;}
-.seg button{appearance:none; border:none; background:none; padding:7px 14px; font-size:12.5px; font-weight:300; color:var(--ink-2); cursor:pointer; border-radius:7px; transition:background .12s ease, color .12s ease;}
+.seg{display:inline-flex; border:1px solid var(--border); border-radius:var(--radius-m); overflow:hidden; background:var(--surface-2); padding:3px;}
+.seg button{appearance:none; border:none; background:none; padding:7px 13px; font-size:12.5px; font-weight:500; color:var(--ink-2); cursor:pointer; border-radius:7px; transition:background .12s ease, color .12s ease;}
 .seg button:hover{color:var(--ink);}
-.seg button.active{background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 2px rgba(16,24,40,.06);}
+.seg button.active{background:var(--surface); color:var(--accent); font-weight:600; box-shadow:0 1px 2px rgba(17,24,39,.07);}
 
 /* ============================= TABLE ============================= */
-.table-wrap{overflow-x:auto; border:1px solid transparent; border-radius:var(--radius-m); background:var(--surface); box-shadow:var(--shadow);}
+.table-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius-l); background:var(--surface); box-shadow:var(--shadow);}
 /* ---- 목록 도구모음 (검색 / 필터 / 페이지) ---- */
 .list-tools{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
 .list-tools .search{position:relative; flex:none;}
@@ -345,10 +359,10 @@ td.offday{color:var(--critical-ink);}
 .pager .info{font-size:11.5px; color:var(--muted);}
 .pager .pages{display:flex; align-items:center; gap:4px;}
 .pager .pages button{min-width:30px; height:30px; padding:0 7px; font-size:11.5px;}
-.pager .pages button.cur{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+.pager .pages button.cur{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600;}
 table{border-collapse:collapse; width:100%; font-size:12.5px; min-width:640px;}
-thead th{text-align:left; font-size:11.5px; letter-spacing:0; color:var(--muted); font-weight:300; padding:11px 13px; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0;}
-tbody td{padding:11px 13px; border-bottom:1px solid var(--line); white-space:nowrap; font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+thead th{text-align:left; font-size:11.5px; letter-spacing:0; color:var(--muted); font-weight:500; padding:11px 14px; background:var(--surface-2); border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0;}
+tbody td{padding:12px 14px; border-bottom:1px solid var(--line); white-space:nowrap; font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
 tbody td.text{font-family:var(--font-ui);}
 tbody tr:last-child td{border-bottom:none;}
 tbody tr:hover{background:var(--surface-2);}
@@ -379,8 +393,11 @@ table.detail tfoot td{background:var(--surface-2); font-weight:600; color:var(--
 .chg.flat{background:var(--surface-2); color:var(--muted);}
 
 /* ============================= BADGES / TAGS ============================= */
-.badge{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:300; padding:4px 10px; border-radius:8px; line-height:1.5;
-  background:var(--surface-2); color:var(--ink-2);}
+.badge{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; padding:4px 10px; border-radius:999px; line-height:1.5;
+  background:var(--surface-3); color:var(--ink-2);}
+.badge.kr{background:var(--kr-soft); color:var(--kr-ink);}
+.badge.jp{background:var(--jp-soft); color:var(--jp-ink);}
+.badge.us{background:var(--us-soft); color:var(--us-ink);}
 /* 국가 구분은 색면 대신 앞의 작은 점으로 — 화면 전체 색 부담을 줄인다 */
 .badge.kr::before, .badge.jp::before, .badge.us::before{content:""; width:6px; height:6px; border-radius:50%; flex:none;}
 .badge.kr::before{background:var(--kr);} .badge.jp::before{background:var(--jp);} .badge.us::before{background:var(--us);}
@@ -435,7 +452,7 @@ svg.chart .gridline{stroke:var(--line);}
 /* ============================= MODAL / DRAWER ============================= */
 .overlay{position:fixed; inset:0; background:rgba(16,24,40,.38); backdrop-filter:blur(1px); display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; z-index:100; overflow-y:auto;}
 .overlay[hidden]{display:none;}
-.modal{background:var(--surface); border:1px solid transparent; border-radius:var(--radius-l); padding:24px; width:100%; max-width:560px; box-shadow:var(--shadow-lift);}
+.modal{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:24px; width:100%; max-width:560px; box-shadow:var(--shadow-lift);}
 .modal.wide{max-width:920px;}
 .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;}
 .modal-head h3{font-size:15.5px;}
@@ -995,8 +1012,30 @@ window.CD = {
   isoWeekKey, monthKey, yearKey, monthLabel, daysInMonth, fmtNum, fmtMoney, uid,
   Store, Cache, defaultSettings, mergeSettings, on, emit,
   airCfg, airBillableWeight, airRateUsd, airCostUsd,
-  renderPager, matchQuery, fitKpi
+  renderPager, matchQuery, fitKpi, kpiIcon
 };
+
+/* ---------- KPI 아이콘 타일 ----------
+   레퍼런스 대시보드처럼 카드마다 옅은 색면 위 아이콘을 얹는다.
+   kpiIcon("box","g") → <span class="ico g"><svg .../></span> */
+const KPI_PATHS = {
+  box:   '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
+  pack:  '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M9 7V4h6v3"/>',
+  ship:  '<path d="M3 17h18M5 17V9l7-4 7 4v8"/><path d="M9 17v-4h6v4"/>',
+  avg:   '<path d="M3 17l5-5 4 3 6-7"/><path d="M15 8h4v4"/>',
+  layers:'<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
+  alert: '<path d="M12 3l9 16H3l9-16z"/><path d="M12 10v4M12 17h.01"/>',
+  money: '<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h4a2 2 0 010 4h-3a2 2 0 000 4h4"/>',
+  card:  '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  tag:   '<path d="M20 12l-8 8-9-9V3h8l9 9z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+  gift:  '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v12"/><path d="M12 8S10 3 7.5 4.5 9 8 12 8zM12 8s2-5 4.5-3.5S15 8 12 8z"/>',
+  calc:  '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M8 15h2M14 11h2M14 15h2"/>',
+  cart:  '<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.5 12h11L21 7H6"/>'
+};
+function kpiIcon(name, tone){
+  const d = KPI_PATHS[name] || KPI_PATHS.box;
+  return `<span class="ico ${tone||''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`;
+}
 
 /** KPI 숫자가 카드 폭을 넘치면 들어갈 때까지 글자 크기를 낮춘다. 통화·자릿수에 상관없이 안전. */
 function fitKpi(container){
@@ -2036,12 +2075,12 @@ function refresh(){
 
   const rangeSub = `${CD.fmtShort(filt.start)}~${CD.fmtShort(filt.end)}`;
   document.getElementById("dKpis").innerHTML = `
-    <div class="kpi"><div class="label">총 픽킹 수량</div><div class="value">${CD.fmtNum(totalPicked)}</div><div class="sub" title="${filt.start}~${filt.end}">${rangeSub}</div></div>
-    <div class="kpi"><div class="label">총 팩킹 수량</div><div class="value">${CD.fmtNum(totalPacked)}</div><div class="sub" title="${filt.start}~${filt.end}">${rangeSub}</div></div>
-    <div class="kpi"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(totalShipped)}</div><div class="sub" title="${filt.start}~${filt.end}">${rangeSub}</div></div>
-    <div class="kpi"><div class="label">일 평균 출고</div><div class="value">${CD.fmtNum(avgShipped)}</div><div class="sub">${filt.excludeOff?"가동일":"기간"} ${Math.round(days)}일</div></div>
-    <div class="kpi"><div class="label">주문 건당 제품수</div><div class="value">${avgItemsPerOrder.toFixed(2)}</div><div class="sub" title="총 제품 ${CD.fmtNum(totalItems)}개 · ${CD.fmtNum(totalBoxes)}박스">제품 ${CD.fmtNum(totalItems)}개</div></div>
-    <div class="kpi"><div class="label">주문 건당 취급주의</div><div class="value">${avgHandlingPerOrder.toFixed(2)}</div><div class="sub">총 ${CD.fmtNum(Math.round(handlingEa))} EA</div></div>
+    <div class="kpi">${CD.kpiIcon("cart","c")}<div class="label">총 픽킹 수량</div><div class="value">${CD.fmtNum(totalPicked)}</div><div class="sub" title="${filt.start}~${filt.end}">${rangeSub}</div></div>
+    <div class="kpi">${CD.kpiIcon("pack","p")}<div class="label">총 팩킹 수량</div><div class="value">${CD.fmtNum(totalPacked)}</div><div class="sub" title="${filt.start}~${filt.end}">${rangeSub}</div></div>
+    <div class="kpi">${CD.kpiIcon("ship","g")}<div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(totalShipped)}</div><div class="sub" title="${filt.start}~${filt.end}">${rangeSub}</div></div>
+    <div class="kpi">${CD.kpiIcon("avg")}<div class="label">일 평균 출고</div><div class="value">${CD.fmtNum(avgShipped)}</div><div class="sub">${filt.excludeOff?"가동일":"기간"} ${Math.round(days)}일</div></div>
+    <div class="kpi">${CD.kpiIcon("layers")}<div class="label">주문 건당 제품수</div><div class="value">${avgItemsPerOrder.toFixed(2)}</div><div class="sub" title="총 제품 ${CD.fmtNum(totalItems)}개 · ${CD.fmtNum(totalBoxes)}박스">제품 ${CD.fmtNum(totalItems)}개</div></div>
+    <div class="kpi">${CD.kpiIcon("alert","w")}<div class="label">주문 건당 취급주의</div><div class="value">${avgHandlingPerOrder.toFixed(2)}</div><div class="sub">총 ${CD.fmtNum(Math.round(handlingEa))} EA</div></div>
   `;
 
   CD.fitKpi(document.getElementById("dKpis"));
@@ -3912,8 +3951,8 @@ function refresh(){
   const oneCountry = kpiCountries.length === 1;
   const rangeSub = rangeText();
   const cards = [
-    `<div class="kpi wide"><div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${label} 합계 · ${rangeSub}</div></div>`,
-    `<div class="kpi wide"><div class="label">총 물류비</div><div class="value">${fmtDisp0(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공+트럭킹+취급주의 · ${rangeSub}</div></div>`
+    `<div class="kpi wide">${CD.kpiIcon("ship","g")}<div class="label">총 출고 수량</div><div class="value">${CD.fmtNum(sumShipped)}</div><div class="sub">${label} 합계 · ${rangeSub}</div></div>`,
+    `<div class="kpi wide">${CD.kpiIcon("money")}<div class="label">총 물류비</div><div class="value">${fmtDisp0(totalCostDisp)}</div><div class="sub">출고비+통관·택배+항공+트럭킹+취급주의 · ${rangeSub}</div></div>`
   ];
   kpiCountries.forEach(c=>{
     const st = countryStats(c);
@@ -3923,7 +3962,7 @@ function refresh(){
     const dot = `<span class="dot" style="background:var(--${c.toLowerCase()})"></span>`;
     const wide = oneCountry ? " wide" : "";     // 국가 하나면 아랫줄도 2칸씩 채운다
     cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 물류비용</div><div class="value">${fmtDisp0(costDisp)}</div><div class="sub" title="출고비+통관·택배+항공+트럭킹+취급주의">${CD.fmtShort(aRange.start)}~${CD.fmtShort(aRange.end)} 합계</div></div>`);
-    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub">${st.deltaPct==null?`<span class="delta">${dLbl} 비교 불가</span>`:`<span class="delta${dCls}">${flat?"":(st.deltaPct>0?"▲":"▼")}${Math.abs(st.deltaPct).toFixed(1)}%</span><span style="color:var(--muted)">${dLbl} 대비</span>`}</div></div>`);
+    cards.push(`<div class="kpi${wide}"><div class="label">${dot}${CD.COUNTRY_LABEL[c]} 건당 평균비용</div><div class="value">${fmtDisp(perOrderDisp)}</div><div class="sub">${st.deltaPct==null?`<span class="delta">${dLbl} 비교 불가</span>`:`<span class="delta${dCls}">${flat?"":(st.deltaPct>0?"↑":"↓")}${Math.abs(st.deltaPct).toFixed(1)}%</span><span style="color:var(--muted)">${dLbl} 대비</span>`}</div></div>`);
   });
   const aK = document.getElementById("aKpis");
   aK.className = "section grid kpis24";
@@ -3968,7 +4007,7 @@ function refresh(){
     const dFlat = d!=null && Math.abs(d) < 0.05;
     const dCls = (d==null || dFlat) ? "" : (d<0 ? " good" : " bad");
     const dTxt = d==null ? `<span class="delta">비교 불가</span>`
-                         : `<span class="delta${dCls}">${dFlat?"":(d>0?"▲":"▼")}${Math.abs(d).toFixed(1)}%</span>`;
+                         : `<span class="delta${dCls}">${dFlat?"":(d>0?"↑":"↓")}${Math.abs(d).toFixed(1)}%</span>`;
     return `<div class="kpi">
       <div class="label"><span class="dot" style="background:var(${t.color})"></span>${t.label}</div>
       <div class="value">${fmtDisp0(total)}</div>
@@ -4094,7 +4133,7 @@ function refresh(){
     if(Math.abs(p) < 0.05) return `<span class="chg flat">0.0%</span>`;
     const up = p > 0;
     const cls = (goodUp ? up : !up) ? "good" : "bad";
-    return `<span class="chg ${cls}">${up?"▲":"▼"}${Math.abs(p).toFixed(1)}%</span>`;
+    return `<span class="chg ${cls}">${up?"↑":"↓"}${Math.abs(p).toFixed(1)}%</span>`;
   }
   const maxTotal = Math.max(1, ...countries.flatMap(c=>
     rows.map(r=>{ const b=r.byCountry[c]; return b ? toDisp(bucketCost(b), c) : 0; })));
@@ -4363,7 +4402,7 @@ function delta(now, before, goodUp){
   const up = p>0, flat = Math.abs(p) < 0.05;
   let cls = "";
   if(goodUp!==null && !flat) cls = (goodUp?up:!up) ? " good" : " bad";
-  return `<span class="delta${cls}">${flat?"":(up?"▲":"▼")}${Math.abs(p).toFixed(1)}%</span>` +
+  return `<span class="delta${cls}">${flat?"":(up?"↑":"↓")}${Math.abs(p).toFixed(1)}%</span>` +
          `<span style="color:var(--muted)">직전 ${days}일 대비</span>`;
 }
 
@@ -5025,18 +5064,18 @@ function refresh(){
   const dFlat = dPct!=null && Math.abs(dPct) < 0.05;
   const dCls = (dPct==null || dFlat) ? "" : (dPct<0 ? " good" : " bad");
   const dTxt = dPct==null ? `<span class="delta">직전 ${spanTxt} 비교 불가</span>`
-    : `<span class="delta${dCls}">${dFlat?"":(dPct>0?"▲":"▼")}${Math.abs(dPct).toFixed(1)}%</span><span style="color:var(--muted)">직전 ${spanTxt} 대비</span>`;
+    : `<span class="delta${dCls}">${dFlat?"":(dPct>0?"↑":"↓")}${Math.abs(dPct).toFixed(1)}%</span><span style="color:var(--muted)">직전 ${spanTxt} 대비</span>`;
   const autoN = docs.filter(d=>d.auto).length;
   document.getElementById("iKpis").innerHTML = `
-    <div class="kpi"><div class="label">순 청구액${oneVendor?` · ${oneVendor.label}`:""}</div><div class="value">${fmtD0(net)}</div>
+    <div class="kpi">${CD.kpiIcon("money")}<div class="label">순 청구액${oneVendor?` · ${oneVendor.label}`:""}</div><div class="value">${fmtD0(net)}</div>
       <div class="sub">${dTxt}</div></div>
-    <div class="kpi"><div class="label">청구 합계</div><div class="value">${fmtD0(gross)}</div>
+    <div class="kpi">${CD.kpiIcon("card","c")}<div class="label">청구 합계</div><div class="value">${fmtD0(gross)}</div>
       <div class="sub">할인·크레딧 차감 전 · ${iRange.start}~${iRange.end}</div></div>
-    <div class="kpi"><div class="label">할인</div><div class="value">${fmtD0(discount)}</div>
+    <div class="kpi">${CD.kpiIcon("tag","g")}<div class="label">할인</div><div class="value">${fmtD0(discount)}</div>
       <div class="sub">${lines.filter(L=>L.item==="discount").length}건 · 인보이스에서 차감</div></div>
-    <div class="kpi"><div class="label">크레딧</div><div class="value">${fmtD0(credit)}</div>
+    <div class="kpi">${CD.kpiIcon("gift","p")}<div class="label">크레딧</div><div class="value">${fmtD0(credit)}</div>
       <div class="sub">${lines.filter(L=>L.item==="credit").length}건 · 별도 차감</div></div>
-    <div class="kpi"><div class="label">월 평균</div><div class="value">${fmtD0(span>0?net/span:0)}</div>
+    <div class="kpi">${CD.kpiIcon("calc","w")}<div class="label">월 평균</div><div class="value">${fmtD0(span>0?net/span:0)}</div>
       <div class="sub">인보이스 ${CD.fmtNum(docs.length)}건 (자동 ${CD.fmtNum(autoN)}) · 항목 ${CD.fmtNum(lines.length)}줄</div></div>
   `;
   CD.fitKpi(document.getElementById("iKpis"));
@@ -5053,7 +5092,7 @@ function refresh(){
     const flat = d!=null && Math.abs(d) < 0.05;
     const cls = (d==null || flat) ? "" : (d<0 ? " good" : " bad");
     const txt = d==null ? `<span class="delta">비교 불가</span>`
-      : `<span class="delta${cls}">${flat?"":(d>0?"▲":"▼")}${Math.abs(d).toFixed(1)}%</span>`;
+      : `<span class="delta${cls}">${flat?"":(d>0?"↑":"↓")}${Math.abs(d).toFixed(1)}%</span>`;
     const dim = (oneVendor && oneVendor.key!==v.key) ? ' style="opacity:.4"' : "";
     const tag = v.mode==="auto" ? `<span class="auto-tag">자동</span>` : "";
     return `<div class="kpi"${dim}>
@@ -5163,7 +5202,7 @@ function refresh(){
       const flat = d!=null && Math.abs(d) < 0.05;
       const cls = (d==null || flat) ? "" : (d<0 ? " good" : " bad");
       const txt = d==null ? `<span class="delta">비교 불가</span>`
-        : `<span class="delta${cls}">${flat?"":(d>0?"▲":"▼")}${Math.abs(d).toFixed(1)}%</span>`;
+        : `<span class="delta${cls}">${flat?"":(d>0?"↑":"↓")}${Math.abs(d).toFixed(1)}%</span>`;
       return `<div class="kpi">
         <div class="label"><span class="dot" style="background:var(${ITEM_COLOR[k]||"--muted"})"></span>${ITEM_LABEL[k]||k}</div>
         <div class="value">${fmtD0(now)}</div>
