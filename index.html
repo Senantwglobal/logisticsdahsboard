@@ -2461,9 +2461,7 @@ function openForm(existing){
       </div>
       <div class="grid form">
         ${fieldRow("국가", `<select id="mCountry"><option value="KR" ${s.country==='KR'?'selected':''}>한국</option><option value="JP" ${s.country==='JP'?'selected':''}>일본</option></select>`)}
-        <div></div>
         ${fieldRow("컷오프 날짜 (ETD 전날)", `<input type="date" id="mCutoffDate" value="${s.cutoffDate||''}" required>`)}
-        ${fieldRow("컷오프 시간", `<input type="time" id="mCutoffTime" value="${s.cutoffTime||''}">`)}
         ${fieldRow("항공사", `<select id="mCarrierSel"></select>`)}
         ${fieldRow("편명 (FLT)", `<select id="mFlightSel"></select>`)}
         ${fieldRow("항공사명 (직접 입력)", `<input type="text" id="mCarrier" value="${s.carrier||''}" placeholder="예: Asiana Cargo">`)}
@@ -2482,6 +2480,8 @@ function openForm(existing){
           <span class="hint" id="mResultHint"></span>
         </div>
         <div class="grid form">
+          ${fieldRow("컷오프 시간", `<input type="time" id="mCutoffTime" value="${s.cutoffTime||''}">`)}
+          <div></div>
           ${fieldRow("Pallet Count", `<input type="number" id="mPallet" min="0" value="${s.palletCount||0}">`)}
           ${fieldRow("Package Count", `<input type="number" id="mPackage" min="0" value="${s.packageCount||0}">`)}
           ${fieldRow("Cutoff Weight (kg)", `<input type="number" id="mCutoffWeight" min="0" value="${s.cutoffWeight||0}">`)}
@@ -3025,12 +3025,20 @@ let countryFilter = "ALL";
 let dispCurrency = "KRW"; // USD | KRW | JPY — currency all costs are DISPLAYED in (converted live)
 try{ dispCurrency = localStorage.getItem("cargodesk_dispCurrency") || "KRW"; }catch(e){}
 /* 집계 대상 기간 — 카드·차트·표가 모두 이 기간만 본다 */
-const aRange = { start: CD.addDays(CD.todayISO(), -89), end: CD.todayISO() };
+const aRange = (()=>{ let y=Number(CD.todayISO().slice(0,4)), m=Number(CD.todayISO().slice(5,7))-2;
+  while(m<1){ m+=12; y-=1; }
+  return { start: y+"-"+CD.pad2(m)+"-01", end: CD.todayISO() }; })();
 try{
   const saved = JSON.parse(localStorage.getItem("cargodesk_acctRange") || "null");
   if(saved && saved.start && saved.end){ aRange.start = saved.start; aRange.end = saved.end; }
 }catch(e){}
 function saveRange(){ try{ localStorage.setItem("cargodesk_acctRange", JSON.stringify(aRange)); }catch(e){} }
+/** N개월 프리셋의 시작일 — 이번달 포함 N개월의 1일 (월 단위로 딱 떨어지게) */
+function monthsAgoStart(n){
+  let y = Number(CD.todayISO().slice(0,4)), m = Number(CD.todayISO().slice(5,7)) - (n-1);
+  while(m < 1){ m += 12; y -= 1; }
+  return y + "-" + CD.pad2(m) + "-01";
+}
 function inRange(iso){ return !!iso && iso >= aRange.start && iso <= aRange.end; }
 function rangeText(){ return `${aRange.start} ~ ${aRange.end}`; }
 /** 데이터가 존재하는 가장 이른 날짜 (전체 기간 프리셋용) */
@@ -3221,8 +3229,9 @@ function shell(){
             <button data-v="tm">이번달</button>
             <button data-v="lm">지난달</button>
             <button data-v="30">최근 30일</button>
-            <button data-v="90">최근 90일</button>
-            <button data-v="365">최근 1년</button>
+            <button data-v="m3">최근 3개월</button>
+            <button data-v="m6">최근 6개월</button>
+            <button data-v="m12">최근 12개월</button>
             <button data-v="ytd">올해</button>
             <button data-v="all">전체</button>
           </div>
@@ -3249,7 +3258,7 @@ function shell(){
     </div>
 
     <div class="section">
-      <div class="section-head"><h2>비용 구성</h2><span class="hint">출고비 칸에 취급주의 포함 · 막대에 마우스를 올리면 항목별로 나뉩니다</span></div>
+      <div class="section-head"><h2>비용 구성</h2><span class="hint" id="aCompHint">출고비 칸에 취급주의 포함 · 막대에 마우스를 올리면 항목별로 나뉩니다</span></div>
       <div class="card">
         <div id="aCompWrap" class="grid even"></div>
         <div class="chart-legend" id="aCompLegend"></div>
@@ -3304,6 +3313,7 @@ function shell(){
       aRange.end = v==="tm" ? today
         : `${k}-${CD.pad2(CD.daysInMonth(Number(k.slice(0,4)), Number(k.slice(5,7))-1))}`;
     }
+    else if(/^m\d+$/.test(v)){ aRange.start = monthsAgoStart(Number(v.slice(1))); aRange.end = today; }
     else                 { aRange.start = CD.addDays(today, -(Number(v)-1)); aRange.end = today; }
     saveRange(); syncRangeUi(); refresh();
   });
@@ -3415,8 +3425,7 @@ function syncRangeUi(){
   if(!active && aRange.end === today){
     const span = Math.round((CD.parseISO(aRange.end) - CD.parseISO(aRange.start)) / 86400000) + 1;
     if(span === 30) active = "30";
-    else if(span === 90) active = "90";
-    else if(span === 365) active = "365";
+    [3,6,12].forEach(n=>{ if(aRange.start === monthsAgoStart(n)) active = "m"+n; });
     if(aRange.start === today.slice(0,4)+"-01-01") active = "ytd";
   }
   document.querySelectorAll("#aRangeSeg button").forEach(b=> b.classList.toggle("active", b.dataset.v === active));
@@ -4291,6 +4300,21 @@ function refresh(){
   }
 
   // composition chart: per country small multiple, stacked fulfill vs air — values converted to the selected display currency
+  // 기간 시작이 구간 중간에 걸리면 첫 막대는 '부분 구간'이라 다른 막대와 길이를 비교하면 안 된다.
+  {
+    const first = rows[0] ? rows[0].key : null;
+    let partial = null;
+    if(first && gran !== "day"){
+      const bucketStart = gran==="month" ? first+"-01" : gran==="year" ? first+"-01-01" : null;
+      if(bucketStart && bucketStart < aRange.start) partial = keyLabel(first);
+      if(gran==="week" && rows.length > 1) partial = null;   // 주별은 라벨만으로 헷갈릴 일이 적다
+    }
+    const base = "출고비 칸에 취급주의 포함 · 막대에 마우스를 올리면 항목별로 나뉩니다";
+    const el = document.getElementById("aCompHint");
+    if(el) el.textContent = partial
+      ? `${base} · ${partial}은 ${CD.fmtShort(aRange.start)}부터만 포함된 부분 구간입니다`
+      : base;
+  }
   const compWrap = document.getElementById("aCompWrap");
   compWrap.innerHTML = "";
   compWrap.className = "grid " + (countries.length>1?"even":"");
