@@ -368,6 +368,12 @@ tbody td{padding:12px 14px; border-bottom:1px solid var(--line); white-space:now
 tbody td.text{font-family:var(--font-ui);}
 tbody tr:last-child td{border-bottom:none;}
 tbody tr:hover{background:var(--surface-2);}
+/* 액션 버튼 칸은 가로 스크롤과 무관하게 오른쪽에 붙여 둔다 (버튼이 잘리지 않게) */
+th.act, td.act{position:sticky; right:0; z-index:2; background:var(--surface);
+  box-shadow:inset 1px 0 0 var(--line); white-space:nowrap;}
+thead th.act{z-index:5; background:var(--surface-2);}
+tbody tr:hover td.act{background:var(--surface-2);}
+tfoot td.act{background:var(--surface-2);}
 tfoot td{padding:9px 12px; font-weight:300; border-top:1px solid var(--line-strong); font-family:var(--font-mono);}
 
 /* ---- 기간별 상세: 열이 많아 그룹 헤더 + 첫 열 고정 + 무게 차등으로 읽는다 ---- */
@@ -1813,7 +1819,7 @@ function shell(){
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>출고 전일 대비</th><th>합포장</th><th></th></tr></thead>
+            <thead><tr><th>날짜</th><th>국가</th><th>픽킹</th><th>팩킹</th><th>출고</th><th>출고 전일 대비</th><th>합포장</th><th class="act"></th></tr></thead>
             <tbody id="dTableBody"></tbody>
           </table>
         </div>
@@ -1844,7 +1850,7 @@ function shell(){
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>기간</th><th>국가</th><th>취급주의 EA</th><th>단가</th><th>금액</th><th class="text">비고</th><th></th></tr></thead>
+            <thead><tr><th>기간</th><th>국가</th><th>취급주의 EA</th><th>단가</th><th>금액</th><th class="text">비고</th><th class="act"></th></tr></thead>
             <tbody id="hdBody"></tbody>
           </table>
         </div>
@@ -2223,7 +2229,7 @@ function refresh(){
       <td>${CD.fmtNum(r.shipped||0)}</td>
       <td>${deltaCell(r, prevMap[r.id])}</td>
       <td>${CD.fmtNum(boxes)}박스${r.isSample?' <span class="badge sample">예시</span>':''}</td>
-      <td class="text"><button class="btn small ghost" data-edit="${r.id}">수정</button> <button class="btn small danger ghost" data-del="${r.id}">삭제</button></td>
+      <td class="text act"><button class="btn small ghost" data-edit="${r.id}">수정</button> <button class="btn small danger ghost" data-del="${r.id}">삭제</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="8" class="text empty-note">조건에 맞는 기록이 없습니다.</td></tr>`;
 
@@ -2300,7 +2306,7 @@ function shell(){
           <div class="list-tools"><div class="search"><input type="text" id="hSearch" placeholder="명칭 · 날짜 검색"></div></div>
           <div class="table-wrap">
             <table style="min-width:0;">
-              <thead><tr><th>날짜</th><th>명칭</th><th>등록</th><th>근무</th><th></th></tr></thead>
+              <thead><tr><th>날짜</th><th>명칭</th><th>등록</th><th>근무</th><th class="act"></th></tr></thead>
               <tbody id="hTableBody"></tbody>
             </table>
           </div>
@@ -2400,7 +2406,7 @@ function refresh(){
       <td class="text" style="white-space:normal; min-width:90px;">${h.name}</td>
       <td class="text"><span class="badge ${h.source==='auto'?'auto':'good'}">${h.source==='auto'?'자동':'수동'}</span></td>
       <td class="text"><button class="badge ${isClosed?'critical':'good'}" style="appearance:none; border:none; font-family:inherit; cursor:pointer; white-space:nowrap;" data-toggle="${h.id}" title="눌러서 전환">${isClosed?'휴무':'정상 근무'}</button></td>
-      <td class="text"><button class="btn small danger ghost" data-del="${h.id}">삭제</button></td>
+      <td class="text act"><button class="btn small danger ghost" data-del="${h.id}">삭제</button></td>
     </tr>
   `;
   }).join("") || `<tr><td colspan="5" class="text empty-note">등록된 휴무일이 없습니다.</td></tr>`;
@@ -2704,7 +2710,7 @@ function shell(){
         <table>
           <thead><tr>
             <th>상태</th><th>컷오프일시</th><th>국가</th><th>항공사/편명</th><th>구간</th><th>ETD</th><th>ETA</th>
-            <th>MAWB</th><th>Pallet</th><th>Package</th><th>Cutoff Wt</th><th>Actual Wt</th><th>Vol Wt</th><th></th>
+            <th>MAWB</th><th>Pallet</th><th>Package</th><th>Cutoff Wt</th><th>Actual Wt</th><th>Vol Wt</th><th class="act"></th>
           </tr></thead>
           <tbody id="sTableBody"></tbody>
         </table>
@@ -2741,7 +2747,7 @@ function shell(){
         <div class="section-head"><h2>항공편 목록</h2><span class="hint" id="cgCount"></span></div>
         <div class="table-wrap">
           <table style="min-width:0;">
-            <thead><tr><th>항공사 / 편명</th><th>구간</th><th>ETD</th><th>ETA</th><th>사용</th><th></th></tr></thead>
+            <thead><tr><th>항공사 / 편명</th><th>구간</th><th>ETD</th><th>ETA</th><th>사용</th><th class="act"></th></tr></thead>
             <tbody id="cgTableBody"></tbody>
           </table>
         </div>
@@ -2859,7 +2865,7 @@ function renderCargo(){
       <td>${c.etd||'-'}</td>
       <td>${c.eta||'-'}</td>
       <td class="text"><button class="badge ${on?'good':'sample'}" style="appearance:none; border:none; font-family:inherit; cursor:pointer;" data-cgtoggle="${c.id}">${on?'ON':'OFF'}</button></td>
-      <td class="text" style="white-space:nowrap;">
+      <td class="text act">
         <button class="btn small ghost" data-cgedit="${c.id}">수정</button>
         <button class="btn small danger ghost" data-cgdel="${c.id}">삭제</button>
       </td>
@@ -2985,7 +2991,7 @@ function refresh(){
       <td>${planned&&!s.cutoffWeight?dash:CD.fmtNum(s.cutoffWeight||0)}</td>
       <td>${planned&&!s.actualWeight?dash:CD.fmtNum(s.actualWeight||0)}</td>
       <td>${planned&&!s.volumeWeight?dash:CD.fmtNum(s.volumeWeight||0)}</td>
-      <td class="text"><button class="btn small ${planned?'primary':'ghost'}" data-edit="${s.id}">${planned?'출고 입력':'수정'}</button></td>
+      <td class="text act"><button class="btn small ${planned?'primary':'ghost'}" data-edit="${s.id}">${planned?'출고 입력':'수정'}</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="14" class="text empty-note">${all.length? "조건에 맞는 항공편이 없습니다." : "등록된 항공편 · 컷오프가 없습니다."}</td></tr>`;
 
@@ -3947,7 +3953,7 @@ function renderHandling(){
       <td>$${rate}</td>
       <td>$${(ea*rate).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2})}</td>
       <td class="text" style="color:var(--ink-2)">${h.memo||""}</td>
-      <td class="text"><button class="btn small ghost" data-hdedit="${h.id}">수정</button></td>
+      <td class="text act"><button class="btn small ghost" data-hdedit="${h.id}">수정</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="7" class="text empty-note">등록된 취급주의 수량이 없습니다.</td></tr>`;
   body.querySelectorAll("[data-hdedit]").forEach(b=> b.addEventListener("click", ()=>{
@@ -5506,7 +5512,7 @@ function renderInvoiceView(head, body, docs){
   head.innerHTML = `<tr>
     <th class="text" style="width:34px;"></th>
     <th class="text">인보이스 날짜</th><th class="text">업체</th><th class="text">인보이스 번호</th>
-    <th class="text">귀속 월</th><th class="num">항목</th><th class="num">합계</th><th class="text"></th>
+    <th class="text">귀속 월</th><th class="num">항목</th><th class="num">합계</th><th class="text act"></th>
   </tr>`;
   const pages = Math.max(1, Math.ceil(docs.length/PER));
   if(page >= pages) page = pages-1;
@@ -5526,7 +5532,7 @@ function renderInvoiceView(head, body, docs){
       <td class="text mono">${d.period}</td>
       <td class="num">${d.lines.length}개</td>
       <td class="num key" style="font-weight:600;${t<0?"color:var(--good-ink);":""}">${fmtD0(t)}</td>
-      <td class="text">
+      <td class="text act">
         <button class="btn small ghost" data-edit="${d.id}">${d.auto?"직접 입력":"수정"}</button>
         ${d.auto?"":`<button class="btn small danger ghost" data-del="${d.id}">삭제</button>`}
       </td>
@@ -5590,7 +5596,7 @@ function renderDateView(head, body, docs){
         <td class="text mono">${d.period}</td>
         <td class="num">${d.lines.length}개</td>
         <td class="num mono"${t<0?' style="color:var(--good-ink)"':''}>${fmtD0(t)}</td>
-        <td class="text">
+        <td class="text act">
           <button class="btn small ghost" data-edit="${d.id}">${d.auto?"직접 입력":"수정"}</button>
           ${d.auto?"":`<button class="btn small danger ghost" data-del="${d.id}">삭제</button>`}
         </td>
@@ -5644,7 +5650,7 @@ function renderItemView(head, body, docs){
       <td class="num mono"${neg?' style="color:var(--good-ink)"':''}>${fmtD0(dispAmt(L))}</td>
       <td class="text mono">${d.invoiceNo||"-"}</td>
       <td class="text" style="${d.auto?"color:var(--muted)":""}">${l.memo||d.memo||""}</td>
-      <td class="text">
+      <td class="text act">
         <button class="btn small ghost" data-edit="${d.id}">${d.auto?"직접 입력":"수정"}</button>
         ${d.auto?"":`<button class="btn small danger ghost" data-del="${d.id}">삭제</button>`}
       </td>
