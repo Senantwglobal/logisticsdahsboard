@@ -254,6 +254,8 @@ a{color:var(--accent);}
 input, select, textarea{font-family:var(--font-ui); font-size:13px; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-m); padding:9px 12px; outline:none; box-sizing:border-box; transition:border-color .12s ease, box-shadow .12s ease;}
 input.mono, .num-input{font-family:var(--font-mono);}
 input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft-line);}
+input[readonly]{background:var(--surface-3); color:var(--ink-2); cursor:default;}
+input[readonly]:focus{border-color:var(--line-strong); box-shadow:none;}
 input[type=number]{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
 /* kill the tiny native ▲▼ steppers on every field (number/date/time) — these are all typed-in.
    NOTE: do NOT set `appearance:textfield` on the input itself; recent Chrome treats it as
@@ -1710,7 +1712,13 @@ function updatePackHint(){
   const vals = readPackFields();
   const boxes = CD.PACK_KEYS.reduce((s,k)=>s+vals[k], 0);
   const items = CD.PACK_KEYS.reduce((s,k,i)=>s+vals[k]*(i+1), 0);
-  el.textContent = `합계 ${CD.fmtNum(boxes)}박스 · 제품 ${CD.fmtNum(items)}개`;
+  const packedEl = document.getElementById("fPacked");
+  const packed = packedEl ? Number(packedEl.value)||0 : 0;
+  let warn = "";
+  if(packed && boxes && boxes !== packed){
+    warn = ` · <b style="color:var(--critical-ink)">팩킹 수량 ${CD.fmtNum(packed)}건과 ${CD.fmtNum(Math.abs(boxes-packed))}건 차이</b>`;
+  }
+  el.innerHTML = `합계 ${CD.fmtNum(boxes)}박스 · 제품 ${CD.fmtNum(items)}개${warn}`;
 }
 
 function shell(){
@@ -1955,7 +1963,8 @@ function openDailyForm(rec){
         <div class="field"><label>날짜</label><input type="date" id="fDate" required></div>
         <div class="field"><label>픽킹 수량</label><input type="number" id="fPicked" min="0" required></div>
         <div class="field"><label>팩킹 수량</label><input type="number" id="fPacked" min="0" required></div>
-        <div class="field full"><label>출고 수량</label><input type="number" id="fShipped" min="0" required></div>
+        <div class="field full"><label>출고 수량 <span style="color:var(--muted); font-weight:400;">· 팩킹 수량과 동일</span></label>
+          <input type="number" id="fShipped" min="0" readonly tabindex="-1"></div>
         <div class="field full">
           <label>합포장 박스 수</label>
           <div class="pack-grid">${packGridHtml()}</div>
@@ -1975,7 +1984,11 @@ function openDailyForm(rec){
   // 신규 입력은 0을 지우고 쓰는 번거로움이 없게 빈칸으로 둔다
   document.getElementById("fPicked").value  = rec ? (r.picked||0)  : "";
   document.getElementById("fPacked").value  = rec ? (r.packed||0)  : "";
-  document.getElementById("fShipped").value = rec ? (r.shipped||0) : "";
+  /* 출고 수량은 팩킹 수량을 그대로 따라간다 — 둘이 어긋날 일이 없게 입력을 하나로 묶는다 */
+  const packedEl = document.getElementById("fPacked"), shippedEl = document.getElementById("fShipped");
+  const syncShipped = ()=>{ shippedEl.value = packedEl.value; };
+  packedEl.addEventListener("input", ()=>{ syncShipped(); updatePackHint(); });
+  syncShipped();
   CD.PACK_KEYS.forEach(k=>{ const el = document.getElementById(packFieldId(k)); if(el) el.value = r[k]||0; });
   updatePackHint();
 
@@ -2008,7 +2021,8 @@ async function onSubmitForm(e){
     id: newId, country, date,
     picked: Number(document.getElementById("fPicked").value)||0,
     packed: Number(document.getElementById("fPacked").value)||0,
-    shipped: Number(document.getElementById("fShipped").value)||0,
+    shipped: Number(document.getElementById("fPacked").value)||0,   // 출고 = 팩킹
+
     ...readPackFields(),
   };
   const oldId = editingId, wasEdit = !!editingId;
@@ -2458,6 +2472,7 @@ function openForm(existing){
         ${fieldRow("도착지 (Dest)", `<input type="text" id="mDest" class="mono" value="${s.dest||''}" placeholder="LAX">`)}
         ${fieldRow("ETD", `<input type="datetime-local" id="mEtd" value="${(s.etd||'').slice(0,16)}">`)}
         ${fieldRow("ETA", `<input type="datetime-local" id="mEta" value="${(s.eta||'').slice(0,16)}">`)}
+        ${fieldRow("MAWB", `<input type="text" id="mMawb" class="mono" value="${s.mawb||''}" placeholder="988-1234 5670">`, true)}
         ${fieldRow("비고", `<textarea id="mNotes" rows="2" style="width:100%;">${s.notes||''}</textarea>`, true)}
       </div>
 
@@ -2467,7 +2482,6 @@ function openForm(existing){
           <span class="hint" id="mResultHint"></span>
         </div>
         <div class="grid form">
-          ${fieldRow("MAWB", `<input type="text" id="mMawb" class="mono" value="${s.mawb||''}" placeholder="988-1234 5670">`, true)}
           ${fieldRow("Pallet Count", `<input type="number" id="mPallet" min="0" value="${s.palletCount||0}">`)}
           ${fieldRow("Package Count", `<input type="number" id="mPackage" min="0" value="${s.packageCount||0}">`)}
           ${fieldRow("Cutoff Weight (kg)", `<input type="number" id="mCutoffWeight" min="0" value="${s.cutoffWeight||0}">`)}
